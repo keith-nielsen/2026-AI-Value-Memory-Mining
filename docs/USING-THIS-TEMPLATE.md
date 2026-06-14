@@ -124,20 +124,26 @@ The hook fires on every commit — by human, script, or agent. It imports
 
 ## Step 5: Set Up Crons (Optional)
 
-Two scripts run on a schedule. Add them to your crontab (`crontab -e`):
+Three scripts run on a schedule. Each must see the full vault configuration, so
+**source `config.env` first** — it exports `VAULT_ROOT` plus the vocab variables
+(`PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, …) that the scripts read. Setting only
+`VAULT_ROOT` will make `vault-refine-detect.py` fail with a missing-variable error.
+
+Add them to your crontab (`crontab -e`), pointing at your vault's `config.env`:
 
 ```cron
 # daily note at 00:01
-1 0 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-daily-note.py
+1 0 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-daily-note.py
 
 # roll-over carry-over links at 00:02
-2 0 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-rollover.py
+2 0 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-rollover.py
 
 # refine detector at 06:00
-0 6 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-refine-detect.py
+0 6 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-refine-detect.py
 ```
 
-Set `VAULT_ROOT` to the absolute path of your vault.
+Make sure `VAULT_ROOT` inside `config.env` is set to the absolute path of your vault
+(Step 2). Sourcing `config.env` then provides everything each script needs.
 
 ---
 
@@ -186,17 +192,30 @@ If you're confident a change is right, document it as a constitution-override ch
 
 ## Ongoing Operations
 
+Source `config.env` once per shell session so every script sees the full
+configuration (`VAULT_ROOT` plus the vocab variables the linter and refine detector
+need):
+
+```bash
+. /path/to/my-vault/99-Operations/config.env
+```
+
+Then run any operation:
+
 | Task | Command |
 |------|---------|
-| Create today's daily note | `VAULT_ROOT=... python3 ~/bin/vault-daily-note.py` |
-| Lint the vault | `VAULT_ROOT=... python3 ~/bin/vault-lint.py` |
-| Find orphaned Treasury notes | `VAULT_ROOT=... python3 ~/bin/vault-orphans.py` |
-| Render kanban board | `VAULT_ROOT=... python3 ~/bin/vault-kanban-render.py` |
-| Slag an effort | Set frontmatter, then `VAULT_ROOT=... vault-slag.sh <slug>` |
-| Dispose a husk | `VAULT_ROOT=... vault-dispose.sh <slug>` |
-| Re-prospect Tailings | `VAULT_ROOT=... python3 ~/bin/vault-reprospect.py` |
-| Check for drift | `VAULT_ROOT=... python3 ~/bin/vault-render.py reconcile` |
-| Re-deploy after source edit | `VAULT_ROOT=... python3 ~/bin/vault-render.py render` |
+| Create today's daily note | `python3 ~/bin/vault-daily-note.py` |
+| Lint the vault | `python3 ~/bin/vault-lint.py` |
+| Find orphaned Treasury notes | `python3 ~/bin/vault-orphans.py` |
+| Render kanban board | `python3 ~/bin/vault-kanban-render.py` |
+| Slag an effort | Set frontmatter, then `vault-slag.sh <slug>` |
+| Dispose a husk | `vault-dispose.sh <slug>` |
+| Re-prospect Tailings | `python3 ~/bin/vault-reprospect.py` |
+| Check for drift | `python3 ~/bin/vault-render.py reconcile` |
+| Re-deploy after source edit | `python3 ~/bin/vault-render.py render` |
+
+(`vault-slag.sh` and `vault-dispose.sh` need only `VAULT_ROOT`; the others read the
+vocab variables too — sourcing `config.env` covers all of them.)
 
 ---
 

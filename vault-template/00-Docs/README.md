@@ -82,16 +82,32 @@ The Home MOC (`home-moc.md`) links to each pillar's front door.
 
 ### 2. Bootstrap the scripts
 
-Install dependencies and render the operational scripts to the host:
+Install dependencies and render the operational scripts to the host. First make sure
+`VAULT_ROOT` in `99-Operations/config.env` is your vault's absolute path, then:
 
 ```bash
 cd <vault-root>
 pip install -r 99-Operations/requirements.txt
-python3 99-Operations/scripts/render-reconcile.md  # bootstrap render itself
+. 99-Operations/config.env                         # export VAULT_ROOT + vocab vars
+
+# Bootstrap the render script by extracting its code block
+# (a meta-script note is Markdown — you can't run the .md directly)
+python3 - <<'PY'
+import re, os, pathlib, frontmatter
+note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
+out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
+print("bootstrapped", out)
+PY
+
 python3 ~/bin/vault-render.py render               # deploy all scripts
 python3 ~/bin/vault_naming.py                      # emit naming-rules.json
 git config core.hooksPath 99-Operations/hooks      # activate commit gate
 ```
+
+For ongoing operations, source `config.env` once per shell session
+(`. 99-Operations/config.env`) so every script sees the configuration it needs.
 
 ### 3. Create your first daily note
 
