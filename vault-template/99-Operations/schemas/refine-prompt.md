@@ -36,7 +36,7 @@ matching the proposal schema below — no prose, no partial writes.
   "mode": "create | append",
   "insight_md": "string (distilled durable value, markdown)",
   "provenance_md": "string (what was tried/decided/rejected and why)",
-  "moc_links": ["40-Treasury/Catalog/<Pillar> MOC.md", "..."],
+  "moc_links": ["40-Treasury/Catalog/<pillar>-moc.md", "..."],
   "frontmatter": {
     "pillars": ["<from PILLARS>"],
     "grade": "<from GRADES>",

@@ -52,7 +52,7 @@ this agent output contract schema:
   "mode": "create | append",
   "insight_md": "string — distilled durable value, Markdown",
   "provenance_md": "string — what was tried/decided/rejected and why",
-  "moc_links": ["40-Treasury/Catalog/<Pillar> MOC.md", "..."],
+  "moc_links": ["40-Treasury/Catalog/<pillar>-moc.md", "..."],
   "frontmatter": {
     "pillars": ["<value from PILLARS>"],
     "grade": "<value from GRADES>",
