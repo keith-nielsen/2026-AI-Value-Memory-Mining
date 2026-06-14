@@ -22,7 +22,7 @@ import os, re, sys, pathlib, frontmatter
 vault = pathlib.Path(os.environ["VAULT_ROOT"])
 mode = sys.argv[1] if len(sys.argv) > 1 else "reconcile"   # render | reconcile
 assert mode in ("render", "reconcile")
-CODE = re.compile(r"```(?:python|bash)\n(.*?)```", re.S)
+CODE = re.compile(r"^```(?:python|bash)\n(.*?)^```", re.S | re.M)
 drift = 0
 for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
     post = frontmatter.load(note)

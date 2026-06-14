@@ -87,7 +87,7 @@ python3 - << 'EOF'
 import re, pathlib, frontmatter, os
 note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
 post = frontmatter.load(note)
-m = re.search(r"```python\n(.*?)```", post.content, re.S)
+m = re.search(r"^```python\n(.*?)^```", post.content, re.S | re.M)
 target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(m.group(1))
