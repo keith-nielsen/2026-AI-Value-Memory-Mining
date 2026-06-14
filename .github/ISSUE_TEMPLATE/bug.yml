@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a defect in the template, scripts, specs, or documentation
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check that this is a defect in the **template repo** itself,
+        not a configuration issue in your personal vault fork.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is broken, and how do you know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps that reliably produce the bug
+      placeholder: |
+        1. ...
+        2. ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include error messages, stack traces, or diff output
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: Affected component
+      description: "e.g. vault-template/99-Operations/scripts/lint.md, openspec/specs/naming-rules/spec.md"
+    validations:
+      required: true
+
+  - type: input
+    id: openspec-version
+    attributes:
+      label: OpenSpec version
+      description: Output of `openspec --version`
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: Output of `python3 --version`
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context

@@ -1,0 +1,14 @@
+# Global owner — all files require review from @keith-nielsen
+*                       @keith-nielsen
+
+# Constitutional files — require maintainer review
+openspec/constitution.md                @keith-nielsen
+openspec/project.md                     @keith-nielsen
+openspec/adr/                           @keith-nielsen
+openspec/changes/templates/             @keith-nielsen
+
+# Capability specs — spec changes require maintainer review
+openspec/specs/                         @keith-nielsen
+
+# CI — workflow changes require maintainer review
+.github/workflows/                      @keith-nielsen

@@ -1,0 +1,216 @@
+---
+title: "Using This Template"
+---
+
+# Using This Template
+
+This repo is a forkable, production-ready implementation of the Value Mining personal
+knowledge system. Fork it once; configure your pillars; run the bootstrap; start
+mining.
+
+---
+
+## Prerequisites
+
+| Requirement | Notes |
+|-------------|-------|
+| [Obsidian](https://obsidian.md) | Local-first Markdown editor; free for personal use |
+| Python 3.10+ | For all operational scripts |
+| Git | Version control; the vault is a repository |
+| `python-frontmatter` | `pip install python-frontmatter` (or via `requirements.txt`) |
+
+Optional for Phase 3 (agent operations, deferred):
+- [Hermes Agent v0.15.2](https://github.com/Nous-Research/hermes) — Kanban worker runtime
+- [n8n](https://n8n.io) — Orchestration / egress-control layer
+- [Ollama](https://ollama.ai) — Local model inference
+
+---
+
+## Fork and Clone
+
+```bash
+# Fork on GitHub, then:
+git clone https://github.com/<your-username>/memory-mining.git my-vault
+cd my-vault
+```
+
+Or use the GitHub template button if this repo is marked as a template.
+
+---
+
+## Step 1: Copy the Vault Template
+
+The `vault-template/` directory is your starting vault. Copy it to wherever you keep
+your Obsidian vaults:
+
+```bash
+cp -r vault-template/ ~/Documents/my-vault
+cd ~/Documents/my-vault
+git init
+git config core.hooksPath 99-Operations/hooks
+git add -A
+git commit -m "init: fork from memory-mining template"
+```
+
+---
+
+## Step 2: Configure Your Pillars
+
+Edit `99-Operations/config.env`:
+
+```bash
+# Replace with your own top-level life/knowledge domains
+PILLARS="mental health financial social technology calling"
+```
+
+Pillar design principles:
+- **Distinct**: minimal overlap between pillars
+- **Top-level**: no pillar should be a sub-category of another
+- **Durable**: stable for years, not months
+
+Then update `40-Treasury/Catalog/` to match. Either rename the example MOC files or
+create new ones from `97-Molds/moc.md`. The Home MOC (`home-moc.md`) should link to
+each of your pillar MOCs.
+
+---
+
+## Step 3: Bootstrap Scripts
+
+Install the Python dependency and deploy the operational scripts to the host:
+
+```bash
+cd ~/Documents/my-vault
+pip install -r 99-Operations/requirements.txt
+
+# Bootstrap render from source (one-time)
+python3 - << 'EOF'
+import re, pathlib, frontmatter, os
+note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+post = frontmatter.load(note)
+m = re.search(r"```python\n(.*?)```", post.content, re.S)
+target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_text(m.group(1))
+target.chmod(0o755)
+print(f"bootstrapped -> {target}")
+EOF
+
+# Deploy all scripts
+VAULT_ROOT="$(pwd)" python3 ~/bin/vault-render.py render
+
+# Emit naming-rules.json
+VAULT_ROOT="$(pwd)" python3 ~/bin/vault_naming.py
+
+# Verify zero drift
+VAULT_ROOT="$(pwd)" python3 ~/bin/vault-render.py reconcile
+```
+
+---
+
+## Step 4: Activate the Commit Gate
+
+The pre-commit hook (INV-11) blocks commits with naming-violating filenames. It was
+activated by `git config core.hooksPath 99-Operations/hooks` in Step 1. Verify:
+
+```bash
+git config core.hooksPath
+# should print: 99-Operations/hooks
+```
+
+The hook fires on every commit — by human, script, or agent. It imports
+`vault_naming.py` and is itself deployed by `render` (which marks it executable).
+
+---
+
+## Step 5: Set Up Crons (Optional)
+
+Two scripts run on a schedule. Add them to your crontab (`crontab -e`):
+
+```cron
+# daily note at 00:01
+1 0 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-daily-note.py
+
+# roll-over carry-over links at 00:02
+2 0 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-rollover.py
+
+# refine detector at 06:00
+0 6 * * * VAULT_ROOT=/path/to/my-vault python3 ~/bin/vault-refine-detect.py
+```
+
+Set `VAULT_ROOT` to the absolute path of your vault.
+
+---
+
+## Step 6: Open in Obsidian
+
+Open the vault folder in Obsidian. You'll find:
+
+- `00-Docs/README.md` — orientation and getting-started guide (deletable after setup)
+- `40-Treasury/Catalog/home-moc.md` — master index linking to your pillar MOCs
+- `97-Molds/` — note templates (daily, effort, knowledge, moc)
+- `99-Operations/` — all scripts and config (human-write-only)
+
+---
+
+## What to Customize
+
+| Item | How |
+|------|-----|
+| Pillars | `99-Operations/config.env` → `PILLARS=...`; update Catalog MOCs |
+| Grade gate | `config.env` → `REFINE_GATE_GRADES=...` (default: `silver gold`) |
+| Cron schedules | Edit the `schedule:` field in the relevant `99-Operations/scripts/*.md` note, re-run `render` |
+| Script behaviour | Edit the code block in the relevant `99-Operations/scripts/*.md` note, re-run `render`; verify with `reconcile` |
+| `~/bin` location | Change `deploy_target` values in script notes if you use a different local bin path |
+
+**Never edit deployed host scripts directly** — they are generated artifacts. Changes
+belong in the Layer-0 source note. `reconcile` will catch any drift.
+
+---
+
+## What NOT to Customize Without the Protocol
+
+The following are **constitutional elements** (Tier-0/Tier-1 in `openspec/constitution.md`).
+Changing them requires the 4-gate Informed-Upheaval Protocol:
+
+- Three-layer model (Layer 0 / Layer 1 / Layer 2 assignment)
+- Deposit-not-merge rule (agents propose; humans gate; scripts execute)
+- Grade system (`coal < bronze < silver < gold`)
+- No secrets in vault files (INV-7)
+- Naming ruleset (INV-11) — changes cascade to the hook, linter, executor, and JSON mirror
+
+If you're confident a change is right, document it as a constitution-override change in
+`openspec/changes/` using the template at
+`openspec/changes/templates/constitution-override/proposal.md`.
+
+---
+
+## Ongoing Operations
+
+| Task | Command |
+|------|---------|
+| Create today's daily note | `VAULT_ROOT=... python3 ~/bin/vault-daily-note.py` |
+| Lint the vault | `VAULT_ROOT=... python3 ~/bin/vault-lint.py` |
+| Find orphaned Treasury notes | `VAULT_ROOT=... python3 ~/bin/vault-orphans.py` |
+| Render kanban board | `VAULT_ROOT=... python3 ~/bin/vault-kanban-render.py` |
+| Slag an effort | Set frontmatter, then `VAULT_ROOT=... vault-slag.sh <slug>` |
+| Dispose a husk | `VAULT_ROOT=... vault-dispose.sh <slug>` |
+| Re-prospect Tailings | `VAULT_ROOT=... python3 ~/bin/vault-reprospect.py` |
+| Check for drift | `VAULT_ROOT=... python3 ~/bin/vault-render.py reconcile` |
+| Re-deploy after source edit | `VAULT_ROOT=... python3 ~/bin/vault-render.py render` |
+
+---
+
+## Keeping Your Fork in Sync
+
+This template repo evolves. To pull upstream changes without clobbering your vault:
+
+```bash
+# In the template repo clone (not your vault)
+git remote add upstream https://github.com/keith-nielsen/memory-mining.git
+git fetch upstream
+git merge upstream/main
+```
+
+Only `openspec/`, `docs/`, `.github/`, and root files (`README.md`, `LICENSE`, etc.)
+are expected to update. The `vault-template/` directory may receive script improvements
+— review diffs carefully before applying, especially to `99-Operations/scripts/`.

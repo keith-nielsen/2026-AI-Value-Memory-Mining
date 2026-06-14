@@ -1,0 +1,276 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  openspec-validate:
+    name: OpenSpec validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install OpenSpec
+        run: npm install -g @fission-ai/openspec@latest --prefix ~/.local
+        env:
+          OPENSPEC_TELEMETRY: "0"
+
+      - name: Validate OpenSpec project
+        run: ~/.local/bin/openspec validate
+        env:
+          OPENSPEC_TELEMETRY: "0"
+
+  constitution-lint:
+    name: Constitution lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check no constitutional spec is missing protects frontmatter
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys
+          # Specs that must carry protects: tags
+          REQUIRED = [
+            "openspec/specs/vault-structure/spec.md",
+            "openspec/specs/value-pipeline/spec.md",
+            "openspec/specs/access-control/spec.md",
+            "openspec/specs/naming-rules/spec.md",
+            "openspec/specs/maintenance/spec.md",
+            "openspec/specs/agent-integration/spec.md",
+          ]
+          errors = []
+          for path in REQUIRED:
+            p = pathlib.Path(path)
+            if not p.exists():
+              errors.append(f"MISSING spec: {path}")
+              continue
+            text = p.read_text()
+            if "protects:" not in text:
+              errors.append(f"MISSING protects: tag in {path}")
+          for e in errors:
+            print(e, file=sys.stderr)
+          sys.exit(1 if errors else 0)
+          EOF
+
+      - name: Check constitution.md has all 5 CONST entries
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys
+          text = pathlib.Path("openspec/constitution.md").read_text()
+          missing = [f"CONST-0{i}" for i in range(1, 6) if f"CONST-0{i}" not in text]
+          for m in missing:
+            print(f"MISSING constitutional entry: {m}", file=sys.stderr)
+          sys.exit(1 if missing else 0)
+          EOF
+
+      - name: Check Informed-Upheaval Protocol template exists
+        run: |
+          test -f openspec/changes/templates/constitution-override/proposal.md || {
+            echo "MISSING constitution-override template" >&2; exit 1; }
+
+  vocabulary-lint:
+    name: Vocabulary lint (grade + pillar)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check config.env defines required variables
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys, re
+          text = pathlib.Path("vault-template/99-Operations/config.env").read_text()
+          required = ["PILLARS", "GRADES", "KNOWLEDGE_STAGES", "REFINE_GATE_GRADES"]
+          missing = [v for v in required if not re.search(rf'^{v}=', text, re.M)]
+          for m in missing:
+            print(f"MISSING config var: {m}", file=sys.stderr)
+          sys.exit(1 if missing else 0)
+          EOF
+
+      - name: Check grade vocabulary is consistent across specs and config
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys, re
+          config = pathlib.Path("vault-template/99-Operations/config.env").read_text()
+          m = re.search(r'^GRADES="([^"]+)"', config, re.M)
+          if not m:
+            print("MISSING GRADES in config.env", file=sys.stderr); sys.exit(1)
+          grades = set(m.group(1).split())
+          expected = {"coal", "bronze", "silver", "gold"}
+          if grades != expected:
+            print(f"Grade mismatch: config={grades}, expected={expected}", file=sys.stderr)
+            sys.exit(1)
+          sys.exit(0)
+          EOF
+
+  spec-lint:
+    name: Spec lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all expected specs exist
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys
+          EXPECTED = [
+            "openspec/specs/vault-structure/spec.md",
+            "openspec/specs/value-pipeline/spec.md",
+            "openspec/specs/access-control/spec.md",
+            "openspec/specs/naming-rules/spec.md",
+            "openspec/specs/maintenance/spec.md",
+            "openspec/specs/agent-integration/spec.md",
+          ]
+          missing = [p for p in EXPECTED if not pathlib.Path(p).exists()]
+          for m in missing:
+            print(f"MISSING: {m}", file=sys.stderr)
+          sys.exit(1 if missing else 0)
+          EOF
+
+      - name: Check all expected ADRs exist
+        run: |
+          python3 - << 'EOF'
+          import pathlib, sys
+          EXPECTED = [f"openspec/adr/{i:04d}-" for i in range(1, 9)]
+          errors = []
+          for prefix in EXPECTED:
+            matches = list(pathlib.Path("openspec/adr").glob(f"{prefix.split('/')[-1]}*.md"))
+            if not matches:
+              errors.append(f"MISSING ADR: {prefix}*.md")
+          for e in errors:
+            print(e, file=sys.stderr)
+          sys.exit(1 if errors else 0)
+          EOF
+
+  naming-validator:
+    name: Naming validator unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install python-frontmatter
+
+      - name: Run naming validator unit tests
+        run: |
+          python3 - << 'EOF'
+          import re, json, unicodedata, sys
+
+          # inline the validator (same logic as vault_naming.py)
+          RULES = {
+            "slug_pattern": r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "forbidden_chars": list('[]#^|\\/:*"?<>'),
+            "reserved_names": ["CON", "PRN", "AUX", "NUL"]
+                              + [f"COM{i}" for i in range(1, 10)]
+                              + [f"LPT{i}" for i in range(1, 10)],
+            "max_bytes": 255,
+            "normalization": "NFC",
+          }
+          _slug_re = re.compile(RULES["slug_pattern"])
+          _forbidden = set(RULES["forbidden_chars"])
+          _reserved = {n.upper() for n in RULES["reserved_names"]}
+
+          def validate_name(name):
+            v = []
+            if name == "": return ["empty name"]
+            if name != unicodedata.normalize("NFC", name): v.append("not NFC-normalised")
+            if name.startswith("."): v.append("starts with a dot")
+            if name != name.strip() or name.endswith("."): v.append("leading/trailing space or trailing dot")
+            if any(ord(c) < 32 for c in name): v.append("contains control character(s)")
+            bad = sorted(_forbidden & set(name))
+            if bad: v.append("forbidden char(s): " + " ".join(bad))
+            if name.upper() in _reserved: v.append("reserved device name: " + name)
+            if len(name.encode("utf-8")) > RULES["max_bytes"]: v.append("exceeds 255 bytes")
+            return v
+
+          def is_valid_slug(slug):
+            return bool(_slug_re.match(slug)) and not validate_name(slug)
+
+          failures = []
+
+          # valid slugs
+          for name in ["my-insight", "2026-06-11", "a-b-c"]:
+            if validate_name(name):
+              failures.append(f"FAIL: {name!r} should be valid, got {validate_name(name)}")
+            if not is_valid_slug(name):
+              failures.append(f"FAIL: {name!r} should be a valid slug")
+
+          # invalid names
+          for name in ["bad:name", "pipe|x", "has#hash", "CON", ".hidden"]:
+            if not validate_name(name):
+              failures.append(f"FAIL: {name!r} should be invalid")
+
+          # invalid slugs (even if names are safe)
+          for slug in ["My-Insight", "a--b"]:
+            if is_valid_slug(slug):
+              failures.append(f"FAIL: {slug!r} should not be a valid slug")
+
+          for f in failures:
+            print(f, file=sys.stderr)
+          sys.exit(1 if failures else 0)
+          EOF
+
+  md-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Lint Markdown files
+        run: |
+          markdownlint \
+            --ignore vault-template/ \
+            --ignore source/ \
+            --ignore node_modules/ \
+            --config .markdownlint.yml \
+            "**/*.md" || true
+        # || true: advisory only — md-lint is non-blocking while the ruleset is tuned
+
+  link-check:
+    name: Link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check internal markdown links (non-wikilinks)
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re, sys
+          root = pathlib.Path(".")
+          broken = []
+          # check standard [text](path) links pointing to local files
+          LINK_RE = re.compile(r'\[.*?\]\((?!http)([^)#]+)')
+          for md in root.rglob("*.md"):
+            if any(part.startswith('.') or part in ('source', 'node_modules')
+                   for part in md.parts):
+              continue
+            text = md.read_text()
+            for m in LINK_RE.finditer(text):
+              target = (md.parent / m.group(1)).resolve()
+              if not target.exists():
+                broken.append(f"{md}:{m.start()}: broken link -> {m.group(1)}")
+          for b in broken:
+            print(b, file=sys.stderr)
+          sys.exit(1 if broken else 0)
+          EOF

@@ -1,0 +1,24 @@
+# Markdownlint configuration
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+# Allow longer lines — spec docs contain tables and code blocks
+MD013:
+  line_length: 120
+  code_blocks: false
+  tables: false
+
+# Allow duplicate headings across different files / sections
+MD024:
+  siblings_only: true
+
+# Allow raw HTML (used in some spec docs for emphasis)
+MD033: false
+
+# Allow multiple blank lines (Mermaid diagram formatting)
+MD012:
+  maximum: 2
+
+# Inline HTML
+MD041: false

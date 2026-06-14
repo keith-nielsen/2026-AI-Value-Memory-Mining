@@ -1,0 +1,16 @@
+memory-mining — Value Mining SDD Template
+Copyright 2026 Keith Nielsen
+
+This product is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+Third-party tools referenced by this repository are orchestrated as separate
+programs and are not vendored or distributed here. Each carries its own license:
+
+  - OpenSpec CLI (Fission-AI/OpenSpec) — MIT License
+  - Obsidian — proprietary (obsidian.md/license)
+  - Hermes Agent (Nous Research) — see project repository for license terms
+  - n8n — Sustainable Use License / Apache-2.0 (n8n.io)
+  - Ollama — MIT License
+
+No source code from any of the above is included in this repository.
