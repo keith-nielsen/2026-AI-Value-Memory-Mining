@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Validate the literate meta-scripts: render them, static-check (py_compile /
+# bash -n / shellcheck), smoke-test the pipeline on a fresh vault, and prove the
+# refine executor's INV-11 boundary. Sandboxed: HOME + VAULT_ROOT live in a temp dir.
+#
+# Usage: .github/scripts/validate-scripts.sh
+# Requires: python3 with `python-frontmatter`; shellcheck optional (skipped if absent).
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+WORK="$(mktemp -d)"
+export HOME="$WORK/home"
+mkdir -p "$HOME/bin"
+VAULT="$WORK/vault"
+cp -r "$REPO/vault-template" "$VAULT"
+trap 'rm -rf "$WORK"' EXIT
+
+# Point config at the sandbox vault, then source it (VAULT_ROOT + vocab vars)
+sed -i.bak "s|^export VAULT_ROOT=.*|export VAULT_ROOT=\"$VAULT\"|" "$VAULT/99-Operations/config.env"
+rm -f "$VAULT/99-Operations/config.env.bak"
+set -a; source "$VAULT/99-Operations/config.env"; set +a
+export VAULT_ROOT="$VAULT"
+
+FAIL=0
+ok(){ echo "  ok    $1"; }
+no(){ echo "  FAIL  $1"; FAIL=1; }
+hdr(){ echo; echo "== $1 =="; }
+
+cd "$VAULT"
+
+hdr "render all scripts to the sandbox host"
+# Bootstrap render from its source note, then deploy everything
+python3 - <<'PY' || exit 2
+import re, os, pathlib, frontmatter
+note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
+out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
+PY
+python3 "$HOME/bin/vault-render.py" render >/dev/null || { no "render failed"; exit 2; }
+python3 "$HOME/bin/vault_naming.py" >/dev/null
+ok "render + naming-rules.json"
+
+hdr "static checks — python compiles"
+for py in "$HOME"/bin/*.py; do
+  if python3 -m py_compile "$py" 2>/tmp/pc.txt; then ok "py_compile $(basename "$py")"; else no "py_compile $(basename "$py")"; cat /tmp/pc.txt; fi
+done
+
+hdr "static checks — bash syntax + shellcheck"
+SH_FILES=("$HOME"/bin/*.sh "$VAULT/99-Operations/hooks/pre-commit")
+for sh in "${SH_FILES[@]}"; do
+  base="$(basename "$sh")"
+  bash -n "$sh" 2>/tmp/bn.txt && ok "bash -n $base" || { no "bash -n $base"; cat /tmp/bn.txt; }
+  if command -v shellcheck >/dev/null 2>&1; then
+    shellcheck -S warning "$sh" >/tmp/sc.txt 2>&1 && ok "shellcheck $base" || { no "shellcheck $base"; cat /tmp/sc.txt; }
+  fi
+done
+command -v shellcheck >/dev/null 2>&1 || echo "  (shellcheck not installed — skipped)"
+
+hdr "fresh-vault smoke"
+git init -q -b main; git config user.name ci; git config user.email ci@ci; git config core.hooksPath 99-Operations/hooks
+git add -A; git commit -qm init --no-verify
+# reconcile zero drift
+python3 "$HOME/bin/vault-render.py" reconcile >/dev/null && ok "reconcile zero drift" || no "reconcile drift"
+# daily-note idempotent
+python3 "$HOME/bin/vault-daily-note.py" | grep -q created && \
+python3 "$HOME/bin/vault-daily-note.py" | grep -q exists && ok "daily-note idempotent" || no "daily-note"
+# linter passes on empty treasury
+python3 "$HOME/bin/vault-lint.py" >/dev/null && ok "lint clean (empty treasury)" || no "lint"
+# refine-detect on empty sites
+python3 "$HOME/bin/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
+# kanban renders
+python3 "$HOME/bin/vault-kanban-render.py" >/dev/null && [ -f "$VAULT/20-Logbook/kanban.md" ] && ok "kanban render" || no "kanban"
+
+hdr "INV-11 executor boundary (A3.3 executor side)"
+# A non-conforming target_note must be rejected with no Treasury write.
+cat > "$VAULT/10-Claims/_refine-approved/bad.json" <<'JSON'
+{ "target_note": "40-Treasury/Bad:Name.md", "mode": "create",
+  "insight_md": "x", "provenance_md": "y", "moc_links": [],
+  "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
+JSON
+out=$(python3 "$HOME/bin/vault-refine-execute.py" 2>&1)
+if echo "$out" | grep -q REJECT && [ ! -e "$VAULT/40-Treasury/Bad:Name.md" ]; then
+  ok "executor rejects non-kebab target_note, no Treasury write"
+else
+  no "executor boundary (out: $out)"
+fi
+rm -f "$VAULT/10-Claims/_refine-approved/bad.json"
+# A conforming one must be applied.
+cat > "$VAULT/10-Claims/_refine-approved/good.json" <<'JSON'
+{ "target_note": "40-Treasury/good-insight.md", "mode": "create",
+  "insight_md": "Durable value.", "provenance_md": "Tried X.",
+  "moc_links": ["40-Treasury/Catalog/technology-moc.md"],
+  "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
+JSON
+python3 "$HOME/bin/vault-refine-execute.py" >/dev/null 2>&1
+[ -f "$VAULT/40-Treasury/good-insight.md" ] && ok "executor applies conforming proposal" || no "executor good-path"
+
+echo
+[ $FAIL -eq 0 ] && echo "VALIDATION OK" || echo "VALIDATION FAILED"
+exit $FAIL

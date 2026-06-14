@@ -274,3 +274,26 @@ jobs:
             print(b, file=sys.stderr)
           sys.exit(1 if broken else 0)
           EOF
+
+  validate-scripts:
+    name: Validate scripts (py ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "${{ matrix.python }}"
+
+      - name: Install dependencies
+        run: pip install python-frontmatter
+
+      - name: Render + static-check + smoke + INV-11 boundary
+        # py_compile all scripts, bash -n + shellcheck (preinstalled on the runner)
+        # the shell scripts, fresh-vault pipeline smoke, and executor boundary test.
+        run: bash .github/scripts/validate-scripts.sh
