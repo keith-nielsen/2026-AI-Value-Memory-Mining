@@ -66,7 +66,8 @@ python3 "$HOME/bin/vault-render.py" reconcile >/dev/null && ok "reconcile zero d
 python3 "$HOME/bin/vault-daily-note.py" | grep -q created && \
 python3 "$HOME/bin/vault-daily-note.py" | grep -q exists && ok "daily-note idempotent" || no "daily-note"
 # linter passes on empty treasury
-python3 "$HOME/bin/vault-lint.py" >/dev/null && ok "lint clean (empty treasury)" || no "lint"
+lint_out=$(python3 "$HOME/bin/vault-lint.py" 2>&1); lint_rc=$?
+[ $lint_rc -eq 0 ] && ok "lint clean (empty treasury)" || { no "lint (rc=$lint_rc)"; echo "$lint_out" | sed 's/^/        /'; }
 # refine-detect on empty sites
 python3 "$HOME/bin/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
 # kanban renders

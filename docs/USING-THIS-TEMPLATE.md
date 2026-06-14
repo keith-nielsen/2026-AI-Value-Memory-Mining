@@ -15,7 +15,7 @@ mining.
 | Requirement | Notes |
 |-------------|-------|
 | [Obsidian](https://obsidian.md) | Local-first Markdown editor; free for personal use |
-| Python 3.10+ | For all operational scripts |
+| Python 3.12+ | For all operational scripts |
 | Git | Version control; the vault is a repository |
 | `python-frontmatter` | `pip install python-frontmatter` (or via `requirements.txt`) |
 

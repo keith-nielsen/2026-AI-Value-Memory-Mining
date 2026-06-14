@@ -89,7 +89,7 @@ INV IDs are **frozen** — see ADR-0008.
 |---|---|---|
 | SDD framework | OpenSpec v1.4.1+ | `spec-driven` schema; ADRs as project convention |
 | Vault UI | Obsidian | Local-first; wikilinks native |
-| Script language | Python 3.10+ | `python-frontmatter` for YAML |
+| Script language | Python 3.12+ | `python-frontmatter` for YAML |
 | Git wrappers | Bash | Thin wrappers only |
 | Agent runtime | Hermes Agent v0.15.2 | Phase 3, deferred |
 | Orchestration | n8n | Deferred |
