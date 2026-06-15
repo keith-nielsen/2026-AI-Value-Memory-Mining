@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Constitution — memory-mining
+# Constitution — value-memory-mining
 
 This document defines the **protected principles and design metaphors** that give
 the Value Mining system its intuitiveness, consistency, and cognitive flow. These

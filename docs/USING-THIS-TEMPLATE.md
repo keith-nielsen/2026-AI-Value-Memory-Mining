@@ -30,7 +30,7 @@ Optional for Phase 3 (agent operations, deferred):
 
 ```bash
 # Fork on GitHub, then:
-git clone https://github.com/<your-username>/memory-mining.git my-vault
+git clone https://github.com/<your-username>/2026-AI-Value-Memory-Mining.git my-vault
 cd my-vault
 ```
 
@@ -49,7 +49,7 @@ cd ~/Documents/my-vault
 git init
 git config core.hooksPath 99-Operations/hooks
 git add -A
-git commit -m "init: fork from memory-mining template"
+git commit -m "init: fork from value-memory-mining template"
 ```
 
 ---
@@ -234,7 +234,7 @@ This template repo evolves. To pull upstream changes without clobbering your vau
 
 ```bash
 # In the template repo clone (not your vault)
-git remote add upstream https://github.com/keith-nielsen/memory-mining.git
+git remote add upstream https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining.git
 git fetch upstream
 git merge upstream/main
 ```

@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Agent Context — memory-mining
+# Agent Context — value-memory-mining
 
 > **CONSTITUTIONAL HARD STOP — READ FIRST**
 >
@@ -20,7 +20,7 @@
 
 ## What this repository is
 
-**memory-mining** is a reference-grade, Apache-2.0 OpenSpec SDD template for building
+**value-memory-mining** is a reference-grade, Apache-2.0 OpenSpec SDD template for building
 a local-first, Markdown-based personal knowledge system organized as a **Value Mining**
 operation. It is both an exemplary implementation of spec-driven development *and* a
 forkable template any adopter can run on their own vault.

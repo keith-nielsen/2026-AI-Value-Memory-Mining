@@ -8,7 +8,7 @@ delete it — nothing in the pipeline depends on it.
 
 > **Two READMEs, on purpose:** this file is your in-vault getting-started guide;
 > `00-Docs/examples/README.md` is a worked Claim→Treasury walkthrough. The *full* fork
-> guide and the Obsidian setup guide live in the **template repo** (`memory-mining`)
+> guide and the Obsidian setup guide live in the **template repo** (`2026-AI-Value-Memory-Mining`)
 > under `docs/USING-THIS-TEMPLATE.md` and `docs/obsidian.md` — they intentionally do
 > **not** copy into your vault (only `vault-template/`'s contents become the vault).
 
@@ -180,7 +180,7 @@ Full invariant list: `openspec/project.md` (in the template repo) or the build P
 - `97-Molds/` — note templates
 - `40-Treasury/Catalog/home-moc.md` — master index
 
-In the template repo (`memory-mining`):
+In the template repo (`2026-AI-Value-Memory-Mining`):
 
 - `docs/USING-THIS-TEMPLATE.md` — full fork & setup guide
 - `docs/obsidian.md` — recommended Obsidian setup (plugins, settings, running scripts)

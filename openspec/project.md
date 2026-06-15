@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Project — memory-mining
+# Project — value-memory-mining
 
 ## Purpose
 

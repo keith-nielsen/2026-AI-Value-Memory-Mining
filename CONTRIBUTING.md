@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Contributing to memory-mining
+# Contributing to value-memory-mining
 
 ## The method IS the process
 

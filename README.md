@@ -3,13 +3,13 @@ SPDX-License-Identifier: Apache-2.0
 Copyright 2026 Keith Nielsen
 -->
 
-# memory-mining
+# value-memory-mining
 
 > A professional-grade, spec-driven personal knowledge system built on the
 > **Value Mining** methodology — stake Claims, work Sites, grade the Ore, Refine
 > high-grade material into lasting Bullion, Polish indefinitely.
 
-[![CI](https://github.com/keith-nielsen/memory-mining/actions/workflows/ci.yml/badge.svg)](https://github.com/keith-nielsen/memory-mining/actions/workflows/ci.yml)
+[![CI](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml/badge.svg)](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml)
 [![OpenSpec](https://img.shields.io/badge/spec--driven-OpenSpec%20v1.4.1-blue)](openspec/project.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/vault-Obsidian-7C3AED)](https://obsidian.md)
@@ -18,7 +18,7 @@ Copyright 2026 Keith Nielsen
 
 ## What Is This?
 
-`memory-mining` is two things at once:
+`value-memory-mining` is two things at once:
 
 1. **A forkable vault template** — copy `vault-template/` and you have a
    production-ready personal knowledge system with working scripts, note templates,
@@ -94,7 +94,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ## Repository Layout
 
 ```
-memory-mining/
+2026-AI-Value-Memory-Mining/
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
 │   ├── constitution.md          #   constitutional protection + Informed-Upheaval Protocol
@@ -165,8 +165,8 @@ See [`openspec/constitution.md`](openspec/constitution.md) for the full protocol
 
 ```bash
 # 1. Fork this repo on GitHub, then clone
-git clone https://github.com/<your-username>/memory-mining.git
-cd memory-mining
+git clone https://github.com/<your-username>/2026-AI-Value-Memory-Mining.git
+cd 2026-AI-Value-Memory-Mining
 
 # 2. Copy the vault template
 cp -r vault-template/ ~/Documents/my-vault
@@ -198,7 +198,7 @@ python3 ~/bin/vault_naming.py                        # emit naming-rules.json
 
 # 5. Initial commit
 git add -A
-git commit -m "init: fork from memory-mining template"
+git commit -m "init: fork from value-memory-mining template"
 
 # 6. Open vault-root in Obsidian and start mining
 ```

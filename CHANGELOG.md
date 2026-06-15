@@ -10,7 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Changed
+- **Renamed:** GitHub repo `memory-mining` → **`2026-AI-Value-Memory-Mining`** (owner's
+  year-prefixed Title-Kebab convention; GitHub redirects the old URL). Internal project
+  identity is **`value-memory-mining`** (lower-kebab, matching the project's own INV-11
+  slug philosophy). URLs/clone-dir use the repo name; titles/prose use the project name.
 
 ---
 
@@ -129,7 +133,7 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   naming validator, and commit-gate hook all behave per spec.
 - The documented onboarding was dogfooded literally end-to-end on a fresh vault.
 
-[0.1.3]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.3
-[0.1.2]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.2
-[0.1.1]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.1
-[0.1.0]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.0
+[0.1.3]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.3
+[0.1.2]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.2
+[0.1.1]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.1
+[0.1.0]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.0
