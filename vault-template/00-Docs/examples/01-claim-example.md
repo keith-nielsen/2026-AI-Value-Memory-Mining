@@ -13,7 +13,7 @@ could change how I handle every regression from here on.
 Tags:: #technology #debugging #git
 
 <!--
-  This is a CLAIM — a raw capture in 10-Claims/. Claims are deliberately
+  This is a CLAIM — a raw capture in 20-Claims/. Claims are deliberately
   unstructured: no rigid schema, no grade, no commitment yet. The only discipline
   at this stage is capturing the thought before it evaporates. Everything else
   (is it worth digging? how valuable?) is decided later, at Prospect and Sort.

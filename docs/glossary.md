@@ -13,7 +13,7 @@ source: "vault-system-PRD.md §2"
 from raw inputs. Every term below maps to a stage or artifact in this pipeline.
 
 **Claim** — a staked, unprospected area of interest; raw capture ear-marked for
-investigation. Lives in `10-Claims/`.
+investigation. Lives in `20-Claims/`.
 
 **Site** — an active working where extraction happens; one per effort. Lives in
 `30-Sites/<slug>/`.
@@ -97,14 +97,14 @@ machinery, not ore.
 by automation.
 
 **Layer 2 / Workings** — capture, logs, active and slagged sites, spent husks:
-`10-Claims/`, `20-Logbook/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`.
+`20-Claims/`, `10-Logbook/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`.
 
 **Render / Reconcile** — extract operational artifacts from Layer 0 to host targets
 (user-invoked); detect drift between deployed and source without overwriting (INV-3).
 
 **Gate** — a required human approval before a write executes. In the Refine pipeline,
-the gate is the act of moving a proposal from `10-Claims/_refine-proposals/` to
-`10-Claims/_refine-approved/`.
+the gate is the act of moving a proposal from `20-Claims/_refine-proposals/` to
+`20-Claims/_refine-approved/`.
 
 **Deposit-not-merge** — the cardinal rule of agent integration: an agent's definition
 of done is a schema-valid proposal JSON deposited in `_refine-proposals/`. The worker

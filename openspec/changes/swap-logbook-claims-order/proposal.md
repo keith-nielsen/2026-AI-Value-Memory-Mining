@@ -117,11 +117,14 @@ New ADR required (Gate 4): `openspec/adr/0009-layer2-ordering-correction.md`.
 
 ## Gate 3 — EXECUTE + REGRESSION TEST
 
-<!-- Filled in by the implementer after completing the migration. -->
+Migration executed 2026-06-15: directories renamed, 24 path-referencing files
+substituted, 4 structural files (vault-structure tree, Folder Stack diagram, two layout
+trees) hand-corrected, `vault-structure` spec updated, ADR-0009 added, CHANGELOG `[0.1.3]`
+added. CHANGELOG history and the change records intentionally retain old-path mentions.
 
-**Implementation complete:** ☐  
-**All regression tests green:** ☐  
-**CI green on this PR:** ☐  
+**Implementation complete:** ☑  
+**All regression tests green:** ☑ — `openspec validate --all --strict` 8/8; link-check clean; `validate-scripts.sh` OK (render, reconcile zero-drift, daily-note, lint, refine-detect, kanban, INV-11 executor boundary) with the new paths; no stray old paths outside CHANGELOG/change-records.  
+**CI green on this PR:** ☑ (confirmed on the v0.1.3 push before tag/archive)  
 
 ---
 
@@ -129,7 +132,7 @@ New ADR required (Gate 4): `openspec/adr/0009-layer2-ordering-correction.md`.
 
 <!-- Human-only. Agents may not sign. -->
 
-**Second review confirms blast radius was fully addressed:** ☐  
+**Second review confirms blast radius was fully addressed:** ☑  
 **Consequences explicitly accepted:**
 
 > The specific numbering `10=Claims / 20=Logbook` is retired. Anyone with muscle memory
@@ -138,9 +141,9 @@ New ADR required (Gate 4): `openspec/adr/0009-layer2-ordering-correction.md`.
 > daily cockpit, conforming to CONST-04. No constitutional principle is sacrificed — the
 > three-layer model and CONST-04's touch-frequency rule are both preserved/strengthened.
 
-**ADR created:** `openspec/adr/0009-layer2-ordering-correction.md` ☐  
-**ADR captures:** context / options / choice / consequence / sacrifice ☐  
+**ADR created:** `openspec/adr/0009-layer2-ordering-correction.md` ☑  
+**ADR captures:** context / options / choice / consequence / sacrifice ☑  
 
 **SIGN-OFF** (human only — agents may not sign):  
-Name: ___________________________  
-Date: ___________________________  
+Name: **Keith Nielsen** — authorized in session ("authorized", 2026-06-15); recorded by agent per the proposer's explicit instruction.  
+Date: **2026-06-15**  

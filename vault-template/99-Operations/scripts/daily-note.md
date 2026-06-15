@@ -19,7 +19,7 @@ carry-over links are appended.
 import os, datetime, pathlib
 vault = pathlib.Path(os.environ["VAULT_ROOT"])
 today = datetime.date.today().isoformat()
-note = vault / "20-Logbook" / "Daily" / f"{today}.md"
+note = vault / "10-Logbook" / "Daily" / f"{today}.md"
 note.parent.mkdir(parents=True, exist_ok=True)
 if note.exists():
     print(f"exists {note}")

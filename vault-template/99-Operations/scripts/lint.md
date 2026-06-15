@@ -49,7 +49,7 @@ for area in ["30-Sites", "70-Tailings"]:
         if not is_valid_slug(d.name):
             violations.append((d, f"effort folder not a kebab slug: {validate_name(d.name) or 'non-kebab'}"))
 # All other content file stems must at least be cross-platform-safe names.
-for area in ["10-Claims", "20-Logbook", "40-Treasury/Catalog"]:
+for area in ["20-Claims", "10-Logbook", "40-Treasury/Catalog"]:
     for p in (vault / area).rglob("*.md"):
         bad = validate_name(p.stem)
         if bad:

@@ -38,10 +38,10 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 | `97-Molds/` | RW | R | R | Templates; instantiation only |
 | `98-Warehouse/` | RW | W¹ | RW | General binary storage |
 | `00-Docs/` | RW | R | R | Deletable onboarding |
-| `10-Claims/` | RW | —² | RW | Capture zone |
-| `10-Claims/_refine-proposals/` | R | W | R | Agent deposit point |
-| `10-Claims/_refine-approved/` | W | — | R | **The gate.** Agent cannot self-promote. |
-| `20-Logbook/` | RW | R | RW | Daily logs + reviews |
+| `20-Claims/` | RW | —² | RW | Capture zone |
+| `20-Claims/_refine-proposals/` | R | W | R | Agent deposit point |
+| `20-Claims/_refine-approved/` | W | — | R | **The gate.** Agent cannot self-promote. |
+| `10-Logbook/` | RW | R | RW | Daily logs + reviews |
 | `30-Sites/<assigned>` | RW | RW¹ | RW | Agent writes only to its assigned Site |
 | `30-Sites/<other>` | RW | — | RW | Agent cannot touch other Sites |
 | `40-Treasury/` | RW | R³ | gated-W⁴ | Crown jewels — INV-4 |
@@ -53,7 +53,7 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 | `80-Crucible/` | RW | —⁶ | RW | INV-8: independent operator only |
 
 ¹ Agent writes only within its assigned Site / attachment for that Site.  
-² Agent has no general `10-Claims/` write; only drops proposals into `_refine-proposals/`.  
+² Agent has no general `20-Claims/` write; only drops proposals into `_refine-proposals/`.  
 ³ Agent read of Treasury is restricted during cloud bootstrap; full read only under local/egress-controlled model.  
 ⁴ Script writes Treasury only when applying a human-approved proposal from `_refine-approved/`.  
 ⁵ Future agent access (Mint/Forge) to be scoped when those segments are designed.  
@@ -77,10 +77,10 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 
 No agent/LLM process SHALL write to `40-Treasury/` or `99-Operations/`. An agent may
 write only to (a) its assigned Site working area in `30-Sites/<slug>/` and (b)
-`10-Claims/_refine-proposals/`.
+`20-Claims/_refine-proposals/`.
 
 A script may write to `40-Treasury/` only when applying a proposal that a
-human has approved by moving it into `10-Claims/_refine-approved/`. Presence in
+human has approved by moving it into `20-Claims/_refine-approved/`. Presence in
 `_refine-approved/` is the gate.
 
 *Runtime reality:* Hermes Agent workers execute with the operator's uid and full

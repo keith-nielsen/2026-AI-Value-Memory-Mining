@@ -42,10 +42,10 @@ Properties (the frontmatter UI) is built in and always on.
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| Files & Links → **Default location for new notes** | **`10-Claims`** | New / dangling-link notes land in the *inbox*, never the vault root. Prevents stray fragments. |
+| Files & Links → **Default location for new notes** | **`20-Claims`** | New / dangling-link notes land in the *inbox*, never the vault root. Prevents stray fragments. |
 | Editor → **Properties in document** | Visible | See/edit frontmatter inline |
 | Templates → **Template folder location** | `97-Molds` | Where the molds live |
-| Daily Notes → **Template** / **New file location** / **Format** | `97-Molds/daily.md` / `20-Logbook/Daily` / `YYYY-MM-DD` | Match the `vault-daily-note.py` output exactly |
+| Daily Notes → **Template** / **New file location** / **Format** | `97-Molds/daily.md` / `10-Logbook/Daily` / `YYYY-MM-DD` | Match the `vault-daily-note.py` output exactly |
 
 The default-new-note-location setting is the single most important one: without it, a
 click on an unresolved `[[wikilink]]` creates an empty note at the vault **root**, which
@@ -114,7 +114,7 @@ All are **gate-safe** — none bypass the human approval step, and the commit-ga
 ## Roadmap / deferred ideas
 
 - **Claim inbox as a punch-list table with a one-click "promote to Site" button.**
-  Picture `10-Claims/` rendered (Dataview) as a table, each row with a button that
+  Picture `20-Claims/` rendered (Dataview) as a table, each row with a button that
   promotes the claim to a `30-Sites/<slug>/_effort.md` and cleans up behind itself.
   Building blocks: a deterministic `vault-promote.sh` (the CLI backbone — create dir,
   instantiate the effort mold, migrate the body, remove the claim, one commit) fronted

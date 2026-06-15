@@ -20,7 +20,7 @@ any links were added; silent exit if nothing changed (no empty commits, INV-2).
 import os, datetime, pathlib, subprocess, frontmatter
 vault = pathlib.Path(os.environ["VAULT_ROOT"])
 today = datetime.date.today().isoformat()
-note = vault / "20-Logbook" / "Daily" / f"{today}.md"
+note = vault / "10-Logbook" / "Daily" / f"{today}.md"
 if not note.exists():
     print(f"WARN: daily note missing, run vault-daily-note.py first"); exit(1)
 

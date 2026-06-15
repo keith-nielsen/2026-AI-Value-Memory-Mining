@@ -25,7 +25,7 @@ template repo's `docs/diagrams.md` for the full picture.
 
 ## Step 1 — Capture a Claim → [`01-claim-example.md`](./01-claim-example.md)
 
-**Lives in:** `10-Claims/` (in a real vault)
+**Lives in:** `20-Claims/` (in a real vault)
 
 A raw, unstructured capture. No grade, no schema, no commitment — just the thought,
 written down before it evaporates. The only discipline here is *capturing*. Notice the
@@ -46,7 +46,7 @@ because the insight permanently changes how every future regression is handled.
 
 ## Step 3 — Sort + Refine proposal → [`03-refine-proposal.json`](./03-refine-proposal.json)
 
-**Lives in:** `10-Claims/_refine-proposals/` (deposited by an agent or written by you)
+**Lives in:** `20-Claims/_refine-proposals/` (deposited by an agent or written by you)
 
 At **Sort**, the gold ore cleared the refine gate. A refine proposal was produced —
 a JSON object matching the proposal schema (see the `agent-integration` spec). It

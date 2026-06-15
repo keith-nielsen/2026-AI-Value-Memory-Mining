@@ -7,7 +7,7 @@ created: 2026-06-14
 updated: 2026-06-14
 ---
 ## Rationale
-Applies approved refine proposals from `10-Claims/_refine-approved/` (the human gate,
+Applies approved refine proposals from `20-Claims/_refine-approved/` (the human gate,
 INV-4). The human gate is the act of moving a proposal from `_refine-proposals/` to
 `_refine-approved/` — this script never promotes proposals itself. Validates the
 proposed `target_note` stem against the naming ruleset (INV-11) before any write;
@@ -23,7 +23,7 @@ sys.path.insert(0, str(pathlib.Path.home() / "bin"))
 from vault_naming import is_valid_slug  # naming.md
 vault = pathlib.Path(os.environ["VAULT_ROOT"])
 today = datetime.date.today().isoformat()
-approved = vault / "10-Claims" / "_refine-approved"
+approved = vault / "20-Claims" / "_refine-approved"
 for prop in sorted(approved.glob("*.json")):
     p = json.loads(prop.read_text())
     note = vault / p["target_note"]

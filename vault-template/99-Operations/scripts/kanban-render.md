@@ -8,7 +8,7 @@ updated: 2026-06-14
 ---
 ## Rationale
 Read-only projection of effort frontmatter into a Markdown kanban board at
-`20-Logbook/kanban.md`. Columns follow pipeline order (prospect → dig → ore →
+`10-Logbook/kanban.md`. Columns follow pipeline order (prospect → dig → ore →
 slagged); within each column rows are sorted grade-descending (gold → silver →
 bronze → coal). Produces one commit. Write-back (card drag → frontmatter update)
 is deferred to agent-tooling. **Not Hermes Kanban** — this is a static Markdown
@@ -54,7 +54,7 @@ for status in statuses:
         lines.append("_empty_")
     lines.append("")
 
-out = vault / "20-Logbook" / "kanban.md"
+out = vault / "10-Logbook" / "kanban.md"
 out.write_text("\n".join(lines))
 subprocess.run(
     ["git", "-C", str(vault), "add", str(out.relative_to(vault))], check=True)

@@ -14,6 +14,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.3] - 2026-06-15
+
+Constitutional correction (Informed-Upheaval Protocol) — Layer-2 folder ordering.
+
+### Changed
+- **Swapped `10-Claims` ↔ `20-Logbook`** so the daily logs sort to the top of the
+  file explorer, conforming to CONST-04 ("daily logs at top"). The layout previously
+  contradicted its own numbering principle. Result: `10-Logbook/` (the daily cockpit)
+  now precedes `20-Claims/` (the capture inbox). The refine gate travels with Claims:
+  `20-Claims/_refine-proposals/`, `20-Claims/_refine-approved/`, `20-Claims/_refine-queue.json`.
+- Updated every path reference in lockstep — scripts, specs, the access-control matrix,
+  schemas, molds paths, diagrams (Folder Stack), and the layout trees.
+
+### Migration (for existing forks/vaults)
+- `git mv 20-Logbook 10-Logbook` and `git mv 10-Claims 20-Claims`, then re-`render` the
+  scripts. Anything pinned to the old paths (cron lines, external tooling) must update.
+
+### Process
+- Recorded as constitution-override change `swap-logbook-claims-order` (CONST-04, Tier 1)
+  with human sign-off; see `openspec/adr/0009-layer2-ordering-correction.md`. CONST-04's
+  principle text is unchanged — this is a corrective amendment, not an override.
+
+---
+
 ## [0.1.2] - 2026-06-15
 
 Documentation fills from dogfooding the live vault — Obsidian setup and the
@@ -105,6 +129,7 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   naming validator, and commit-gate hook all behave per spec.
 - The documented onboarding was dogfooded literally end-to-end on a fresh vault.
 
+[0.1.3]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.3
 [0.1.2]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.2
 [0.1.1]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.1
 [0.1.0]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.0

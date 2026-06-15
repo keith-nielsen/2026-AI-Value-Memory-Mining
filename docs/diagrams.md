@@ -30,8 +30,8 @@ Orientation first, structure second, mechanics third, safety and infrastructure 
   'tertiaryColor': '#9e9e9e'
 }}}%%
 flowchart LR
-    CL([10-Claims]):::blue
-    LB([20-Logbook]):::blue
+    CL([20-Claims]):::blue
+    LB([10-Logbook]):::blue
     SI([30-Sites<br/>Prospect→Dig→Ore]):::blue
     SORT{Sort}:::blue
     REF[Refine]:::gold
@@ -67,7 +67,7 @@ flowchart LR
 - Solid arrows → material flow (mandatory path)
 - Dashed arrows `-.->` → rare / observing paths
 - Thick arrow `==>` → the primary value deposit (ore becomes bullion)
-- `20-Logbook` floats parallel, recording without transforming
+- `10-Logbook` floats parallel, recording without transforming
 - `80-Crucible` and `re-prospect` are dashed — rare/exceptional
 
 ---
@@ -245,8 +245,8 @@ flowchart TD
     end
 
     subgraph DAILY["🔵  Daily Touch — Layer 2 · touch: daily"]
-        D10["10-Claims"]:::blue
-        D20["20-Logbook"]:::blue
+        D10["10-Logbook"]:::blue
+        D20["20-Claims"]:::blue
         D30["30-Sites"]:::blue
     end
 
@@ -275,7 +275,7 @@ flowchart TD
         D99["99-Operations"]:::infra
     end
 
-    D10 -->|prospect| D30
+    D20 -->|prospect| D30
     D30 -->|refine| D40
     D40 -->|draw| D50
     D40 -->|draw| D60
@@ -405,7 +405,7 @@ flowchart LR
 - **Green thick path** is the only route into the protected zone: assigned Site → proposal → human → gate → script → Treasury. Every link passes through the human.
 - **Red thin dashed lines** are not rules the agent follows — they are capabilities it does not have. Each is annotated with the invariant that makes it structurally impossible.
 - The agent box (blue tint) and the protected zone (red tint) never touch except through the gate.
-- Agent read access (not drawn): R on `20-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud bootstrap. Reads do not threaten containment; writes do.
+- Agent read access (not drawn): R on `10-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud bootstrap. Reads do not threaten containment; writes do.
 
 | Denied path | Invariant |
 |---|---|

@@ -55,3 +55,7 @@ the capture inbox (an unordered queue), and carries the refine gate
 #### Scenario: Daily logs sort above the capture inbox
 - **WHEN** the vault root is listed in any file explorer
 - **THEN** `10-Logbook/` sorts above `20-Claims/`, placing the daily cockpit at the top (CONST-04)
+
+#### Scenario: No pillar subfolders in Treasury
+- **WHEN** the linter runs against `40-Treasury/`
+- **THEN** it reports no subdirectories other than `Catalog/` (INV-12 enforced)

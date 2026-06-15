@@ -103,4 +103,4 @@ Each is offline and deterministic (INV-6).
 
 #### Scenario: Kanban render produces a structured board
 - **WHEN** `vault-kanban-render.py` runs
-- **THEN** `20-Logbook/kanban.md` is written with four status-column headings in pipeline order (Prospect/Dig/Ore/Slagged), rows sorted grade-descending within each column, and a read-only notice; one commit produced
+- **THEN** `10-Logbook/kanban.md` is written with four status-column headings in pipeline order (Prospect/Dig/Ore/Slagged), rows sorted grade-descending within each column, and a read-only notice; one commit produced

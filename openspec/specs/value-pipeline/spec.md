@@ -20,7 +20,7 @@ predict the next stage and the material's current value-state (CONST-01).
 
 | Stage | Location | Object | Key field | Meaning |
 |---|---|---|---|---|
-| Capture | `10-Claims/` | loose note | — | Raw, unsorted input |
+| Capture | `20-Claims/` | loose note | — | Raw, unsorted input |
 | Prospect | `30-Sites/<slug>/` | effort | `status: prospect` | Staked, under initial validation |
 | Dig | `30-Sites/<slug>/` | effort | `status: dig` | Active extraction in progress |
 | Ore | `30-Sites/<slug>/` | effort | `status: ore` + `grade` | Raw material extracted; grade **estimated** |

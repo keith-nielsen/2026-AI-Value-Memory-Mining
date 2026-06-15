@@ -50,7 +50,7 @@ matching the proposal schema below — no prose, no partial writes.
 ## Enforcement
 
 The proposal is validated by the Phase 3 harness before deposit into
-`10-Claims/_refine-proposals/`. The refine executor (`refine-execute.md`) re-validates
+`20-Claims/_refine-proposals/`. The refine executor (`refine-execute.md`) re-validates
 `target_note` stem conformance before any write — dual-boundary enforcement of INV-11.
 A proposal that does not pass validation is rejected; the harness calls
 `kanban_block(reason=...)` rather than writing a partial file.

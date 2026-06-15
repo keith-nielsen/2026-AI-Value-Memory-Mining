@@ -56,7 +56,7 @@ slag_reason: string        # required when status == slagged
 
 ---
 
-## `daily` — `20-Logbook/Daily/YYYY-MM-DD.md`
+## `daily` — `10-Logbook/Daily/YYYY-MM-DD.md`
 
 ```yaml
 type: daily

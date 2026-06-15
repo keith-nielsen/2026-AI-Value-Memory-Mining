@@ -49,7 +49,7 @@ the entire system.
 
 **Principle:** Layer 0 = Operations (`99-Operations/`, the mine's machinery — *how*).
 Layer 1 = Treasury (`40-Treasury/`, durable value — *what*). Layer 2 = Workings
-(`10-Claims/`, `20-Logbook/`, `30-Sites/`, temporal — *now*).
+(`20-Claims/`, `10-Logbook/`, `30-Sites/`, temporal — *now*).
 
 **Rationale:** Separates stable crown-jewels from high-churn temporal work and from
 infrastructure. Each layer has a distinct stability profile and touch frequency.

@@ -9,7 +9,7 @@ source/
 .obsidian/cache
 
 # Vault runtime ephemera (generated; not source of truth)
-vault-template/10-Claims/_refine-queue.json
+vault-template/20-Claims/_refine-queue.json
 
 # Python
 __pycache__/

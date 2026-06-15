@@ -9,7 +9,7 @@ updated: 2026-06-14
 ---
 ## Rationale
 Scans Sites for ore that has cleared the Sort grade gate (default: silver, gold) and
-writes the queue to `10-Claims/_refine-queue.json` (gitignored). This is a read-only
+writes the queue to `20-Claims/_refine-queue.json` (gitignored). This is a read-only
 detection step — no proposals are generated and no writes happen outside the queue
 file. The human reviews the queue and decides which efforts to route through the
 Refine pipeline. The `[agent]` harness (Phase 3) reads from this queue to pick its
@@ -26,6 +26,6 @@ for idx in (vault / "30-Sites").glob("*/_effort.md"):
     m = frontmatter.load(idx).metadata
     if m.get("status") == "ore" and m.get("grade") in gate:
         queue.append(str(idx.parent.relative_to(vault)))
-(vault / "10-Claims" / "_refine-queue.json").write_text(json.dumps(queue, indent=2))
+(vault / "20-Claims" / "_refine-queue.json").write_text(json.dumps(queue, indent=2))
 print(f"queued {len(queue)} for refining")
 ```

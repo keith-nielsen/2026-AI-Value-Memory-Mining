@@ -19,7 +19,7 @@ The vault SHALL be organized into three named layers with distinct stability and
 
 - **Layer 0 — Operations** (`99-Operations/`): the mine's machinery. Human-write-only.
 - **Layer 1 — Treasury** (`40-Treasury/`): refined + polished bullion. Never discarded by automation.
-- **Layer 2 — Workings** (`10-Claims/`, `20-Logbook/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`): temporal capture, active effort, and disposal.
+- **Layer 2 — Workings** (`10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`): temporal capture, active effort, and disposal.
 
 Additional areas outside the layer model: `00-Docs/` (onboarding, deletable),
 `50-Mint/` + `60-Forge/` (future production, deferred), `80-Crucible/` (future
@@ -38,19 +38,20 @@ validation, deferred), `97-Molds/` + `98-Warehouse/` (infrastructure).
 ### Requirement: Folder Structure
 
 The vault root SHALL contain exactly these numbered top-level folders, ordered by touch
-frequency (ascending number = higher daily-touch frequency), zero-padded for
-correct lexicographic sort, gapped by 10s for insertion headroom.
+frequency (ascending number = higher daily-touch frequency, daily logs at top per
+CONST-04), zero-padded for correct lexicographic sort, gapped by 10s for insertion
+headroom.
 
 ```
 00-Docs/
   README.md
   examples/
-10-Claims/
-  _refine-proposals/
-  _refine-approved/
-20-Logbook/
+10-Logbook/
   Daily/
   Reviews/
+20-Claims/
+  _refine-proposals/
+  _refine-approved/
 30-Sites/
 40-Treasury/
   Catalog/
@@ -76,9 +77,18 @@ correct lexicographic sort, gapped by 10s for insertion headroom.
 Reserved number bands (folders NOT created until needed): 81–89 (Crucible-adjacent),
 90–96 (future system).
 
+Rationale for the order: the daily note in `10-Logbook/Daily/` is the orienting surface
+a user opens first each session, so it sorts to the top per CONST-04. `20-Claims/` is
+the capture inbox (an unordered queue), and carries the refine gate
+(`_refine-proposals/`, `_refine-approved/`).
+
 #### Scenario: Folder tree is complete after Phase 0
 - **WHEN** Phase 0 build completes
-- **THEN** every directory in the structure above exists, including `_refine-proposals/`, `_refine-approved/`, `99-Operations/hooks/`, and `99-Operations/schemas/`
+- **THEN** every directory in the structure above exists, including `20-Claims/_refine-proposals/`, `20-Claims/_refine-approved/`, `99-Operations/hooks/`, and `99-Operations/schemas/`
+
+#### Scenario: Daily logs sort above the capture inbox
+- **WHEN** the vault root is listed in any file explorer
+- **THEN** `10-Logbook/` sorts above `20-Claims/`, placing the daily cockpit at the top (CONST-04)
 
 #### Scenario: No pillar subfolders in Treasury
 - **WHEN** the linter runs against `40-Treasury/`
@@ -107,7 +117,7 @@ in `vault-template/99-Operations/schemas/frontmatter.md` and enforced by the lin
 | `knowledge` | `40-Treasury/*.md` | type, title, pillars, grade, stage, crucible, created, updated |
 | `moc` | `40-Treasury/Catalog/*.md` | type, pillar, created, updated |
 | `effort` | `30-Sites/<slug>/_effort.md`, `70-Tailings/<slug>/_effort.md` | type, title, status, grade, pillars, started |
-| `daily` | `20-Logbook/Daily/YYYY-MM-DD.md` | type, date |
+| `daily` | `10-Logbook/Daily/YYYY-MM-DD.md` | type, date |
 | `meta-script` | `99-Operations/scripts/*.md` | type, deploy_target, runtime, class, created, updated |
 | `spoil` | `71-Spoil/<slug>/_effort.md` | type, title, status (spent\|waste), grade, pillars, disposed |
 

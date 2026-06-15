@@ -38,7 +38,7 @@ Value Mining treats personal knowledge like a mining operation. Material flows t
 a defined pipeline; only high-grade material reaches the Treasury.
 
 ```
-Capture (10-Claims)
+Capture (20-Claims)
   └─► Prospect ──► Dig ──► Ore ──► Sort ──► Refine ──► 40-Treasury ──► Polish
                                       │
                               ┌───────┴───────────┐
@@ -49,7 +49,7 @@ Capture (10-Claims)
 
 | Stage | What you do |
 |-------|-------------|
-| **Claim** | Drop raw captures into `10-Claims/` without evaluation |
+| **Claim** | Drop raw captures into `20-Claims/` without evaluation |
 | **Prospect** | First investigation — is this worth digging? |
 | **Dig** | Active extraction — research, notes, experiments |
 | **Ore** | Digging produced something; estimate the grade |
@@ -67,7 +67,7 @@ Capture (10-Claims)
 |-------|--------|--------|
 | **Layer 0 — Operations** | `99-Operations/` | Mine machinery; human-write-only; literate meta-scripts |
 | **Layer 1 — Treasury** | `40-Treasury/` | Refined bullion; never deleted by automation |
-| **Layer 2 — Workings** | `10-Claims/`, `20-Logbook/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/` | Capture, logs, active/slagged sites |
+| **Layer 2 — Workings** | `10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/` | Capture, logs, active/slagged sites |
 
 Agents may only write to their assigned Site and `_refine-proposals/`. Nothing enters
 `40-Treasury/` without explicit human approval (the **deposit-not-merge** gate).
@@ -104,8 +104,8 @@ memory-mining/
 │
 ├── vault-template/              # Forkable vault skeleton
 │   ├── 00-Docs/                 #   onboarding (deletable)
-│   ├── 10-Claims/               #   raw captures + refine pipeline queue/approved
-│   ├── 20-Logbook/              #   daily notes + kanban
+│   ├── 10-Logbook/              #   daily notes + kanban
+│   ├── 20-Claims/               #   raw captures + refine pipeline queue/approved
 │   ├── 30-Sites/                #   active workings
 │   ├── 40-Treasury/Catalog/     #   bullion + 7 Catalog MOCs (6 pillars + Home)
 │   ├── 70-Tailings/             #   slagged ore (retained)

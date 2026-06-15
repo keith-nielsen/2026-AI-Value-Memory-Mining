@@ -7,7 +7,7 @@ __pycache__/
 *.pyo
 
 # Generated refine queue (rewritten by vault-refine-detect.py)
-10-Claims/_refine-queue.json
+20-Claims/_refine-queue.json
 
 # Obsidian per-machine UI state (keep the rest of .obsidian tracked)
 .obsidian/workspace*

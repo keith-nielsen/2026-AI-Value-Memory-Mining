@@ -25,8 +25,8 @@ Options:
 
 Adopt the **deposit-not-merge** model (CONST-01 runtime form):
 
-1. Agent deposits `*.json` proposal into `10-Claims/_refine-proposals/`.
-2. Human reviews and moves approved proposals to `10-Claims/_refine-approved/`.
+1. Agent deposits `*.json` proposal into `20-Claims/_refine-proposals/`.
+2. Human reviews and moves approved proposals to `20-Claims/_refine-approved/`.
    *Presence in `_refine-approved/` is the gate.*
 3. The refine executor script reads `_refine-approved/` and writes Treasury.
 

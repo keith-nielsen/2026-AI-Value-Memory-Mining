@@ -1,7 +1,7 @@
 # Vault conventions — Value Mining (read before any operation)
 
 This vault is a Value Mining operation governed by 99-Operations/ and the build PRD.
-Content flows: Capture (10-Claims) -> Prospect -> Dig -> Ore -> Sort -> Refine ->
+Content flows: Capture (20-Claims) -> Prospect -> Dig -> Ore -> Sort -> Refine ->
   bullion deposited in 40-Treasury -> Polish (perpetual).
 Side paths: Slagged (70-Tailings, retained, re-minable) and Spoil (71-Spoil, terminal:
   spent husks + waste).
@@ -14,9 +14,9 @@ Always obey:
 - Pillars are metadata + tags + Catalog (MOC) links, never folders under 40-Treasury. (INV-12)
 - Internal links use [[wikilinks]]. (INV-13)
 - NEVER write to 40-Treasury/ or 99-Operations/ autonomously. Agents write only to
-  their assigned 30-Sites/<slug>/ working area and 10-Claims/_refine-proposals/.
+  their assigned 30-Sites/<slug>/ working area and 20-Claims/_refine-proposals/.
   Scripts write to 40-Treasury/ only when applying a human-approved proposal from
-  10-Claims/_refine-approved/. (INV-4, INV-5)
+  20-Claims/_refine-approved/. (INV-4, INV-5)
 - Every automated change = exactly one git commit, structured message. (INV-2)
 - Operational scripts live in 99-Operations/scripts/ as literate meta-script notes
   and reach the host via `render`; drift is detected via `reconcile`, never

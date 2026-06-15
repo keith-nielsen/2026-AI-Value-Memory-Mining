@@ -28,7 +28,7 @@ boundary check (INV-11, dual enforcement).
 
 #### Scenario: Dry-run produces a schema-valid proposal
 - **WHEN** the harness runs in `--dry-run` mode against a fixture Site
-- **THEN** it writes a JSON file to `10-Claims/_refine-proposals/` that validates against the proposal schema (§12.10)
+- **THEN** it writes a JSON file to `20-Claims/_refine-proposals/` that validates against the proposal schema (§12.10)
 - **THEN** it makes no network call
 
 #### Scenario: Harness has no Treasury write path

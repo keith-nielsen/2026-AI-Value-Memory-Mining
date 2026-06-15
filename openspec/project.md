@@ -42,9 +42,9 @@ INV IDs are **frozen** — see ADR-0008.
 
 - **INV-4 — Bounded write scope.** No agent/LLM process may write to
   `40-Treasury/` or `99-Operations/`. An agent may write only to its assigned
-  Site (`30-Sites/<slug>/`) and `10-Claims/_refine-proposals/`. A script may
+  Site (`30-Sites/<slug>/`) and `20-Claims/_refine-proposals/`. A script may
   write to `40-Treasury/` only when applying a human-approved proposal from
-  `10-Claims/_refine-approved/`.
+  `20-Claims/_refine-approved/`.
 - **INV-5 — Actor ≠ owner of its own definition.** No automated process has
   write access to `99-Operations/`.
 - **INV-6 — Deterministic layer is offline.** `[script]` operations make no

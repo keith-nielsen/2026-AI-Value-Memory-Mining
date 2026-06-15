@@ -17,7 +17,7 @@ delete it — nothing in the pipeline depends on it.
 ## The Value Chain
 
 ```
-Capture (10-Claims)
+Capture (20-Claims)
   └─► Prospect ──► Dig ──► Ore ──► Sort ──► Refine ──► 40-Treasury ──► Polish
                                       │
                               ┌───────┴───────────┐
@@ -28,7 +28,7 @@ Capture (10-Claims)
 
 | Stage | What happens |
 |-------|-------------|
-| **Claim** | Raw capture — idea, link, quote, observation. Drop it in `10-Claims/`. |
+| **Claim** | Raw capture — idea, link, quote, observation. Drop it in `20-Claims/`. |
 | **Prospect** | First investigation. Is this worth digging? Create an effort in `30-Sites/`. |
 | **Dig** | Active extraction — research, notes, experiments. Work in your Site folder. |
 | **Ore** | Digging has produced something. Estimate a grade (`coal/bronze/silver/gold`). |
@@ -46,8 +46,8 @@ Auto-refine fires for `silver` and `gold` (configurable in `99-Operations/config
 ```
 vault-root/
 ├── 00-Docs/         ← you are here (deletable)
-├── 10-Claims/       ← raw captures + refine pipeline queue/approved
-├── 20-Logbook/      ← daily notes + kanban projection
+├── 10-Logbook/      ← daily notes + kanban projection
+├── 20-Claims/       ← raw captures + refine pipeline queue/approved
 ├── 30-Sites/        ← active workings (prospect → dig → ore)
 ├── 40-Treasury/     ← refined bullion + Catalog MOCs (Layer 1)
 ├── 50-Mint/         ← future: dated editions (deferred)
@@ -68,7 +68,7 @@ vault-root/
 |-------|--------|--------|
 | **Layer 0 — Operations** | `99-Operations/` | The mine's machinery. Human-write-only. |
 | **Layer 1 — Treasury** | `40-Treasury/` | Refined bullion. Never deleted by automation. |
-| **Layer 2 — Workings** | `10-Claims/`, `20-Logbook/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/` | Capture, logs, active/slagged sites. |
+| **Layer 2 — Workings** | `10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/` | Capture, logs, active/slagged sites. |
 
 ---
 
@@ -128,7 +128,7 @@ Or set the cron (see `99-Operations/scripts/daily-note.md` for the schedule).
 
 ### 4. Stake your first Claim
 
-Drop a raw note in `10-Claims/` — a quote, a link, an observation.
+Drop a raw note in `20-Claims/` — a quote, a link, an observation.
 When ready to investigate, create a Site folder in `30-Sites/<slug>/` with an
 `_effort.md` from the mold (`97-Molds/effort.md`).
 
