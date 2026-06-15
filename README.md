@@ -118,6 +118,7 @@ memory-mining/
 │   ├── diagrams.md              #   7 Mermaid system diagrams
 │   ├── glossary.md              #   full Value Mining vocabulary
 │   ├── method.md                #   method walkthrough (narrative)
+│   ├── obsidian.md              #   recommended Obsidian setup + integration
 │   ├── research.md              #   background research summary (2026 landscape)
 │   └── USING-THIS-TEMPLATE.md  #   fork quick-start guide
 │

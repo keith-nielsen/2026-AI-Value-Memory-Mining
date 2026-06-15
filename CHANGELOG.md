@@ -14,6 +14,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.2] - 2026-06-15
+
+Documentation fills from dogfooding the live vault — Obsidian setup and the
+Claim→Site promotion workflow.
+
+### Added
+- `docs/obsidian.md` — recommended Obsidian setup: core plugins; the
+  **default-new-note-location → `10-Claims`** setting that keeps accidental/dangling-link
+  notes out of the vault root; native Templates / Daily Notes for note creation; the
+  Shell Commands + `flatpak-spawn --host` recipe for running maintenance scripts from
+  the sandbox; and the Flatpak install + NVIDIA GL-extension matching note.
+- `docs/method.md` → **"Promoting a Claim to a Site"** — the manual Claim→Site
+  procedure, the single-source-of-truth cleanup discipline, and the three
+  "where's my work?" indices (`30-Sites/`, the kanban board, the daily carry-over).
+
+### Changed
+- `vault-template/00-Docs/README.md` — clarified the two in-vault READMEs and noted that
+  the full fork guide (`docs/USING-THIS-TEMPLATE.md`) and Obsidian guide (`docs/obsidian.md`)
+  live in the template repo and do not copy into a forked vault; added pointers.
+- `README.md` and `docs/USING-THIS-TEMPLATE.md` link the new Obsidian guide.
+
+### Deferred (captured in docs, not built)
+- A `vault-promote.sh` + an Obsidian "promote-from-inbox" punch-list button, a
+  stray-fragment lint, and a `99-Operations` index MOC.
+
+---
+
 ## [0.1.1] - 2026-06-15
 
 Adopter-friction fixes found by performing a real install of the template into a
@@ -78,5 +105,6 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   naming validator, and commit-gate hook all behave per spec.
 - The documented onboarding was dogfooded literally end-to-end on a fresh vault.
 
+[0.1.2]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.2
 [0.1.1]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.1
 [0.1.0]: https://github.com/keith-nielsen/memory-mining/releases/tag/v0.1.0

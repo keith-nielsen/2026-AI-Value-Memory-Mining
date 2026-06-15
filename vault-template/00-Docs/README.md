@@ -6,6 +6,12 @@ extraction system that turns raw captures into refined, durable bullion.
 This `00-Docs/` folder is the onboarding sandbox. Once you're oriented, you can
 delete it — nothing in the pipeline depends on it.
 
+> **Two READMEs, on purpose:** this file is your in-vault getting-started guide;
+> `00-Docs/examples/README.md` is a worked Claim→Treasury walkthrough. The *full* fork
+> guide and the Obsidian setup guide live in the **template repo** (`memory-mining`)
+> under `docs/USING-THIS-TEMPLATE.md` and `docs/obsidian.md` — they intentionally do
+> **not** copy into your vault (only `vault-template/`'s contents become the vault).
+
 ---
 
 ## The Value Chain
@@ -173,3 +179,9 @@ Full invariant list: `openspec/project.md` (in the template repo) or the build P
 - `99-Operations/scripts/` — all operational scripts (literate format)
 - `97-Molds/` — note templates
 - `40-Treasury/Catalog/home-moc.md` — master index
+
+In the template repo (`memory-mining`):
+
+- `docs/USING-THIS-TEMPLATE.md` — full fork & setup guide
+- `docs/obsidian.md` — recommended Obsidian setup (plugins, settings, running scripts)
+- `docs/method.md` — the methodology, incl. promoting a Claim to a Site

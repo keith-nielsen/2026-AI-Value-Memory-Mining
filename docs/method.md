@@ -49,6 +49,46 @@ worthless). If yes, move to Dig.
 
 ---
 
+## Promoting a Claim to a Site
+
+This is the hinge between the inbox and active work, and getting it clean matters: a
+half-promoted claim or a leftover fragment is how you end up editing the wrong copy a
+week later.
+
+**The rule: one in-progress effort = exactly one file, `30-Sites/<slug>/_effort.md`.**
+That Site is the *single source of truth* for the effort's state. `10-Claims/` is for
+**un-prospected captures only** — the moment you start prospecting/digging, promote.
+
+A claim that has grown a `status:` field (e.g. you typed `status: dig` onto an inbox
+note) is the tell-tale signal it has outgrown the inbox: `status` is an *effort* field,
+so promote it.
+
+**The promotion, step by step:**
+
+1. Create `30-Sites/<slug>/_effort.md` from the `effort` mold (`97-Molds/effort.md`).
+2. Fill the frontmatter: `type: effort`, `title`, `status` (prospect/dig), `pillars`,
+   `started` (today), `grade:` blank (you estimate it at *ore*).
+3. Migrate the claim's content into the body — its substance becomes the
+   **Dig (working notes)**; add a one-line **Goal / definition of done**.
+4. **Remove the original claim** from `10-Claims/`. Its content now lives in the Site;
+   git history preserves the original, so you don't need a tombstone (a tombstone is
+   just another fragment to wander into).
+5. Repoint any `[[claim]]` wikilinks (e.g. in the daily note) to
+   `[[30-Sites/<slug>/_effort|<slug>]]`, and log the promotion in today's daily.
+6. Commit as one structured change (the commit-gate hook validates every name).
+
+**Where's my work? (on resume)** — three indices, all pointing at the Site:
+
+- `30-Sites/` — each folder is a live effort.
+- `20-Logbook/kanban.md` (`vault-kanban-render.py`) — dashboard of all efforts by status.
+- Today's daily `## Carry-over` (`vault-rollover.py`) — re-surfaces open digs each day.
+
+> A future `vault-promote.sh` will make this a single deterministic command (like
+> `slag` / `dispose`); for now it is a careful manual move. See the
+> [Obsidian roadmap](obsidian.md#roadmap--deferred-ideas) for the inbox-button vision.
+
+---
+
 ## Stage 3: Dig
 
 Set `status: dig`. Work in your Site folder — add notes, references, experiments,

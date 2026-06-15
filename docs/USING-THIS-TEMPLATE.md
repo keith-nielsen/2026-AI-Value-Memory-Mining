@@ -161,6 +161,10 @@ Open the vault folder in Obsidian. You'll find:
 - `97-Molds/` — note templates (daily, effort, knowledge, moc)
 - `99-Operations/` — all scripts and config (human-write-only)
 
+For the recommended plugins, settings (incl. the default-new-note-location that keeps
+your inbox tidy), and how to trigger the maintenance scripts from inside Obsidian, see
+[`obsidian.md`](obsidian.md).
+
 ---
 
 ## What to Customize
