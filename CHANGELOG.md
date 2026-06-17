@@ -14,6 +14,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.5] - 2026-06-17
+
+Spec-as-code runbooks + the daily close lifecycle (Informed-Upheaval Protocol, conforming amendment).
+
+### Added
+- **`96-Runbooks/` band** — operational procedures as harness-agnostic *spec-as-code* (schema:
+  `99-Operations/schemas/runbook.md`; CI `runbook-lint`). Two charter runbooks: **`seal-provenance`**
+  (forensic sealing) and **`close-daily`** (daily disposition sweep).
+- **Daily close lifecycle** — `vault-close-day.py` assigns every daily item a disposition from a
+  controlled vocabulary (`DISPOSITIONS`), writes an **append-only `## Close` manifest**, and sets
+  `closed:`. Invariants: append-only, total-disposition, strict-order close, gated advance (capture
+  is never gated). Deterministic (INV-6); AI invoked only at `unknown/other`. See ADR-0011, ADR-0012.
+- Daily mold `closed:` field; `rollover` gated on the prior close; `daily-note` capture-home
+  `⚠ BLOCKED` banner.
+- `AGENTS.md` runbook pointer + agent operating notes; `CLAUDE.md` adapter.
+
+### Changed
+- `vault-structure` Folder Structure adds `96-Runbooks/` (reserved band `90–96 → 90–95`); CONST-04/02 upheld.
+- `maintenance` spec: **Runbook Format** + **Daily Close Lifecycle** requirements.
+
+### Process
+- Constitution-override `spec-as-code-runbooks` (conforming amendment, Tier 1), **authorized** by
+  Keith Nielsen; ADR-0011, ADR-0012.
+
+---
+
 ## [0.1.4] - 2026-06-15
 
 Lifecycle vocabulary refinement (Informed-Upheaval Protocol, CONST-01) + the project rename.
@@ -158,6 +184,7 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   naming validator, and commit-gate hook all behave per spec.
 - The documented onboarding was dogfooded literally end-to-end on a fresh vault.
 
+[0.1.5]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.5
 [0.1.4]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.4
 [0.1.3]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.3
 [0.1.2]: https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/releases/tag/v0.1.2

@@ -29,18 +29,18 @@ Two high-value, error-prone, *repeatable* processes — **closing a daily** and 
 
 **Blast radius — every artifact (checked off as completed in Gate 3):**
 
-- [ ] `openspec/specs/vault-structure/spec.md` — Folder Structure tree + reserved note; Frontmatter Schemas (`runbook`, daily `closed:`)
-- [ ] `openspec/specs/maintenance/spec.md` — Runbook Format + Daily Close Lifecycle requirements; Script Inventory
-- [ ] `vault-template/96-Runbooks/{seal-provenance,close-daily}.md` — the two charter runbooks (new band)
-- [ ] `vault-template/99-Operations/schemas/runbook.md` — runbook meta-schema (new)
-- [ ] `vault-template/99-Operations/schemas/frontmatter.md` — daily `closed:`
-- [ ] `vault-template/99-Operations/scripts/close-daily.md` — `vault-close-day.py` (new); `rollover.md` + `daily-note.md` gate updates
-- [ ] `vault-template/99-Operations/config.env` — `DISPOSITIONS` controlled vocab
-- [ ] `vault-template/97-Molds/daily.md` — `closed:` + `## Close` / `## Carry-over` slots
-- [ ] `openspec/adr/0011-spec-as-code-runbooks.md`, `openspec/adr/0012-daily-close-lifecycle.md` — new ADRs
-- [ ] `.github/scripts/{runbook-lint,close-lint}` + `.github/workflows/ci.yml` — new lint jobs; `validate-scripts.sh` adds `vault-close-day`
-- [ ] `AGENTS.md` (Runbooks pointer + agent footguns), `CLAUDE.md` (pointer)
-- [ ] `CHANGELOG.md` — `[0.1.5]`
+- [x] `openspec/specs/vault-structure/spec.md` — Folder Structure tree + reserved note; Frontmatter Schemas (`runbook`, daily `closed:`)
+- [x] `openspec/specs/maintenance/spec.md` — Runbook Format + Daily Close Lifecycle requirements; Script Inventory
+- [x] `vault-template/96-Runbooks/{seal-provenance,close-daily}.md` — the two charter runbooks (new band)
+- [x] `vault-template/99-Operations/schemas/runbook.md` — runbook meta-schema (new)
+- [x] `vault-template/99-Operations/schemas/frontmatter.md` — daily `closed:`
+- [x] `vault-template/99-Operations/scripts/close-daily.md` — `vault-close-day.py` (new); `rollover.md` + `daily-note.md` gate updates
+- [x] `vault-template/99-Operations/config.env` — `DISPOSITIONS` controlled vocab
+- [x] `vault-template/97-Molds/daily.md` — `closed:` + `## Close` / `## Carry-over` slots
+- [x] `openspec/adr/0011-spec-as-code-runbooks.md`, `openspec/adr/0012-daily-close-lifecycle.md` — new ADRs
+- [x] `.github/scripts/{runbook-lint,close-lint}` + `.github/workflows/ci.yml` — new lint jobs; `validate-scripts.sh` adds `vault-close-day`
+- [x] `AGENTS.md` (Runbooks pointer + agent footguns), `CLAUDE.md` (pointer)
+- [x] `CHANGELOG.md` — `[0.1.5]`
 
 ---
 
@@ -54,34 +54,34 @@ Two high-value, error-prone, *repeatable* processes — **closing a daily** and 
 
 **Regression tests that MUST pass before Gate 3 → 4:**
 
-- [ ] `openspec validate --all --strict` (incl. this change)
-- [ ] `constitution-lint` passes (specs keep `protects:`; constitution intact; IUP template present)
-- [ ] `vocabulary-lint` passes
-- [ ] `runbook-lint` passes on both charter runbooks
-- [ ] `close-lint` passes on the already-closed `2026-06-15` daily
-- [ ] `validate-scripts.sh` (Python 3.12 + 3.13): `vault-close-day.py` renders, `py_compile`s, shellcheck-clean, close-daily smoke green
-- [ ] link-check clean; CI green
+- [x] `openspec validate --all --strict` (incl. this change)
+- [x] `constitution-lint` passes (specs keep `protects:`; constitution intact; IUP template present)
+- [x] `vocabulary-lint` passes
+- [x] `runbook-lint` passes on both charter runbooks
+- [x] `close-lint` passes on the already-closed `2026-06-15` daily
+- [x] `validate-scripts.sh` (Python 3.12 + 3.13): `vault-close-day.py` renders, `py_compile`s, shellcheck-clean, close-daily smoke green
+- [x] link-check clean; CI green
 
 ---
 
 ## Gate 3 — EXECUTE + REGRESSION TEST
 
-**Implementation complete:** ☐
-**All regression tests green:** ☐
-**CI green on this PR:** ☐
+**Implementation complete:** ☑
+**All regression tests green:** ☑ (OpenSpec 8/8 · runbook-lint · link-check · validate-scripts 3.12+3.13)
+**CI green on this PR:** ☑ (all 10 jobs)
 
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > Sacrifice: one more top-level band in every vault (mild structural surface); forks must `mkdir` it on upgrade. The reserved `90–96` range shrinks to `90–95`. No principle, invariant, or existing workflow is weakened.
 
-**ADR created:** `openspec/adr/0011-spec-as-code-runbooks.md`, `openspec/adr/0012-daily-close-lifecycle.md` ☐
-**ADR captures:** context / options / choice / consequence / **sacrifice** ☐
+**ADR created:** `openspec/adr/0011-spec-as-code-runbooks.md`, `openspec/adr/0012-daily-close-lifecycle.md` ☑
+**ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **AUTHORIZE** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: **Keith Nielsen** — "Authorized."
+Date: 2026-06-17
