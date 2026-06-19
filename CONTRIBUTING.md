@@ -53,11 +53,6 @@ if applicable.
 Use the **Change Proposal** issue template to discuss before opening a PR, especially
 for larger changes.
 
-## Code of Conduct
-
-This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
-All contributors are expected to uphold it.
-
 ## License
 
 By contributing, you agree that your contributions are licensed under the

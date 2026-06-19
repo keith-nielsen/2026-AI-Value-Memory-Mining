@@ -133,7 +133,6 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ├── CONTRIBUTING.md              # Change flow + constitution-override path
 ├── AGENTS.md                    # AI agent access rules + constitutional hard stop
 ├── CHANGELOG.md
-├── CODE_OF_CONDUCT.md
 └── SECURITY.md
 ```
 
