@@ -10,9 +10,7 @@ protects: [INV-2, INV-3, INV-6]
 Define the Layer-0 operational machinery: the literate meta-script format, the
 render/reconcile GitOps pattern, and all deterministic scripts that automate vault
 maintenance.
-
 ## Requirements
-
 ### Requirement: Literate Meta-Script Format
 
 Every operational artifact SHALL be stored as a literate meta-script note in
@@ -83,20 +81,24 @@ Each is offline and deterministic (INV-6).
 
 | Script note | Deploy target | Runtime | Purpose |
 |---|---|---|---|
-| `render-reconcile.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
-| `daily-note.md` | `~/bin/vault-daily-note.py` | cron `1 0 * * *` | Create today's daily note from Mold; idempotent |
-| `lint.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
-| `orphans.md` | `~/bin/vault-orphans.py` | manual / weekly | Report Treasury notes not linked from any Catalog index |
-| `refine-detect.md` | `~/bin/vault-refine-detect.py` | cron daily | Queue ore whose grade cleared the Sort gate |
-| `refine-execute.md` | `~/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury |
-| `dump.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
-| `slag.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
-| `reprospect.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
-| `rollover.md` | `~/bin/vault-rollover.py` | cron `2 0 * * *` | Append open dig carry-overs to today's daily note; gated on prior day `closed` |
-| `close-daily.md` | `~/bin/vault-close-day.py` | manual | Disposition every item of a daily, write the `## Close` manifest, set `closed:`; emits the `unknown/other` worklist |
-| `kanban-render.md` | `~/bin/vault-kanban-render.py` | manual | Render read-only Markdown Kanban board |
-| `naming.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
-| `pre-commit.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
+| `render-reconcile-script.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
+| `daily-note-script.md` | `~/bin/vault-daily-note.py` | cron `1 0 * * *` | Create today's daily note from Mold; idempotent |
+| `knowledge-lint-script.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
+| `treasury-orphan-script.md` | `~/bin/vault-orphans.py` | manual / weekly | Report Treasury notes not linked from any Catalog index |
+| `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | cron daily | Queue ore whose grade cleared the Sort gate |
+| `bank-execute-script.md` | `~/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury |
+| `spoil-dump-script.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
+| `site-slag-script.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
+| `tailings-reprospect-script.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
+| `dig-rollover-script.md` | `~/bin/vault-rollover.py` | cron `2 0 * * *` | Append open dig carry-overs to today's daily note; gated on prior day `closed` |
+| `daily-close-script.md` | `~/bin/vault-close-day.py` | manual | Disposition every item of a daily, write the `## Close` manifest, set `closed:`; emits the `unknown/other` worklist |
+| `kanban-render-script.md` | `~/bin/vault-kanban-render.py` | manual | Render read-only Markdown Kanban board |
+| `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
+| `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
+
+The **note filenames** follow the `silo-section-descriptor` naming convention (silo first, `script`
+trailing). **Deploy targets are unchanged** — the `~/bin/vault-*.py`/`.sh` and the
+`99-Operations/hooks/pre-commit` host artifacts keep their names (the `.py` rename is deferred).
 
 #### Scenario: Daily note creator is idempotent
 - **WHEN** the daily-note creator runs twice on the same day
@@ -105,8 +107,6 @@ Each is offline and deterministic (INV-6).
 #### Scenario: Kanban render produces a structured board
 - **WHEN** `vault-kanban-render.py` runs
 - **THEN** `10-Logbook/kanban.md` is written with three status-column headings in pipeline order (Dig/Ore/Slagged), rows sorted grade-descending within each column, and a read-only notice; one commit produced
-
----
 
 ### Requirement: Runbook Format
 
@@ -155,3 +155,4 @@ it never calls a model itself.
 #### Scenario: An empty day auto-closes
 - **WHEN** `vault-close-day.py` runs on a day with no items
 - **THEN** total-disposition is trivially satisfied and the day is marked `closed` without manual input
+

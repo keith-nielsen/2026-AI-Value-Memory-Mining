@@ -28,7 +28,7 @@
 
 ## 6. Gate 4 + release (human-gated)
 
-- [ ] 6.1 Gate-4 sign-off recorded in `proposal.md` (Keith — human only)
-- [ ] 6.2 `openspec/adr/00NN-system-artifact-naming.md`
+- [x] 6.1 Gate-4 sign-off recorded in `proposal.md` (Keith — "Authorized", 2026-06-29)
+- [x] 6.2 `openspec/adr/0016-system-artifact-naming.md` (Accepted)
 - [ ] 6.3 `/opsx:archive` + CHANGELOG `[0.1.9]` + tag `v0.1.9`
 - [ ] 6.4 Mirror to live vault (script + index renames + reference repoints + re-render + reconcile)

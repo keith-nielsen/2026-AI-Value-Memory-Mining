@@ -14,6 +14,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.9] - 2026-06-29
+
+System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes brought to the `silo-section-descriptor` convention.
+
+### Changed
+- **Scripts** → `<domain>-<action>-script` (`.md` notes only; deploy targets unchanged — `.py` rename deferred; canonical mining verbs): e.g. `close-daily`→`daily-close-script`, `dump`→`spoil-dump-script`, `refine-execute`→`bank-execute-script`, `pre-commit`→`commit-gate-script` (deployed hook stays `pre-commit`).
+- **Schemas** → `note-frontmatter-schema`, `runbook-format-schema`, `refine-prompt-contract`.
+- **Catalog indexes** → `<pillar>-domain-index` + `home-master-index` (the scope token anticipates future sub-sector indexes).
+- Specs synced: `maintenance`, `vault-structure`, `agent-integration`. See ADR-0016.
+
+---
+
 ## [0.1.8] - 2026-06-28
 
 Token-minimum naming (Informed-Upheaval Protocol, conforming amendment) — the ≥3-token naming rule, codified as convention.

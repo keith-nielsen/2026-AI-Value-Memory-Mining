@@ -91,14 +91,14 @@ Molds conform (v0.1.7) and the ≥3-token rule is ratified (v0.1.8 / ADR-0015). 
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ (incl. the corrected `.github` / `AGENTS.md` / root `README.md` references)
 **Consequences explicitly accepted:**
 
 > Sacrifice: forks/vaults must `git mv` 24 `.md` files + repoint references on upgrade (mechanical). Script `.py` binaries keep their names (deferred). No principle, invariant, or workflow is weakened.
 
-**ADR created:** `openspec/adr/00NN-system-artifact-naming.md` ☐
-**ADR captures:** context / options / choice / consequence / **sacrifice** ☐
+**ADR created:** `openspec/adr/0016-system-artifact-naming.md` ☑
+**ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: **Keith Nielsen** — "Authorized." (transcribed by Claude Code at Keith's explicit instruction; the decision is the human's)
+Date: 2026-06-29

@@ -125,7 +125,7 @@ No proprietary formats. No binary content files outside `98-Warehouse/`.
 ### Requirement: Frontmatter Schemas
 
 Each note type SHALL have an exact required frontmatter schema. The schemas are documented
-in `vault-template/99-Operations/schemas/frontmatter.md` and enforced by the linter.
+in `vault-template/99-Operations/schemas/note-frontmatter-schema.md` and enforced by the linter.
 
 | Type | Location | Key fields |
 |---|---|---|
@@ -139,7 +139,7 @@ in `vault-template/99-Operations/schemas/frontmatter.md` and enforced by the lin
 
 The `daily` `closed` field records that the day passed the `close-daily` ritual: it is
 absent (legacy/open) or an ISO date (the day it was closed). The `runbook` schema is
-defined in `99-Operations/schemas/runbook.md`.
+defined in `99-Operations/schemas/runbook-format-schema.md`.
 
 #### Scenario: Linter validates knowledge note frontmatter
 - **WHEN** the linter runs on a `40-Treasury/*.md` file
@@ -148,8 +148,6 @@ defined in `99-Operations/schemas/runbook.md`.
 #### Scenario: A runbook validates against the runbook schema
 - **WHEN** `runbook-lint` runs on a `96-Runbooks/*.md` file
 - **THEN** it exits 0 only if the frontmatter carries `id`, `title`, `trigger`, `applies-to`, `class`, `last-validated` and the body has the required sections (Purpose, Preconditions, Steps, Pitfalls, Verification, Rollback)
-
----
 
 ### Requirement: Pillar Configuration
 
