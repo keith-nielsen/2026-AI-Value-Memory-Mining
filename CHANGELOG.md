@@ -14,6 +14,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.10] - 2026-06-29
+
+Session bootstrap loader — the cold-start prime mechanism (minimum bootstrap, maximum confidence).
+
+### Added
+- **`96-Runbooks/session-bootstrap-loader`** runbook (harness-agnostic SSOT): at session start, source
+  env, engage the four gates (governance-first · re-read-before-acting · autonomy-bans · clean-ops),
+  and know the just-in-time pointers (the `llm-context-reboot` load-list, the deferred-not-built list,
+  other runbooks, the memories). A Claude Code **SessionStart hook** (`.claude/settings.json`, in-repo)
+  surfaces it automatically; `AGENTS.md` + `CLAUDE.md` point at it. No spec change (conforms to the
+  existing Runbook-Format).
+
+---
+
 ## [0.1.9] - 2026-06-29
 
 System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes brought to the `silo-section-descriptor` convention.
