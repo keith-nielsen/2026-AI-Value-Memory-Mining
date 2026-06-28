@@ -14,6 +14,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.11] - 2026-06-29
+
+`/vmm-session-rebooted` slash command — explicit cold-start prime trigger.
+
+### Added
+- **`/vmm-session-rebooted`** Claude Code command (`.claude/commands/`, repo + vault-template) — a thin
+  adapter that invokes the `session-bootstrap-loader` runbook (env + the four gates + JIT pointers).
+  The most reliable prime trigger (it makes *engaging* the bootstrap the agent's explicit task). No
+  spec change; points at the runbook SSOT (no duplication).
+
+---
+
 ## [0.1.10] - 2026-06-29
 
 Session bootstrap loader — the cold-start prime mechanism (minimum bootstrap, maximum confidence).
