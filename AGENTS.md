@@ -83,7 +83,7 @@ These are enforced by code, not trust. See `openspec/constitution.md` for the ra
 | `99-Operations/` | — (no access) | Write (INV-5) |
 | `80-Crucible/` | — (no access) | Enter (INV-8) |
 
-Enforcement: the `vault-template/99-Operations/scripts/refine-execute.md` executor and
+Enforcement: the `vault-template/99-Operations/scripts/bank-execute-script.md` executor and
 the `vault-template/99-Operations/hooks/pre-commit` hook are the real boundaries.
 
 ---
@@ -110,7 +110,7 @@ grandfathered); mechanical enforcement is sequenced later. SSOT: `openspec/specs
 ## Runbooks — repeatable operations live in `96-Runbooks/`
 
 High-value, error-prone, repeatable procedures are codified as **spec-as-code runbooks** in
-`vault-template/96-Runbooks/` (schema: `99-Operations/schemas/runbook.md`) — the single,
+`vault-template/96-Runbooks/` (schema: `99-Operations/schemas/runbook-format-schema.md`) — the single,
 harness-agnostic source of truth. **To perform one, open and follow the runbook; do not improvise:**
 
 - `close-daily` — close a daily note (full disposition sweep) before advancing to the next day.

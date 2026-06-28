@@ -47,7 +47,7 @@ body:
     id: component
     attributes:
       label: Affected component
-      description: "e.g. vault-template/99-Operations/scripts/lint.md, openspec/specs/naming-rules/spec.md"
+      description: "e.g. vault-template/99-Operations/scripts/knowledge-lint-script.md, openspec/specs/naming-rules/spec.md"
     validations:
       required: true
 

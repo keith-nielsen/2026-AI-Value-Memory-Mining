@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: 99-Operations/schemas/refine-prompt.md
+deploy_target: 99-Operations/schemas/refine-prompt-contract.md
 runtime: manual
 class: script
 created: 2026-06-14

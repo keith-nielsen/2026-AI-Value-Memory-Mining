@@ -11,12 +11,12 @@ updated: 2026-06-14
 
 ## Pillar MOCs
 
-- [[mental-index|Mental]]
-- [[health-index|Health]]
-- [[financial-index|Financial]]
-- [[social-index|Social]]
-- [[technology-index|Technology]]
-- [[calling-index|Calling]]
+- [[mental-domain-index|Mental]]
+- [[health-domain-index|Health]]
+- [[financial-domain-index|Financial]]
+- [[social-domain-index|Social]]
+- [[technology-domain-index|Technology]]
+- [[calling-domain-index|Calling]]
 
 ## Cross-pillar
 

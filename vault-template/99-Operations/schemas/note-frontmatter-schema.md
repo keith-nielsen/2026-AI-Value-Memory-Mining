@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: 99-Operations/schemas/frontmatter.md
+deploy_target: 99-Operations/schemas/note-frontmatter-schema.md
 runtime: manual
 class: script
 created: 2026-06-14
@@ -92,7 +92,7 @@ class: procedure           # literal
 last-validated: YYYY-MM-DD
 ```
 
-See `99-Operations/schemas/runbook.md` for the required body sections.
+See `99-Operations/schemas/runbook-format-schema.md` for the required body sections.
 
 ---
 

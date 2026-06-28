@@ -32,7 +32,7 @@ hdr "render all scripts to the sandbox host"
 # Bootstrap render from its source note, then deploy everything
 python3 - <<'PY' || exit 2
 import re, os, pathlib, frontmatter
-note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
 out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
 out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
@@ -120,7 +120,7 @@ rm -f "$VAULT/20-Claims/_refine-approved/bad.json"
 cat > "$VAULT/20-Claims/_refine-approved/good.json" <<'JSON'
 { "target_note": "40-Treasury/good-insight.md", "mode": "create",
   "insight_md": "Durable value.", "provenance_md": "Tried X.",
-  "index_links": ["40-Treasury/Catalog/technology-index.md"],
+  "index_links": ["40-Treasury/Catalog/technology-domain-index.md"],
   "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
 JSON
 python3 "$HOME/bin/vault-refine-execute.py" >/dev/null 2>&1

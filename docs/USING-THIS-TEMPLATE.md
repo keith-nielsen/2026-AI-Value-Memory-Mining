@@ -69,7 +69,7 @@ Pillar design principles:
 - **Durable**: stable for years, not months
 
 Then update `40-Treasury/Catalog/` to match. Either rename the example index files or
-create new ones from `97-Molds/index-mold-blank.md`. The Home index (`home-index.md`) should link to
+create new ones from `97-Molds/index-mold-blank.md`. The Home index (`home-master-index.md`) should link to
 each of your pillar indexes.
 
 ---
@@ -96,7 +96,7 @@ python3 -m venv .venv
 #    so extract its code block rather than running the .md)
 python3 - << 'EOF'
 import re, pathlib, frontmatter, os
-note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 m = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M)
 target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
 target.parent.mkdir(parents=True, exist_ok=True)
@@ -157,7 +157,7 @@ Make sure `VAULT_ROOT` inside `config.env` is set to the absolute path of your v
 Open the vault folder in Obsidian. You'll find:
 
 - `00-Docs/README.md` — orientation and getting-started guide (deletable after setup)
-- `40-Treasury/Catalog/home-index.md` — master index linking to your pillar indexes
+- `40-Treasury/Catalog/home-master-index.md` — master index linking to your pillar indexes
 - `97-Molds/` — note templates (daily, effort, knowledge, index)
 - `99-Operations/` — all scripts and config (human-write-only)
 

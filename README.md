@@ -184,7 +184,7 @@ python3 -m venv .venv                                # vault-local python (PEP 6
 # Bootstrap render, then deploy all scripts
 python3 - << 'EOF'
 import re, pathlib, frontmatter, os
-note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 m = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M)
 target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
 target.parent.mkdir(parents=True, exist_ok=True)

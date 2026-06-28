@@ -70,7 +70,7 @@ Dig notes in step 2 — same subject, but the bullion has shed all the explorato
 It carries the full `knowledge` frontmatter schema (`type`, `title`, `pillars`,
 `grade`, `stage`, `crucible`, dates, `tags`) and a `## Provenance / Changelog`
 section. It is linked from
-[`technology-index.md`](../../40-Treasury/Catalog/technology-index.md).
+[`technology-domain-index.md`](../../40-Treasury/Catalog/technology-domain-index.md).
 
 From here the note enters **Polish** — perpetual, lightweight upkeep. It is never
 "finished."

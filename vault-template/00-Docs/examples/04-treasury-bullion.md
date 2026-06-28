@@ -58,5 +58,5 @@ the non-obvious preconditions were kept.
   Dig notes in 02-site-walkthrough/02-site-walkthrough.md: the bullion is shorter, denser, and
   free of the exploratory mess. It distills; it does not transcribe. In a real vault
   this file lives at 40-Treasury/git-bisect-regression-hunting.md (note the kebab-case
-  stem — INV-11) and is linked from 40-Treasury/Catalog/technology-index.md.
+  stem — INV-11) and is linked from 40-Treasury/Catalog/technology-domain-index.md.
 -->

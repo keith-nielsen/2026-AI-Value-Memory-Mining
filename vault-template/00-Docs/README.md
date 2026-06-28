@@ -83,7 +83,7 @@ PILLARS="mental health financial social technology calling"
 ```
 
 Then update (or replace) the Catalog indexes in `40-Treasury/Catalog/` to match.
-The Home index (`home-index.md`) links to each pillar's front door.
+The Home index (`home-master-index.md`) links to each pillar's front door.
 
 ### 2. Bootstrap the scripts
 
@@ -102,7 +102,7 @@ python3 -m venv .venv                              # vault-local python
 # (a meta-script note is Markdown — you can't run the .md directly)
 python3 - <<'PY'
 import re, os, pathlib, frontmatter
-note = pathlib.Path("99-Operations/scripts/render-reconcile.md")
+note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
 out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
 out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
@@ -123,7 +123,7 @@ For ongoing operations, source `config.env` once per shell session
 python3 ~/bin/vault-daily-note.py
 ```
 
-Or set the cron (see `99-Operations/scripts/daily-note.md` for the schedule).
+Or set the cron (see `99-Operations/scripts/daily-note-script.md` for the schedule).
 
 ### 4. Stake your first Claim
 
@@ -174,10 +174,10 @@ Full invariant list: `openspec/project.md` (in the template repo) or the build P
 ## Further Reading
 
 - `99-Operations/config.env` — authoritative pillar/grade/stage configuration
-- `99-Operations/schemas/frontmatter.md` — all frontmatter schemas
+- `99-Operations/schemas/note-frontmatter-schema.md` — all frontmatter schemas
 - `99-Operations/scripts/` — all operational scripts (literate format)
 - `97-Molds/` — note templates
-- `40-Treasury/Catalog/home-index.md` — master index
+- `40-Treasury/Catalog/home-master-index.md` — master index
 
 In the template repo (`2026-AI-Value-Memory-Mining`):
 

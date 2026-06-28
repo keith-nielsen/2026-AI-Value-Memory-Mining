@@ -31,7 +31,7 @@ All built in — no community plugins required for the core workflow.
 |--------|-----|
 | **Templates** | Instantiate the `97-Molds/` molds (effort / knowledge / index) |
 | **Daily Notes** | Create/open today's daily note from `97-Molds/daily-mold-blank.md` |
-| **Bookmarks** | Pin `40-Treasury/Catalog/home-index.md` as your front door |
+| **Bookmarks** | Pin `40-Treasury/Catalog/home-master-index.md` as your front door |
 | **Outline**, **Backlinks** | Navigation; Backlinks surfaces what links to a note |
 
 Properties (the frontmatter UI) is built in and always on.
@@ -68,7 +68,7 @@ human instantiation in Obsidian.
 
 Easiest first: (1) instantiate a mold (brings the whole schema); (2) command palette →
 "Add file property", set `pillars` to a **List** and type — Obsidian autocompletes from
-existing pillar values; (3) paste from `99-Operations/schemas/frontmatter.md`.
+existing pillar values; (3) paste from `99-Operations/schemas/note-frontmatter-schema.md`.
 
 ---
 
