@@ -21,7 +21,11 @@ The vault SHALL be organized into three named layers with distinct stability and
 
 Additional areas outside the layer model: `00-Docs/` (onboarding, deletable),
 `50-Mint/` + `60-Forge/` (future production, deferred), `80-Crucible/` (future
-validation, deferred), `97-Molds/` + `98-Warehouse/` (infrastructure).
+validation, deferred), `97-Molds/` (infrastructure), and `98-Warehouse/` — the
+**reference stockroom**: retained source/reference material the operation draws on
+repeatedly (binaries *and* digitized references), shelved by media type. It is *not*
+mined value (not Treasury), *not* a working dig (not a Site), and *not* operations
+machinery — it is low-traffic stock kept out of the way.
 
 #### Scenario: Layer 0 is sealed from automation
 - **WHEN** any automated process attempts to write `99-Operations/`
@@ -30,8 +34,6 @@ validation, deferred), `97-Molds/` + `98-Warehouse/` (infrastructure).
 #### Scenario: Treasury is sealed from direct agent writes
 - **WHEN** an agent process attempts to write directly to `40-Treasury/`
 - **THEN** the write is blocked (INV-4); only the refine executor script may write Treasury, and only when processing an approved proposal
-
----
 
 ### Requirement: Folder Structure
 
@@ -64,7 +66,12 @@ headroom.
   effort-mold-blank.md
   knowledge-mold-blank.md
   index-mold-blank.md
-98-Warehouse/
+98-Warehouse/        (reference stockroom — shelved by media type)
+  Books/
+  Music/
+  Art/
+  Pictures/
+  Audio/
 99-Operations/
   config.env
   requirements.txt
@@ -81,6 +88,16 @@ for repeatable, error-prone operations (e.g. `daily-close-runbook`, `provenance-
 operational machinery (Layer-0-adjacent, like `97-Molds`/`99-Operations`), sorts in the
 infra region per CONST-04, and conforms to the numbering scheme — it does not override it.
 
+`98-Warehouse/` is the **reference stockroom** for retained source material the operation
+draws on repeatedly: binary attachments (per the Format Invariant) and digitized references
+(e.g. an owned-hardcopy book transcribed to Markdown). It is organized into **media shelves**
+(`Books/`, `Music/`, `Art/`, `Pictures/`, `Audio/`) so stock stays out of the way and easy to
+find. Shelf folder names are **human-friendly labels** under the universal path-component rule
+(cross-platform-safe characters, no reserved device names) — they are deliberately **not** bound
+by the kebab-case / ≥3-token convention, which is scoped to `.md` stems and to effort folders in
+`30-Sites/`/`70-Tailings/` and Treasury stems in `40-Treasury/` (see `naming-rules`), none of
+which a Warehouse shelf is. Shelves are created on demand; the set above is the default.
+
 Rationale for the order: the daily note in `10-Logbook/Daily/` is the orienting surface
 a user opens first each session, so it sorts to the top per CONST-04. `20-Claims/` is
 the capture inbox (an unordered queue), and carries the refine gate
@@ -88,7 +105,7 @@ the capture inbox (an unordered queue), and carries the refine gate
 
 The four `97-Molds/` files are named on the `silo-section-descriptor` convention
 (`<note-type>-mold-blank.md`) so each mold is self-identifying in any flat / search /
-migrated view and never collides with content (e.g. the Catalog `<pillar>-index.md` notes).
+migrated view and never collides with content (e.g. the Catalog `<pillar>-domain-index.md` notes).
 Scripts and the Obsidian Daily Notes template reference a mold by this filename.
 
 #### Scenario: Folder tree is complete after Phase 0
@@ -110,6 +127,10 @@ Scripts and the Obsidian Daily Notes template reference a mold by this filename.
 #### Scenario: Molds are self-identifying folder-notes
 - **WHEN** the four `97-Molds/` files are listed flat (graph, search, or migration)
 - **THEN** each stem reads `<note-type>-mold-blank` and none collides with a content stem such as `index`
+
+#### Scenario: Warehouse shelves take human-friendly names
+- **WHEN** a Warehouse shelf folder (e.g. `Books`, `Pictures`) is created or listed
+- **THEN** it must only satisfy the universal path-component rule (cross-platform-safe characters, no reserved device names); the kebab-case / ≥3-token convention does not apply to it, because that convention is scoped to `.md` stems and to `30-Sites/`/`70-Tailings/` effort folders and `40-Treasury/` stems
 
 ### Requirement: Format Invariant
 

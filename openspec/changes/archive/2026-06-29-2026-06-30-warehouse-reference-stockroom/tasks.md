@@ -17,7 +17,7 @@
 
 ## 4. Gate 4 + release (human-gated)
 
-- [ ] 4.1 Gate-4 sign-off recorded in `proposal.md` (human only)
-- [ ] 4.2 `openspec/adr/0019-warehouse-reference-stockroom.md` → Status: Accepted
-- [ ] 4.3 `openspec archive` + CHANGELOG `[0.1.14]` + tag `v0.1.14`
-- [ ] 4.4 Mirror to live vault (parity check — shelves + README already applied 2026-06-30)
+- [x] 4.1 Gate-4 sign-off recorded in `proposal.md` (human only)
+- [x] 4.2 `openspec/adr/0019-warehouse-reference-stockroom.md` → Status: Accepted
+- [x] 4.3 `openspec archive` + CHANGELOG `[0.1.14]` + tag `v0.1.14`
+- [x] 4.4 Mirror to live vault (parity check — shelves + README already applied 2026-06-30)

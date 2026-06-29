@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0019 — 98-Warehouse: binary attachments → reference stockroom
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-30
 **Relates:** `vault-structure` · `access-control` specs · change `warehouse-reference-stockroom` · naming scope from ADR-0015/0016
 

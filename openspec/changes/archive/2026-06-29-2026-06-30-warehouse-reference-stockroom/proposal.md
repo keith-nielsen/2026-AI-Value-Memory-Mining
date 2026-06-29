@@ -5,7 +5,7 @@
 **Change type:** `constitution-override`
 **Principle(s) affected:** `vault-structure` spec — `protects: [CONST-02, CONST-04, CONST-05, INV-1, INV-12]`; `access-control` spec — `protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`. **Conforming amendment** — re-classifies the charter of an existing infrastructure silo and clarifies a naming scope; weakens no invariant.
 **Tier:** 0/1 (touches `protects:`-tagged specs) — additive/clarifying
-**Proposer:** Keith Nielsen (drafted by Claude Code; pending Keith's authorization)
+**Proposer:** Keith Nielsen (drafted by Claude Code; authorized by Keith)
 **Date:** 2026-06-30
 
 ---
@@ -72,12 +72,12 @@ not weakened.
 
 **Blast radius (checked off in Gate 3):**
 
-- [ ] `openspec/specs/vault-structure/spec.md` — MODIFIED *Three-Layer Model* + *Folder Structure*
-- [ ] `openspec/specs/access-control/spec.md` — MODIFIED *Area Access Matrix*
-- [ ] `vault-template/98-Warehouse/{Books,Music,Art,Pictures,Audio}/.gitkeep`
-- [ ] `vault-template/00-Docs/README.md` — charter line
-- [ ] `vault-template/99-Operations/schemas/refine-prompt-contract.md` — ADR-0016 straggler fix
-- [ ] ADR-0019 (new)
+- [x] `openspec/specs/vault-structure/spec.md` — MODIFIED *Three-Layer Model* + *Folder Structure*
+- [x] `openspec/specs/access-control/spec.md` — MODIFIED *Area Access Matrix*
+- [x] `vault-template/98-Warehouse/{Books,Music,Art,Pictures,Audio}/.gitkeep`
+- [x] `vault-template/00-Docs/README.md` — charter line
+- [x] `vault-template/99-Operations/schemas/refine-prompt-contract.md` — ADR-0016 straggler fix
+- [x] ADR-0019 (new)
 
 ---
 
@@ -102,16 +102,16 @@ shelves + the README charter line (applied 2026-06-30), so the live mirror is a 
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > Sacrifice: none structural — `98-Warehouse/` gains a defined charter + media shelves and a naming-scope
 > clarification; no invariant, access cell, or workflow is weakened, and no existing file is moved.
 > The only ongoing cost is that adopters carry 5 empty shelf folders by default (deletable).
 
-**ADR created:** `openspec/adr/0019-warehouse-reference-stockroom.md` ☐ (drafted; Accepted at sign-off)
+**ADR created:** `openspec/adr/0019-warehouse-reference-stockroom.md` ☑ (Accepted)
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: **__________** — "__________"
-Date: **__________**
+Name: **Keith Nielsen** — "Authorized." (transcribed by Claude Code at Keith's explicit instruction; the decision is the human's)
+Date: 2026-06-30

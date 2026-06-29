@@ -14,6 +14,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.14] - 2026-06-30
+
+`98-Warehouse` re-chartered as the **reference stockroom**. (change: `warehouse-reference-stockroom`; ADR-0019)
+
+### Added
+- **`98-Warehouse/` reference stockroom** — retained source/reference material the operation draws on repeatedly (binaries *and* digitized references), organized into media shelves `Books/`, `Music/`, `Art/`, `Pictures/`, `Audio/`. Re-classified from generic "binary attachments / infrastructure" in `vault-structure` (*Three-Layer Model* + *Folder Structure*) and `access-control` (*Area Access Matrix*); both retain `protects:`.
+- **Shelf-naming scope scenario** — Warehouse shelf *folders* take human-friendly names under the universal path-component rule only; the kebab-case / ≥3-token convention is scoped to `.md` stems and `30-Sites/`/`70-Tailings/` effort folders + `40-Treasury/` stems, so it does not reach them.
+- `vault-template/98-Warehouse/{Books,Music,Art,Pictures,Audio}/.gitkeep`.
+
+### Changed
+- `vault-template/00-Docs/README.md` — `98-Warehouse/` charter line.
+
+### Fixed
+- Completed ADR-0016 propagation: `vault-structure` spec + `vault-template/99-Operations/schemas/refine-prompt-contract.md` `index_links` example `<pillar>-index.md` → `<pillar>-domain-index.md` (the pre-v0.1.9 straggler; `agent-integration` was already correct).
+
+---
+
 ## [0.1.13] - 2026-06-29
 
 Private by default — **INV-14** (Tier-0) + the outbound publish guard. (change: `private-by-default-publish-guard`; ADR-0018)

@@ -34,7 +34,7 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 |---|---|---|---|---|
 | `99-Operations/` | RW | — | R | INV-5: actor ≠ owner of definition |
 | `97-Molds/` | RW | R | R | Templates; instantiation only |
-| `98-Warehouse/` | RW | W¹ | RW | General binary storage |
+| `98-Warehouse/` | RW | W¹ | RW | Reference stockroom: retained source material (binaries + digitized refs), shelved by media type |
 | `00-Docs/` | RW | R | R | Deletable onboarding |
 | `20-Claims/` | RW | —² | RW | Capture zone |
 | `20-Claims/_refine-proposals/` | R | W | R | Agent deposit point |
