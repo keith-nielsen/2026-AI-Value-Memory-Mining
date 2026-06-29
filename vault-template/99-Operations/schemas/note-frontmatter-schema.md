@@ -61,7 +61,7 @@ slag_reason: string        # required when status == slagged
 ```yaml
 type: daily
 date: YYYY-MM-DD
-closed: YYYY-MM-DD          # set by close-daily; absent/blank = open (legacy or in-progress)
+closed: YYYY-MM-DD          # set by daily-close; absent/blank = open (legacy or in-progress)
 ```
 
 ---

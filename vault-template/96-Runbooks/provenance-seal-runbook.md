@@ -1,13 +1,13 @@
 ---
 type: runbook
-id: seal-provenance
-title: Seal a gold artifact's provenance (forensic, trustless)
+id: provenance-seal-runbook
+title: Provenance seal — gold artifact (forensic, trustless)
 trigger: "archive/seal an irreplaceable artifact so a third party can verify it without trusting us or any company"
 applies-to: both
 class: procedure
 last-validated: 2026-06-17
 ---
-# Runbook — Seal Provenance
+# Runbook — Provenance Seal
 
 ## Purpose
 Produce a tamper-evident, attribution-protected, independently-verifiable record of an

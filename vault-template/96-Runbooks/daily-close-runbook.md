@@ -1,13 +1,13 @@
 ---
 type: runbook
-id: close-daily
-title: Close a daily note (full disposition sweep)
+id: daily-close-runbook
+title: Daily close — full disposition sweep
 trigger: "the date has rolled over and a prior daily is still open; close it before advancing"
 applies-to: vault
 class: procedure
 last-validated: 2026-06-17
 ---
-# Runbook — Close Daily
+# Runbook — Daily Close
 
 ## Purpose
 Bring a daily note to a fully-dispositioned, append-only `closed` state so nothing un-actioned

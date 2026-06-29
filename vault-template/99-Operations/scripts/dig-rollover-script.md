@@ -32,7 +32,7 @@ daily_dir = vault / "10-Logbook" / "Daily"
 prev = sorted(p for p in daily_dir.glob("*.md")
               if len(p.stem) == 10 and p.stem < today)
 if prev and not frontmatter.load(prev[-1]).metadata.get("closed"):
-    print(f"BLOCKED: previous day {prev[-1].stem} not closed — run close-daily first"); exit(0)
+    print(f"BLOCKED: previous day {prev[-1].stem} not closed — run daily-close first"); exit(0)
 
 # collect open dig efforts
 open_digs = []

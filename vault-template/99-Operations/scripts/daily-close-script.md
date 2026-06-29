@@ -7,7 +7,7 @@ created: 2026-06-17
 updated: 2026-06-17
 ---
 ## Rationale
-The deterministic engine for the `close-daily` runbook. It assigns every item of a daily
+The deterministic engine for the `daily-close-runbook`. It assigns every item of a daily
 note exactly one disposition from the controlled `DISPOSITIONS` vocabulary, writes an
 append-only `## Close` manifest, and sets `closed:`. It is `[script]` (INV-6): it classifies
 by rule and **emits an `unknown/other` worklist** for an agent/human to resolve — it never

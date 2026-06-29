@@ -114,8 +114,8 @@ High-value, error-prone, repeatable procedures are codified as **spec-as-code ru
 harness-agnostic source of truth. **To perform one, open and follow the runbook; do not improvise:**
 
 - `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a SessionStart hook surfaces it). Run it first each session.
-- `close-daily` — close a daily note (full disposition sweep) before advancing to the next day.
-- `seal-provenance` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
+- `daily-close-runbook` — close a daily note (full disposition sweep) before advancing to the next day.
+- `provenance-seal-runbook` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
 
 This file (and `CLAUDE.md`, Claude Code skills, etc.) are **adapters** — they point at the
 runbooks; the runbooks hold the procedure. Determinism first: prefer the `.py`/`.sh` meta-scripts a
@@ -128,7 +128,7 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 - `vault-kanban-render.py` and `vault-close-day.py` **auto-commit**; a prior `git add` can let
   their commit sweep in unrelated staged changes. Stage/commit deliberately around them.
 - Vault scripts need `VAULT_ROOT` exported (the pre-commit hook fails loudly without it).
-- The operator's SSH signing key is theirs — **never sign/stamp/tag as them** (`seal-provenance`
+- The operator's SSH signing key is theirs — **never sign/stamp/tag as them** (`provenance-seal-runbook`
   steps 3–4 and 6 are human `[gate]`s).
 - Never self-authorize a `constitution-override` — Gate 4 is human-only.
 

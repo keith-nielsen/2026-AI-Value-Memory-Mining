@@ -39,7 +39,7 @@ gates + verification, not loading the whole rulebook.
 3. `[agent]` **Know the just-in-time pointers** (read only when a task touches them):
    - Built-but-unexercised ops + their docs → the `llm-context-reboot` Site load-list.
    - Deferred / not-built — do **not** attempt or assume available: Crucible, Mint, Forge, Hermes, n8n.
-   - Other runbooks: `daily-close`, `seal-provenance`.
+   - Other runbooks: `daily-close-runbook`, `provenance-seal-runbook`.
    - Durable rules: the auto-loaded memories (`MEMORY.md`).
 4. `[script]` **Verify** — `: "${VAULT_ROOT:?}"` (env set); optionally `vault-render.py reconcile`
    (zero drift).
