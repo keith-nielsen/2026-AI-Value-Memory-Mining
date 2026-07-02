@@ -14,3 +14,6 @@ __pycache__/
 .obsidian/cache
 
 .DS_Store
+
+# Private live config — framework ships config.defaults.env + config.env.example; create yours via `cp` (ADR-0020)
+99-Operations/config.env

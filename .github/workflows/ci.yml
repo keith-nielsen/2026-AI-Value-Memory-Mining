@@ -83,11 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check config.env defines required variables
+      - name: Check config.defaults.env defines required variables
         run: |
           python3 - << 'EOF'
           import pathlib, sys, re
-          text = pathlib.Path("vault-template/99-Operations/config.env").read_text()
+          text = pathlib.Path("vault-template/99-Operations/config.defaults.env").read_text()
           required = ["PILLARS", "GRADES", "KNOWLEDGE_STAGES", "REFINE_GATE_GRADES"]
           missing = [v for v in required if not re.search(rf'^export {v}=', text, re.M)]
           for m in missing:
@@ -99,10 +99,10 @@ jobs:
         run: |
           python3 - << 'EOF'
           import pathlib, sys, re
-          config = pathlib.Path("vault-template/99-Operations/config.env").read_text()
+          config = pathlib.Path("vault-template/99-Operations/config.defaults.env").read_text()
           m = re.search(r'^export GRADES="([^"]+)"', config, re.M)
           if not m:
-            print("MISSING GRADES in config.env", file=sys.stderr); sys.exit(1)
+            print("MISSING GRADES in config.defaults.env", file=sys.stderr); sys.exit(1)
           grades = set(m.group(1).split())
           expected = {"coal", "bronze", "silver", "gold"}
           if grades != expected:

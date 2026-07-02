@@ -56,11 +56,14 @@ git commit -m "init: fork from value-memory-mining template"
 
 ## Step 2: Configure Your Pillars
 
-Edit `99-Operations/config.env`:
+Config is split into **public framework defaults** (`99-Operations/config.defaults.env`, tracked) and
+your **private instance** (`99-Operations/config.env`, gitignored). Create your instance from the
+example (it sources the defaults, then your overrides), then edit it:
 
 ```bash
-# Replace with your own top-level life/knowledge domains
-PILLARS="mental health financial social technology calling"
+cp 99-Operations/config.env.example 99-Operations/config.env
+# in 99-Operations/config.env — replace with your own top-level life/knowledge domains
+export PILLARS="mental health financial social technology calling"
 ```
 
 Pillar design principles:
@@ -142,6 +145,11 @@ To enable a **deliberate, PRIVATE** off-machine backup (never a public remote):
 export PUSH_ALLOWLIST="github.com/you/my-vault-private"
 # 3) re-source config.env, then push
 ```
+
+For a deliberate **public FRAMEWORK mirror** (framework machinery only — never personal content), use
+`PUBLIC_REMOTE_ALLOWLIST` instead: a remote listed there may receive **only** the paths in
+`99-Operations/schemas/publish-manifest.json` (a default-deny allowlist); the guard refuses any private
+path in the push, path-by-path (INV-14, ADR-0020). Both allowlists are empty by default.
 
 Removing the guard entirely changes a **Tier-0 invariant (INV-14)** and requires the
 constitution-override ceremony. If you use Claude Code, the bundled `.claude/` `PreToolUse` guard

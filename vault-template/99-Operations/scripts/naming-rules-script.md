@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault_naming.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-02
 ---
 ## Rationale
 Single source of truth for all vault name and slug rules (INV-11). Imported by the
@@ -13,21 +13,38 @@ propagates everywhere via `render`. Run with no args to (re)write the language-n
 `naming-rules.json` mirror; `--check NAME` validates one path component (exit 1 on
 violation). Makes no network or LLM calls (INV-6) and is never auto-modified (INV-5).
 
+Carries the **special-file exemptions** (INV-11): tool-mandated / convention filenames
+(README.md, CLAUDE.md, dailies, *.example, …) are exempt from the kebab / ≥3-token
+content rules because an external tool or universal convention depends on the exact name.
+`is_exempt(filename)` is the gate (matches on the basename). Editor state under
+`.obsidian/` is out of scope via `.gitignore`, not via an exemption. Rationale in
+`docs/naming-exemptions-rationale.md`.
+
 ## Implementation
 ```python
 #!/usr/bin/env python3
 """vault_naming — single source of truth for vault name/slug rules (INV-11).
 Run with no args to (re)write naming-rules.json; --check NAME validates one
 path component and exits 1 on violation."""
-import re, json, unicodedata, pathlib, os, sys
+import re, json, unicodedata, pathlib, os, sys, fnmatch
 
 # --- declarative rules (the SSOT data; mirrored to naming-rules.json) ---
 RULES = {
     "slug_pattern": r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    "min_hyphen_tokens": 3,
     "forbidden_chars": list('[]#^|\\/:*"?<>'),
     "reserved_names": ["CON", "PRN", "AUX", "NUL"]
                       + [f"COM{i}" for i in range(1, 10)]
                       + [f"LPT{i}" for i in range(1, 10)],
+    "exempt_names": ["README.md", "LICENSE", "LICENSE.md", "CLAUDE.md", "AGENTS.md",
+                     "MEMORY.md", ".gitignore", ".gitkeep", ".gitattributes",
+                     "config.env", "config.defaults.env", "config.env.example"],
+    # exempt_globs match the FILENAME (basename), so keep them basename-shaped.
+    # .obsidian/ is NOT listed here — it is governed by .gitignore (editor-owned, out of
+    # naming scope), not by a per-name exemption.
+    "exempt_globs": ["*.example",
+                     "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md"],
+    "exempt_rationale_doc": "docs/naming-exemptions-rationale.md",
     "max_bytes": 255,
     "normalization": "NFC",
 }
@@ -41,6 +58,17 @@ def slugify(text):
     t = t.encode("ascii", "ignore").decode("ascii").lower()
     t = re.sub(r"[^a-z0-9]+", "-", t).strip("-")
     return t or "untitled"
+
+def is_exempt(filename):
+    """True if a FULL filename (with extension) is exempt from the kebab / min-token
+    content rules — a tool/convention depends on the exact name. See exempt_rationale_doc."""
+    if filename in RULES["exempt_names"]:
+        return True
+    return any(fnmatch.fnmatch(filename, g) for g in RULES["exempt_globs"])
+
+def has_min_hyphen_tokens(stem):
+    """True if a stem carries >= min_hyphen_tokens hyphen-delimited tokens (INV-11 floor)."""
+    return stem.count("-") + 1 >= RULES["min_hyphen_tokens"]
 
 def validate_name(name):
     """Return a list of violation strings; empty == valid.

@@ -1,0 +1,33 @@
+{
+  "policy": "default-deny",
+  "description": "Publication boundary (INV-14). Paths listed in public_allow MAY be published to the public framework repo; everything else is NEVER-PUBLISH (private) by default. Consumed by the push-guard path-check and any future public-export/mirror tool. Fail-safe: a new/forgotten path stays private.",
+  "public_allow": [
+    "CLAUDE.md",
+    "AGENTS.md",
+    ".gitignore",
+    ".gitattributes",
+    "config.env.example",
+    "96-Runbooks/**",
+    "97-Molds/**",
+    "99-Operations/scripts/**",
+    "99-Operations/schemas/**",
+    "99-Operations/hooks/**",
+    "99-Operations/config.defaults.env",
+    "00-Docs/**",
+    "**/.gitkeep"
+  ],
+  "never_publish_examples": [
+    "10-Logbook/**",
+    "20-Claims/**",
+    "30-Sites/**",
+    "40-Treasury/**",
+    "50-Mint/**",
+    "60-Forge/**",
+    "70-Tailings/**",
+    "71-Spoil/**",
+    "80-Crucible/**",
+    "98-Warehouse/**",
+    "99-Operations/config.env",
+    "MEMORY.md"
+  ]
+}

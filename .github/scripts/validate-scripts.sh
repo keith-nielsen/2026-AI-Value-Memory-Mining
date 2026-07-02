@@ -15,7 +15,10 @@ VAULT="$WORK/vault"
 cp -r "$REPO/vault-template" "$VAULT"
 trap 'rm -rf "$WORK"' EXIT
 
-# Point config at the sandbox vault, then source it (VAULT_ROOT + vocab vars)
+# Instantiate the private config from the example (as a user would: cp config.env.example config.env),
+# then point it at the sandbox vault and source it. config.env sources config.defaults.env first
+# (framework vocab + guard defaults), then applies this override.
+cp "$VAULT/99-Operations/config.env.example" "$VAULT/99-Operations/config.env"
 sed -i.bak "s|^export VAULT_ROOT=.*|export VAULT_ROOT=\"$VAULT\"|" "$VAULT/99-Operations/config.env"
 rm -f "$VAULT/99-Operations/config.env.bak"
 set -a; source "$VAULT/99-Operations/config.env"; set +a

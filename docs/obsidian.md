@@ -42,12 +42,26 @@ Properties (the frontmatter UI) is built in and always on.
 
 | Setting | Value | Why |
 |---------|-------|-----|
+| Files & Links → **Automatically update internal links** | **OFF** | ⚠️ **Critical — see below.** Renames are governed; Obsidian's silent auto-relinking conflicts with the naming ceremony (INV-3). |
 | Files & Links → **Default location for new notes** | **`20-Claims`** | New / dangling-link notes land in the *inbox*, never the vault root. Prevents stray fragments. |
 | Editor → **Properties in document** | Visible | See/edit frontmatter inline |
 | Templates → **Template folder location** | `97-Molds` | Where the molds live |
 | Daily Notes → **Template** / **New file location** / **Format** | `97-Molds/daily-mold-blank.md` / `10-Logbook/Daily` / `YYYY-MM-DD` | Match the `vault-daily-note.py` output exactly |
 
-The default-new-note-location setting is the single most important one: without it, a
+> ### ⚠️ Turn OFF "Automatically update internal links"
+>
+> This vault is **governed**: renaming a file or note is a *naming change* that runs the OpenSpec
+> ceremony (propose → apply → Gate-4 → **mirror**) so links are retargeted **deliberately and
+> reviewably**. Obsidian's "Automatically update internal links" does the opposite — on any rename it
+> **silently rewrites every `[[wikilink]]` across the vault**. That:
+> - violates **INV-3** (drift is *detected* via `reconcile`, **never auto-fixed**),
+> - bypasses the governed naming ceremony (un-reviewed mass edits), and
+> - can spray an un-ratified naming scheme across the vault from a single GUI rename.
+>
+> Keep it **off**; let renames go through the ceremony. This is the single most important Obsidian
+> setting for a governed vault.
+
+The default-new-note-location setting is the next most important: without it, a
 click on an unresolved `[[wikilink]]` creates an empty note at the vault **root**, which
 is outside the Value Mining structure and becomes clutter.
 
