@@ -95,25 +95,28 @@ Each is offline and deterministic (INV-6).
 | `kanban-render-script.md` | `~/bin/vault-kanban-render.py` | manual | Render read-only Markdown Kanban board |
 | `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
-| `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate: deny outbound push by default; permit only a remote in `PUSH_ALLOWLIST` (INV-14) |
+| `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
 
 The **note filenames** follow the `silo-section-descriptor` naming convention (silo first, `script`
-trailing). **Deploy targets are unchanged** — the `~/bin/vault-*.py`/`.sh` and the
-`99-Operations/hooks/pre-commit` / `pre-push` host artifacts keep their names (the `.py` rename is deferred).
-The `commit-gate` and `push-guard` hooks are deterministic (INV-6): they read git state and `config.env`
-only — no network, no LLM.
+trailing). **Deploy targets are unchanged.** The `commit-gate` and `push-guard` hooks are deterministic
+(INV-6): they read git state, `config.env`, and (for `push-guard`) the language-neutral
+`publish-manifest.json` schema only — no network, no LLM.
+
+The **`publish-manifest.json`** schema (`99-Operations/schemas/`) is a language-neutral, default-deny
+allowlist of publishable framework paths, consumed by `push-guard-script` and by any future
+public-export/mirror tool.
 
 #### Scenario: Daily note creator is idempotent
 - **WHEN** the daily-note creator runs twice on the same day
 - **THEN** the note is created on the first run and `exists` is printed on the second; no duplicate is created
 
-#### Scenario: Kanban render produces a structured board
-- **WHEN** `vault-kanban-render.py` runs
-- **THEN** `10-Logbook/kanban.md` is written with three status-column headings in pipeline order (Dig/Ore/Slagged), rows sorted grade-descending within each column, and a read-only notice; one commit produced
-
 #### Scenario: Push-guard denies an un-allowlisted push
-- **WHEN** `git push` runs from a deployed vault and the target remote URL is not listed in `PUSH_ALLOWLIST`
-- **THEN** the `pre-push` hook aborts the push (non-zero) with an INV-14 message; a remote present in `PUSH_ALLOWLIST` is permitted
+- **WHEN** `git push` runs from a deployed vault and the target remote URL is not listed in `PUSH_ALLOWLIST` or `PUBLIC_REMOTE_ALLOWLIST`
+- **THEN** the `pre-push` hook aborts the push (non-zero) with an INV-14 message
+
+#### Scenario: Push-guard applies the path-level manifest to a public remote
+- **WHEN** `git push` targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the diff includes a path not in `publish-manifest.json` `public_allow`
+- **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation; a push whose paths are all allowlisted is permitted
 
 ### Requirement: Runbook Format
 
