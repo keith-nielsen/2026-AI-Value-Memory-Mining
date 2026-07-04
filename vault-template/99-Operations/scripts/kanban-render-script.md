@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-kanban-render.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-05
 ---
 ## Rationale
 Read-only projection of effort frontmatter into a Markdown kanban board at
@@ -13,21 +13,27 @@ slagged); within each column rows are sorted grade-descending (gold → silver �
 bronze → coal). Produces one commit. Write-back (card drag → frontmatter update)
 is deferred to agent-tooling. **Not Hermes Kanban** — this is a static Markdown
 view of mining efforts; Hermes Kanban (`~/.hermes/kanban.db`) orchestrates agent
-work. They are different primitives and are never merged.
+work. They are different primitives and are never merged. Grade ranking and column
+statuses come from the config SSOT via `vault_lib.vocab` (`GRADES` reversed to
+value-descending; `EFFORT_STATUSES` in pipeline order) instead of hardcoded lists,
+so a vocabulary change in `config.env` propagates here without a script edit
+(ADR-0023). Root resolution and the scoped commit come from the shared `vault_lib`.
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import os, datetime, pathlib, subprocess, frontmatter
-vault = pathlib.Path(os.environ["VAULT_ROOT"])
-grades = ["gold", "silver", "bronze", "coal"]
-statuses = ["dig", "ore", "slagged"]
+import datetime, pathlib, sys
+sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+from vault_lib import commit_paths, find_vault_root, fm, vocab
+vault = find_vault_root()
+grades = list(reversed(vocab("GRADES")))   # config SSOT (value-ascending) → ranking desc
+statuses = vocab("EFFORT_STATUSES")        # config SSOT; column order = list order
 
 # collect all efforts from Sites + Tailings
 efforts = {}
 for src in ["30-Sites", "70-Tailings"]:
     for idx in sorted(p for p in (vault / src).glob("*/*.md") if p.stem == p.parent.name):
-        m = frontmatter.load(idx).metadata
+        m = fm(idx)
         status = m.get("status", "")
         if status not in statuses:
             continue
@@ -56,10 +62,6 @@ for status in statuses:
 
 out = vault / "10-Logbook" / "kanban.md"
 out.write_text("\n".join(lines))
-subprocess.run(
-    ["git", "-C", str(vault), "add", str(out.relative_to(vault))], check=True)
-subprocess.run(
-    ["git", "-C", str(vault), "commit", "-m",
-     f"kanban: rendered {datetime.date.today().isoformat()}"], check=True)
+commit_paths(vault, [out], f"kanban: rendered {datetime.date.today().isoformat()}")
 print(f"kanban written → {out}")
 ```

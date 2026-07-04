@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-render.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-05
 ---
 ## Rationale
 GitOps-style deploy/drift-detection for Layer-0 scripts (INV-3). `render` extracts
@@ -12,14 +12,31 @@ each script's code block to its `deploy_target` and marks it executable; `reconc
 compares deployed files to source and reports drift without overwriting — auto-fix is
 explicitly prohibited. Human must re-run `render` to resolve drift. This script
 bootstraps itself: run it directly from the source note on first install, then it
-manages all subsequent scripts.
+manages all subsequent scripts. Because it deploys `vault_lib.py` it must not import
+it — it carries an inline copy of the same root-resolution contract (`$VAULT_ROOT` if
+it marks a vault, else walk up from cwd to a `99-Operations/` config marker; ADR-0023).
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
 """Render Layer-0 code blocks to host targets, or reconcile (detect drift)."""
 import os, re, sys, pathlib, frontmatter
-vault = pathlib.Path(os.environ["VAULT_ROOT"])
+
+
+# Bootstrap exception (ADR-0023): render deploys vault_lib itself, so it must not
+# import it. Inline copy of the vault_lib.find_vault_root() resolution contract.
+def _vault_root():
+    env = os.environ.get("VAULT_ROOT")
+    cands = [pathlib.Path(env)] if env else [pathlib.Path.cwd(), *pathlib.Path.cwd().parents]
+    for c in cands:
+        if any((c / "99-Operations" / f).is_file()
+               for f in ("config.defaults.env", "config.env")):
+            return c
+    print("BLOCKED: no vault root — export VAULT_ROOT or run from inside the vault")
+    raise SystemExit(3)
+
+
+vault = _vault_root()
 mode = sys.argv[1] if len(sys.argv) > 1 else "reconcile"   # render | reconcile
 assert mode in ("render", "reconcile")
 CODE = re.compile(r"^```(?:python|bash)\n(.*?)^```", re.S | re.M)

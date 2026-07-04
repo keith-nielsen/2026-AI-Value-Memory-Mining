@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-close-day.py
 runtime: manual
 class: script
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-07-05
 ---
 ## Rationale
 The deterministic engine for the `daily-close-runbook`. It assigns every item of a daily
@@ -14,18 +14,23 @@ by rule and **emits an `unknown/other` worklist** for an agent/human to resolve 
 calls a model. Invariants enforced: append-only (it only appends below `## Close`),
 total-disposition (refuses to seal while any item is unresolved), and strict-order close
 (refuses while an earlier day is open). `--check` is the `close-lint` mode. One commit (INV-2).
+Vault root and the `DISPOSITIONS` vocabulary resolve via the shared `vault_lib` (process env >
+`config.env` > `config.defaults.env` > code default; ADR-0023), so the bare drive invocation works
+without a pre-sourced environment; gate refusals (missing note, strict-order) exit `3`
+(`EXIT_BLOCKED`, fleet contract). Classification internals and commit scope are unchanged here.
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import os, sys, re, json, datetime, pathlib, subprocess
+import sys, re, json, datetime, pathlib, subprocess
 from collections import Counter, defaultdict
+sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+from vault_lib import EXIT_BLOCKED, find_vault_root, say, vocab
 
-VAULT = pathlib.Path(os.environ["VAULT_ROOT"])
+VAULT = find_vault_root()
 DAILY = VAULT / "10-Logbook" / "Daily"
-DISPOSITIONS = os.environ.get(
-    "DISPOSITIONS",
-    "claim site crucible banked slagged spoiled realized recorded passover").split()
+DISPOSITIONS = vocab("DISPOSITIONS", default=(
+    "claim site crucible banked slagged spoiled realized recorded passover").split())
 CLOSE = "## Close"
 LIST_SECTIONS = {"Intentions", "Captured"}
 LINK_RULES = [
@@ -115,7 +120,8 @@ def main():
     day = pos[0]
     path = DAILY / f"{day}.md"
     if not path.exists():
-        sys.exit(f"no daily note: {path}")
+        say("BLOCKED", f"no daily note: {path}")
+        sys.exit(EXIT_BLOCKED)
     fm, _, body = split_fm(path.read_text())
 
     if check:
@@ -133,7 +139,8 @@ def main():
 
     for earlier in sorted(DAILY.glob("*.md")):
         if DATE_RE.match(earlier.name) and earlier.stem < day and not is_closed(earlier):
-            sys.exit(f"BLOCKED: earlier day {earlier.stem} is not closed (strict-order close)")
+            say("BLOCKED", f"earlier day {earlier.stem} is not closed (strict-order close)")
+            sys.exit(EXIT_BLOCKED)
     if fm.get("closed"):
         print(f"already closed: {day}"); sys.exit(0)
 

@@ -12,6 +12,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **Shared fleet plumbing `vault_lib`** (ADR-0023; change `add-shared-vault-lib` — Gate 4 pending).
+  New `vault-lib-script.md` → `~/bin/vault_lib.py`: vault-root resolution (env-first, config-marker
+  walk — makes the ADR-0022 bare-exact drive invocations work with no pre-sourced environment,
+  closing burn-in probe P5), config vocabulary precedence (process env > `config.env` >
+  `config.defaults.env` > code default), YAML-typed `is_closed`, scoped `commit_paths` (INV-2
+  shape), fleet exit-code contract (`0` ok · `1` violation · `2` needs-input · `3` gate-blocked).
+  `maintenance` spec: ADDED Requirement + Script Inventory row.
+
+### Changed
+- Drive-path scripts adopt `vault_lib` (`daily-close`, `daily-note`, `dig-rollover`,
+  `kanban-render`, `bank-execute`; `render-reconcile` carries an inline bootstrap copy).
+  Behavioral deltas (enumerated in ADR-0023): rollover and close-day gate refusals now exit 3
+  (were 0 / 1); `closed: false` uniformly reads as open; kanban grades/statuses come from the
+  config SSOT; `DISPOSITIONS` gains a config-file source below the environment.
+
 ---
 
 ## [0.1.15] - 2026-07-02
