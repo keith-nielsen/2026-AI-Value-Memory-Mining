@@ -51,6 +51,7 @@
 
 ## 6. Gate 4 + release (human-gated)
 
-- [ ] 6.1 Gate-4 sign-off recorded in `proposal.md`; ADR-0023 → Accepted
+- [x] 6.1 Gate-4 sign-off recorded in `proposal.md` (explicit in-session operator approval,
+      2026-07-05); ADR-0023 → Accepted
 - [ ] 6.2 PR from `ops/add-shared-vault-lib`; CI green; human merge (INV-14: agent cannot)
 - [ ] 6.3 Archive (sync `maintenance` spec) + CHANGELOG release heading + tag (human, post-merge)

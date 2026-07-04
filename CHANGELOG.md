@@ -13,7 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
-- **Shared fleet plumbing `vault_lib`** (ADR-0023; change `add-shared-vault-lib` — Gate 4 pending).
+- **Shared fleet plumbing `vault_lib`** (ADR-0023 Accepted; change `add-shared-vault-lib` —
+  Gate 4 signed 2026-07-05).
   New `vault-lib-script.md` → `~/bin/vault_lib.py`: vault-root resolution (env-first, config-marker
   walk — makes the ADR-0022 bare-exact drive invocations work with no pre-sourced environment,
   closing burn-in probe P5), config vocabulary precedence (process env > `config.env` >

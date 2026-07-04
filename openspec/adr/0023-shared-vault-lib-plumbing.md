@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0023 — Shared vault_lib fleet plumbing (root resolution, config SSOT, exit-code contract)
 
-**Status:** Proposed (flips to Accepted at Gate-4 sign-off)
+**Status:** Accepted (Gate-4 human sign-off 2026-07-05 — explicit in-session operator approval,
+recorded in the change's `proposal.md`)
 **Date:** 2026-07-05
 **Relates:** `maintenance` spec · change `add-shared-vault-lib` · ADR-0022 (the drive-path /
 exclusion-list contract this makes usable) · live-vault Sites `ops-script-runbook-review`

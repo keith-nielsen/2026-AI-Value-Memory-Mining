@@ -211,7 +211,11 @@ migration step 5)
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ (2026-07-05 — the 13-file branch
+diff at `523109c` matches the Gate-1 blast-radius list exactly: `maintenance` delta, 1 new + 6
+modified template notes, ADR-0023, CHANGELOG, plus this change's three ceremony docs; no
+`protects:` frontmatter changed; `constitution.md` / `project.md` untouched; the three surfaced
+discrepancies remain documented open items, not silent gaps)
 **Consequences explicitly accepted:**
 
 > Sacrifice (proposed wording for sign-off): the fleet gains a single shared dependency — a defect
@@ -225,10 +229,13 @@ migration step 5)
 > Wave-2 scripts remain un-adopted until their own change — the fleet is deliberately
 > two-idiom during the transition, which is accepted as documented, not silent.
 
-**ADR created:** `openspec/adr/0023-shared-vault-lib-plumbing.md` (Proposed) ☑ — flips to
-Accepted at sign-off
+**ADR created:** `openspec/adr/0023-shared-vault-lib-plumbing.md` ☑ — **Accepted** at sign-off
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen
+Date: 2026-07-05
+
+> Provenance of this record: the operator approved explicitly in-session — "Human operator
+> explicitly approves the Gate 4 acceptance." (2026-07-05). The drafting agent transcribed that
+> statement into this block; the approval decision was not, and may not be, agent-originated.
