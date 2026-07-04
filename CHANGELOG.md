@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **OS/harness-enforced agent write scope — burn-in stage** (change: `os-enforced-agent-write-scope` —
+  ADR-0022; enforcement for INV-4/INV-5, no new invariant). `vault-template/.claude/settings.json` now
+  ships pre-action enforcement of the Area Access Matrix's Agent column: an OS sandbox
+  (bubblewrap/Seatbelt) denies agent shell writes — all child processes, all interpreters — to
+  `40-Treasury/ 99-Operations/ .claude/ 96-Runbooks/ 97-Molds/ 10-Logbook/`, and `permissions.deny`
+  Edit-rules block structured-tool writes to the same scope plus script-owned Logbook artifacts
+  (`Daily/*.md`, `kanban.md`); the disposition sidecar (`Daily/*.resolutions.json`) stays writable by
+  pattern disjointness. Rendered scripts remain drivable via bare exact invocations
+  (`sandbox.excludedCommands`). Ships burn-in only — the strict flip (`failIfUnavailable`,
+  `allowUnsandboxedCommands: false`) is a deliberate later stage. `access-control` ADDED Requirement;
+  AGENTS.md drive contract; USING-THIS-TEMPLATE Step 4c.
+
 ## [0.1.17] - 2026-07-06
 
 ### Added
