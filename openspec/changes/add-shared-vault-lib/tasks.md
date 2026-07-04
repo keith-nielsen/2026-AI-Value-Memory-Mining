@@ -41,11 +41,13 @@
 
 ## 5. Live vault (operator + agent, out of band of this repo)
 
-- [ ] 5.1 [human] Gate-4 review + sign-off; then copy the 7 notes into live
-      `99-Operations/scripts/` and run `vault-render.py render`; `reconcile` → zero drift
-- [ ] 5.2 [agent] Re-run probe P5 bare (`~/bin/vault-kanban-render.py`, no env) → one scoped
-      commit; **SE-5 closed** (exclusion demonstrably lifts the sandbox); `vault_lib.py`
-      self-check; rollover gate → exit 3; append verdicts to `phase-1a-acceptance-probes.md`
+- [x] 5.1 [human] Gate-4 signed (2026-07-05, in-session); 7 notes applied live + rendered
+      (vault commit `2b34959`); `reconcile` → zero drift
+- [x] 5.2 [agent] Closure probes run 2026-07-05: self-check pass; rollover gate `BLOCKED` rc 3;
+      P5 bare → **SE-5 closed, proven lifted** (write+stage on a denyWrite path succeeded bare).
+      New finding: commit-gate hook `: "${VAULT_ROOT:?}"` fails the bare drive path at the commit
+      step — hook self-locate queued to wave-2; interrupted commit completed with sourced env.
+      Verdicts appended to `phase-1a-acceptance-probes.md`
 - [ ] 5.3 [both] Schedule follow-ups: wave-2 adoption; B3 de-sweep + commit ownership; B4
       bank-execute hardening; `runtime:` enum alignment
 
