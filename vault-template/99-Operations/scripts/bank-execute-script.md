@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-refine-execute.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-07-05
 ---
 ## Rationale
 Applies approved refine proposals from `20-Claims/_refine-approved/` (the human gate,
@@ -13,15 +13,18 @@ INV-4). The human gate is the act of moving a proposal from `_refine-proposals/`
 proposed `target_note` stem against the naming ruleset (INV-11) before any write;
 non-conforming names are rejected with a REJECT message, not written. After writing
 the knowledge note it appends wikilinks to the named Catalog indexes and deletes the
-consumed proposal. One note per proposal; multiple proposals can be batched.
+consumed proposal. One note per proposal; multiple proposals can be batched. Root
+resolution comes from the shared `vault_lib` (ADR-0023) so the bare drive invocation
+works without a pre-sourced environment; all other behavior is unchanged here.
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import os, json, pathlib, datetime, sys, frontmatter
+import json, pathlib, datetime, sys, frontmatter
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
 from vault_naming import is_valid_slug  # naming.md
-vault = pathlib.Path(os.environ["VAULT_ROOT"])
+from vault_lib import find_vault_root
+vault = find_vault_root()
 today = datetime.date.today().isoformat()
 approved = vault / "20-Claims" / "_refine-approved"
 for prop in sorted(approved.glob("*.json")):
