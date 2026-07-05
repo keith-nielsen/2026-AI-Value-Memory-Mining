@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Changed
+- **Wave-2 `vault_lib` adoption + `commit_paths` hardening** (change `wave-2-vault-lib-adoption`;
+  extends ADR-0023). `commit_paths` now no-ops cleanly on unchanged state (fixes the kanban
+  same-day empty-index crash fleet-wide) and commits with an explicit pathspec so unrelated
+  pre-staged content stays staged (closes the F3/F4/F5 sweep class structurally). Adopted in
+  `knowledge-lint`, `treasury-orphan`, `tailings-reprospect`, `ore-detect`, and the
+  `naming-rules` mirror-writer (lazy, `__main__`-only; `--check`/hook path dependency-free) —
+  the full Python fleet now runs bare with no pre-sourced environment. Shell pair
+  (`site-slag`/`spoil-dump`) deferred to the B3-era change.
+
 ### Fixed
 - **Commit-gate hook is now environment-free** (change `fix-commit-gate-env-guard`). Deleted the
   vestigial `VAULT_ROOT` guard (set but never used) that broke bare-exact drive-path commits at
