@@ -1,10 +1,10 @@
 ---
 type: meta-script
 deploy_target: 99-Operations/hooks/pre-commit
-runtime: manual
+runtime: git hook
 class: script
 created: 2026-06-14
-updated: 2026-07-05
+updated: 2026-07-06
 ---
 ## Rationale
 Unbypassable commit-gate for INV-11. Fires on every commit — by human, script, agent,
