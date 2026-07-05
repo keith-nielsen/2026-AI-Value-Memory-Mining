@@ -33,7 +33,7 @@
 ## 5. Gate 4 + publish + live apply (human-gated)
 
 - [x] 5.1 [human] Gate-4 signed (explicit in-session approval, 2026-07-05; transcribed with provenance)
-- [ ] 5.2 [human] PR from `ops/wave-2-vault-lib-adoption`; CI green; merge (INV-14: agent cannot)
+- [x] 5.2 [human] PR #9; CI green; merged `c3174b0` (2026-07-05)
 - [ ] 5.3 [human] `cp` the 6 notes into live `99-Operations/scripts/`; `~/bin/vault-render.py
       render` + `reconcile` (zero drift)
 - [ ] 5.4 [agent] Live probes: bare env-free runs of the four adopted scripts + naming mirror;

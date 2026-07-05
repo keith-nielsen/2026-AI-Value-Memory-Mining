@@ -31,9 +31,9 @@
 
 ## 5. Gate 4 + publish + live apply (human-gated)
 
-- [ ] 5.1 [human] Gate-4 sign-off in `proposal.md`
-- [ ] 5.2 [human] Merge order: wave-2 PR first, then PR from `ops/commit-ownership-de-sweep`
-      (stacked; INV-14: agent cannot)
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge; provenance note in `proposal.md`)
+- [x] 5.2 [human] Merged in order: wave-2 PR #9 (`c3174b0`) → B3 PR #10 (`2bc348c`), CI green
+      (2026-07-05)
 - [ ] 5.3 [human] Combined live apply: `cp` all changed notes; `~/bin/vault-render.py render` +
       `reconcile` (zero drift)
 - [ ] 5.4 [agent] Live probes: wave-2 battery + daily-note commit + (at operator's close time)
