@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault_naming.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-02
+updated: 2026-07-05
 ---
 ## Rationale
 Single source of truth for all vault name and slug rules (INV-11). Imported by the
@@ -12,6 +12,9 @@ linter, the refine executor, and the pre-commit hook — changing the rules here
 propagates everywhere via `render`. Run with no args to (re)write the language-neutral
 `naming-rules.json` mirror; `--check NAME` validates one path component (exit 1 on
 violation). Makes no network or LLM calls (INV-6) and is never auto-modified (INV-5).
+The no-args mirror-writer resolves the vault root via a **lazy** `vault_lib` import
+(ADR-0023, wave-2) so it works bare with no pre-sourced environment; `--check` and
+module import remain dependency-free — the rules themselves are untouched.
 
 Carries the **special-file exemptions** (INV-11): tool-mandated / convention filenames
 (README.md, CLAUDE.md, dailies, *.example, …) are exempt from the kebab / ≥3-token
@@ -26,7 +29,7 @@ content rules because an external tool or universal convention depends on the ex
 """vault_naming — single source of truth for vault name/slug rules (INV-11).
 Run with no args to (re)write naming-rules.json; --check NAME validates one
 path component and exits 1 on violation."""
-import re, json, unicodedata, pathlib, os, sys, fnmatch
+import re, json, unicodedata, pathlib, sys, fnmatch
 
 # --- declarative rules (the SSOT data; mirrored to naming-rules.json) ---
 RULES = {
@@ -104,8 +107,8 @@ if __name__ == "__main__":
             print("INVALID '%s': %s" % (sys.argv[2], "; ".join(viol)))
             sys.exit(1)
         sys.exit(0)
-    out = (pathlib.Path(os.environ["VAULT_ROOT"]) / "99-Operations"
-           / "schemas" / "naming-rules.json")
+    from vault_lib import find_vault_root  # lazy: --check + module import stay dependency-free
+    out = find_vault_root() / "99-Operations" / "schemas" / "naming-rules.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(RULES, indent=2))
     print("naming-rules.json written -> %s" % out)

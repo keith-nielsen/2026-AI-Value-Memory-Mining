@@ -4,14 +4,17 @@ deploy_target: ~/bin/vault-lint.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-02
+updated: 2026-07-05
 ---
 ## Rationale
 Validates Treasury knowledge notes against the §10.1 frontmatter schema and checks
 name conformance (INV-11) across Treasury, Sites, Tailings, Claims, and Logbook.
 Imports the shared naming validator (naming.md → `~/bin/vault_naming.py`) so
 frontmatter rules and name rules share one authority. Run manually or as a pre-commit
-step; exits 1 on any violation so CI can block merges.
+step; exits 1 (`EXIT_VIOLATION`) on any violation so CI can block merges. Root and the
+`PILLARS`/`GRADES`/`KNOWLEDGE_STAGES` vocabularies resolve via the shared `vault_lib`
+(process env > config files; all three are required — no code default), so the bare
+invocation works without a pre-sourced environment (ADR-0023, wave-2 adoption).
 
 Honors the special-file exemptions (`is_exempt`): tool-mandated / convention filenames
 (README.md, dailies, *.example, .obsidian/*.json, …) are skipped before the kebab /
@@ -22,18 +25,19 @@ switch is safe.
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import os, sys, pathlib, frontmatter
+import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
 from vault_naming import validate_name, is_valid_slug, is_exempt, has_min_hyphen_tokens  # naming.md
-vault = pathlib.Path(os.environ["VAULT_ROOT"])
-pillars = set(os.environ["PILLARS"].split())
-grades = set(os.environ["GRADES"].split())
-stages = set(os.environ["KNOWLEDGE_STAGES"].split())
+from vault_lib import EXIT_VIOLATION, find_vault_root, fm, vocab
+vault = find_vault_root()
+pillars = set(vocab("PILLARS"))
+grades = set(vocab("GRADES"))
+stages = set(vocab("KNOWLEDGE_STAGES"))
 violations = []
 
 # --- frontmatter checks (Treasury knowledge notes) ---
 for p in (vault / "40-Treasury").glob("*.md"):        # Catalog is in a subfolder, excluded
-    m = frontmatter.load(p).metadata
+    m = fm(p)
     if m.get("type") != "knowledge":
         violations.append((p, "type must be 'knowledge'"))
     pset = set(m.get("pillars") or [])
@@ -70,5 +74,5 @@ for area in ["20-Claims", "10-Logbook", "40-Treasury/Catalog"]:
 
 for p, v in violations:
     print(f"LINT {p}: {v}")
-sys.exit(1 if violations else 0)
+sys.exit(EXIT_VIOLATION if violations else 0)
 ```

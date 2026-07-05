@@ -17,7 +17,10 @@ controlled vocabulary with the same precedence the shell sourcing order establis
 environment > `config.env` (instance) > `config.defaults.env` (framework) > declared code default —
 one SSOT chain instead of three homes. `is_closed()` is the fleet's single, YAML-typed answer to
 "is this day closed" (`closed: false` or absent is open). `commit_paths()` is the INV-2 shape —
-scoped `git add` of exactly the named paths, one commit, never a sweep. The fleet exit-code
+scoped `git add` plus a **pathspec-scoped commit** of exactly the named paths, never a sweep:
+unrelated staged content is left staged, not committed (the F3/F4/F5 accident class, closed
+structurally), and an unchanged result is a **clean no-op** — message, no commit, exit 0 — per the
+INV-2 no-op clause (the kanban same-day re-render lesson, 2026-07-05). The fleet exit-code
 contract (`0` ok · `1` violation · `2` needs-input · `3` gate-blocked) exists because drivers and
 models key on codes, not prose. Consumers import it the way the linter already imports
 `vault_naming`: `sys.path.insert(0, str(pathlib.Path.home() / "bin"))`. The `frontmatter` import is
@@ -43,7 +46,10 @@ Contract (importable module + read-only CLI):
   fm(path) -> dict            YAML frontmatter metadata — the fleet's single parser.
   is_closed(path) -> bool     YAML-typed: `closed: false` or absent is NOT closed.
   commit_paths(vault, paths, message)
-                              scoped `git add -- <paths>` + one commit (INV-2); never sweeps.
+                              scoped `git add` + pathspec-scoped commit of exactly the named
+                              paths (INV-2); never sweeps — unrelated staged content stays
+                              staged, uncommitted; clean no-op (message, no commit) when the
+                              named paths are unchanged.
   say(tag, msg)               uniform "TAG: msg" output line.
 Fleet exit-code contract (drivers key on codes, not prose):
   0 EXIT_OK · 1 EXIT_VIOLATION · 2 EXIT_NEEDS_INPUT · 3 EXIT_BLOCKED
@@ -130,7 +136,12 @@ def commit_paths(vault, paths, message):
         say("WARN", "commit_paths: no paths — nothing committed")
         return
     subprocess.run(["git", "-C", str(vault), "add", "--", *rels], check=True)
-    subprocess.run(["git", "-C", str(vault), "commit", "-m", message], check=True)
+    if subprocess.run(["git", "-C", str(vault), "diff", "--cached", "--quiet",
+                       "--", *rels]).returncode == 0:
+        say("ok", f"unchanged — no commit needed ({', '.join(rels)})")
+        return
+    # pathspec-scoped: commits exactly rels even if unrelated content is staged
+    subprocess.run(["git", "-C", str(vault), "commit", "-m", message, "--", *rels], check=True)
 
 
 if __name__ == "__main__":
