@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Fixed
+- **Commit-gate hook is now environment-free** (change `fix-commit-gate-env-guard`). Deleted the
+  vestigial `VAULT_ROOT` guard (set but never used) that broke bare-exact drive-path commits at
+  their final step — the last blocker found by the Phase-1a live acceptance. INV-11 enforcement
+  unchanged. `push-guard` audited: already self-locates, no change.
+
 ---
 
 ## [0.1.16] - 2026-07-05
