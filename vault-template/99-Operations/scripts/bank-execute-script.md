@@ -15,7 +15,10 @@ non-conforming names are rejected with a REJECT message, not written. After writ
 the knowledge note it appends wikilinks to the named Catalog indexes and deletes the
 consumed proposal. One note per proposal; multiple proposals can be batched. Root
 resolution comes from the shared `vault_lib` (ADR-0023) so the bare drive invocation
-works without a pre-sourced environment; all other behavior is unchanged here.
+works without a pre-sourced environment. **Owns its commits** (B3, commit-ownership):
+each banked proposal is one atomic scoped commit — the knowledge note, its Catalog
+index links, and the consumed proposal's deletion (`bank: <stem>`); the close-day
+sweep no longer collects Treasury writes.
 
 ## Implementation
 ```python
@@ -23,7 +26,7 @@ works without a pre-sourced environment; all other behavior is unchanged here.
 import json, pathlib, datetime, sys, frontmatter
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
 from vault_naming import is_valid_slug  # naming.md
-from vault_lib import find_vault_root
+from vault_lib import commit_paths, find_vault_root
 vault = find_vault_root()
 today = datetime.date.today().isoformat()
 approved = vault / "20-Claims" / "_refine-approved"
@@ -55,5 +58,8 @@ for prop in sorted(approved.glob("*.json")):
         mp = vault / link
         mp.write_text(mp.read_text() + f"\n- [[{note.stem}]]")
     prop.unlink()
+    # atomic bank (B3): note + index links + consumed proposal, one scoped commit
+    commit_paths(vault, [note, *(vault / l for l in p["index_links"]), prop],
+                 f"bank: {note.stem}")
     print(f"refined -> {note}")
 ```

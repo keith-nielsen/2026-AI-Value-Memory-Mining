@@ -16,14 +16,17 @@ note is present when carry-over links are appended. If the previous day is not y
 fine; *advancing* (carry-over) is what's gated (see rollover). Root resolution and the
 `closed` test come from the shared `vault_lib` (ADR-0023): the bare drive invocation
 works without a pre-sourced environment, and `closed` is YAML-typed (`closed: false`
-counts as open; the previous regex treated any non-empty value as closed).
+counts as open; the previous regex treated any non-empty value as closed). **Owns its
+commit** (B3, commit-ownership): a created note is committed immediately
+(`daily: opened <date>`, scoped) — the close-day sweep no longer collects it; the
+`exists` path stays commit-free (INV-2 no-op).
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
 import datetime, pathlib, re, sys
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
-from vault_lib import find_vault_root, is_closed  # vault-lib-script.md
+from vault_lib import commit_paths, find_vault_root, is_closed  # vault-lib-script.md
 vault = find_vault_root()
 today = datetime.date.today().isoformat()
 ddir = vault / "10-Logbook" / "Daily"
@@ -42,5 +45,6 @@ else:
                   f"(capture is fine; carry-over is gated).\n\n")
         text = re.sub(r'(^# .*\n)', lambda m: m.group(1) + "\n" + banner, text, count=1)
     note.write_text(text)
+    commit_paths(vault, [note], f"daily: opened {today}")
     print(f"created {note}" + (" [BLOCKED banner]" if blocked else ""))
 ```
