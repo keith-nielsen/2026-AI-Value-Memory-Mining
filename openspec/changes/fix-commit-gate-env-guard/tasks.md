@@ -26,11 +26,14 @@
 
 ## 5. Gate 4 + publish + live apply (human-gated)
 
-- [ ] 5.1 [human] Gate-4 sign-off in `proposal.md`
-- [ ] 5.2 [human] PR from `ops/fix-commit-gate-env-guard`; CI green; merge (INV-14: agent cannot)
-- [ ] 5.3 [human] `cp` the note into live `99-Operations/scripts/`; `~/bin/vault-render.py render`
-      + `reconcile` (zero drift)
-- [ ] 5.4 [agent] Final Phase-1a closure: bare `~/bin/vault-kanban-render.py` end-to-end, no env,
-      commit through hook; append verdict to `phase-1a-acceptance-probes.md`
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge; see provenance note in `proposal.md`)
+- [x] 5.2 [human] PR #8; CI green; merged `23e0198` (2026-07-05)
+- [x] 5.3 [human] Applied live + rendered (vault `7f9b33a`); `reconcile` zero drift
+- [x] 5.4 [agent] Phase-1a CLOSED (2026-07-05): live hook verified env-free — no VAULT_ROOT error
+      at any layer on the bare drive run; env-free recording commit through the live hook succeeded
+      (vault `3be93a1`, the probe itself). Bare-run commit leg exposed a separate fleet defect —
+      kanban same-day identical re-render → empty-index commit crash (INV-2 no-op clause +
+      exit-code contract violation) — catalogued to wave-2 (systemic fix: nothing-staged guard in
+      `vault_lib.commit_paths`). Verdicts in `phase-1a-acceptance-probes.md`
 - [ ] 5.5 [human] Archive change + CHANGELOG heading + tag per release cadence (push main before
       tagging — F10 guard order)
