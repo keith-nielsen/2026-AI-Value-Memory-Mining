@@ -32,7 +32,7 @@
 
 ## 5. Gate 4 + publish + live apply (human-gated)
 
-- [ ] 5.1 [human] Gate-4 sign-off in `proposal.md`
+- [x] 5.1 [human] Gate-4 signed (explicit in-session approval, 2026-07-05; transcribed with provenance)
 - [ ] 5.2 [human] PR from `ops/wave-2-vault-lib-adoption`; CI green; merge (INV-14: agent cannot)
 - [ ] 5.3 [human] `cp` the 6 notes into live `99-Operations/scripts/`; `~/bin/vault-render.py
       render` + `reconcile` (zero drift)

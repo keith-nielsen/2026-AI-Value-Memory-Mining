@@ -160,7 +160,10 @@ same-day no-op; reconcile zero drift.
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ (2026-07-05 — the branch diff
+matches the Gate-1 list: maintenance delta, 6 template notes, CHANGELOG, ceremony docs; no
+`protects:` frontmatter changed; archive-order dependency and the pillars-parsing oddity are
+recorded above, not buried)
 **Consequences explicitly accepted:**
 
 > Sacrifice (proposed wording for sign-off): fleet commits lose the ability to carry unrelated
@@ -174,5 +177,9 @@ same-day no-op; reconcile zero drift.
 **ADR:** none (extends ADR-0023; no new decision)
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen
+Date: 2026-07-05
+
+> Provenance of this record: explicit in-session operator approval — "We're moving ahead with
+> Wave-2 explicitly approved by the human operator." (2026-07-05). Transcribed by the drafting
+> agent; the approval decision was not, and may not be, agent-originated.
