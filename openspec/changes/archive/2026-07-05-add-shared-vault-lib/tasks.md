@@ -55,5 +55,5 @@
 
 - [x] 6.1 Gate-4 sign-off recorded in `proposal.md` (explicit in-session operator approval,
       2026-07-05); ADR-0023 → Accepted
-- [ ] 6.2 PR from `ops/add-shared-vault-lib`; CI green; human merge (INV-14: agent cannot)
-- [ ] 6.3 Archive (sync `maintenance` spec) + CHANGELOG release heading + tag (human, post-merge)
+- [x] 6.2 PR #7 from `ops/add-shared-vault-lib`; CI green (20/20); human merge `fc664e5` (2026-07-05)
+- [x] 6.3 Archived as `2026-07-05-add-shared-vault-lib` (maintenance spec synced); release 0.1.16 tagged `8c38598` (changelog heading added in follow-up housekeeping commit)

@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+---
+
+## [0.1.16] - 2026-07-05
+
+Shared fleet plumbing `vault_lib` + drive-path adoption. (change: `add-shared-vault-lib` — ADR-0023)
+
 ### Added
 - **Shared fleet plumbing `vault_lib`** (ADR-0023 Accepted; change `add-shared-vault-lib` —
   Gate 4 signed 2026-07-05).
