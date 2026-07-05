@@ -49,7 +49,8 @@ Contract (importable module + read-only CLI):
                               scoped `git add` + pathspec-scoped commit of exactly the named
                               paths (INV-2); never sweeps — unrelated staged content stays
                               staged, uncommitted; clean no-op (message, no commit) when the
-                              named paths are unchanged.
+                              named paths are unchanged; consumed paths (deleted + never
+                              tracked) are tolerated, tracked deletions are staged.
   say(tag, msg)               uniform "TAG: msg" output line.
 Fleet exit-code contract (drivers key on codes, not prose):
   0 EXIT_OK · 1 EXIT_VIOLATION · 2 EXIT_NEEDS_INPUT · 3 EXIT_BLOCKED
@@ -134,6 +135,14 @@ def commit_paths(vault, paths, message):
         rels.append(str(p.resolve().relative_to(vault.resolve())) if p.is_absolute() else str(p))
     if not rels:
         say("WARN", "commit_paths: no paths — nothing committed")
+        return
+    # tolerate consumed paths (deleted, never tracked — e.g. an untracked worklist a
+    # script just unlinked): a bare `git add` refuses such pathspecs outright
+    known = subprocess.run(["git", "-C", str(vault), "ls-files", "--", *rels],
+                           capture_output=True, text=True).stdout.splitlines()
+    rels = [r for r in rels if (vault / r).exists() or r in known]
+    if not rels:
+        say("ok", "nothing known to git among the named paths — no commit needed")
         return
     subprocess.run(["git", "-C", str(vault), "add", "--", *rels], check=True)
     if subprocess.run(["git", "-C", str(vault), "diff", "--cached", "--quiet",

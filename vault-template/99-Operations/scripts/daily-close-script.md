@@ -17,15 +17,18 @@ total-disposition (refuses to seal while any item is unresolved), and strict-ord
 Vault root and the `DISPOSITIONS` vocabulary resolve via the shared `vault_lib` (process env >
 `config.env` > `config.defaults.env` > code default; ADR-0023), so the bare drive invocation works
 without a pre-sourced environment; gate refusals (missing note, strict-order) exit `3`
-(`EXIT_BLOCKED`, fleet contract). Classification internals and commit scope are unchanged here.
+(`EXIT_BLOCKED`, fleet contract). **Seals with a scoped commit** (B3, commit-ownership): exactly
+the sealed daily plus the consumed worklist sidecar — the historical `add -A` sweep is gone;
+every other mutation (daily-note creation, banked proposals, rollover links, kanban) is committed
+by its owning script, and uncommitted operator working-tree content is left untouched by a close.
 
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import sys, re, json, datetime, pathlib, subprocess
+import sys, re, json, datetime, pathlib
 from collections import Counter, defaultdict
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
-from vault_lib import EXIT_BLOCKED, find_vault_root, say, vocab
+from vault_lib import EXIT_BLOCKED, commit_paths, find_vault_root, say, vocab
 
 VAULT = find_vault_root()
 DAILY = VAULT / "10-Logbook" / "Daily"
@@ -183,10 +186,10 @@ def main():
     path.write_text(sealed)
     if sidecar.exists():
         sidecar.unlink()
-    subprocess.run(["git", "-C", str(VAULT), "add", "-A"], check=True)
-    subprocess.run(["git", "-C", str(VAULT), "commit", "-m",
-                    f"close: {day} daily — disposition sweep ({len(manifest)} items)"],
-                   check=True)
+    # scoped seal (B3): exactly the sealed daily + the consumed sidecar — never a
+    # sweep; every other mutation is committed by its owning script
+    commit_paths(VAULT, [path, sidecar],
+                 f"close: {day} daily — {len(manifest)} items dispositioned")
     print(f"closed {day}: {len(manifest)} items dispositioned")
 
 

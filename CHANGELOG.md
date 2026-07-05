@@ -13,6 +13,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Changed
+- **Commit ownership + close de-sweep** (change `commit-ownership-de-sweep`; operator decision
+  B3-(a)). Every mutation now owns its scoped commit: daily-note commits the note it creates
+  (`daily: opened <date>`); the refine executor banks each proposal atomically (`bank: <stem>` —
+  note + Catalog links + consumed proposal); close-day replaces its load-bearing `git add -A`
+  sweep with a scoped seal (daily + consumed sidecar) — the last Python sweep is gone, and a
+  close never captures unrelated working-tree content. `commit_paths` tolerates consumed
+  (deleted, never-tracked) paths. INV-2 requirement gains the ownership clause + scenarios.
 - **Wave-2 `vault_lib` adoption + `commit_paths` hardening** (change `wave-2-vault-lib-adoption`;
   extends ADR-0023). `commit_paths` now no-ops cleanly on unchanged state (fixes the kanban
   same-day empty-index crash fleet-wide) and commits with an explicit pathspec so unrelated
