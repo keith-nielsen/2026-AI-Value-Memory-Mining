@@ -36,7 +36,10 @@
 - [x] 5.2 [human] PR #9; CI green; merged `c3174b0` (2026-07-05)
 - [ ] 5.3 [human] `cp` the 6 notes into live `99-Operations/scripts/`; `~/bin/vault-render.py
       render` + `reconcile` (zero drift)
-- [ ] 5.4 [agent] Live probes: bare env-free runs of the four adopted scripts + naming mirror;
-      kanban same-day clean no-op; record in the Site
+- [x] 5.4 [agent] Live probes green (2026-07-05, env-free): lint rc 0 over live Treasury;
+      orphans/reprospect/refine-detect rc 0; naming mirror-writer resolved the live root then was
+      **correctly kernel-denied** writing `99-Operations/` (sandboxed, not excluded — the fence
+      holds through the new code path; mirror-writer is operator tooling); kanban same-day →
+      `ok: unchanged — no commit needed`, rc 0 (the Phase-1a closure defect, fixed live)
 - [ ] 5.5 [human] Archive **after** `fix-commit-gate-env-guard` is archived (delta accretion
       order); CHANGELOG heading + tag per release cadence (push main before tagging)

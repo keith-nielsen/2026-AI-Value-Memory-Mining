@@ -36,7 +36,9 @@
       (2026-07-05)
 - [ ] 5.3 [human] Combined live apply: `cp` all changed notes; `~/bin/vault-render.py render` +
       `reconcile` (zero drift)
-- [ ] 5.4 [agent] Live probes: wave-2 battery + daily-note commit + (at operator's close time)
-      scoped seal; record in the Site
+- [x] 5.4 [agent] Live probes green (2026-07-05): daily-note bare → created + committed
+      `daily: opened 2026-07-05` (vault `9aab839`, exactly the note, BLOCKED banner for the open
+      backlog; operator's uncommitted `settings.json` untouched); rollover → `BLOCKED` rc 3 with
+      the note present. Scoped-seal live proof lands at the operator's next close (sandbox-proven)
 - [ ] 5.5 [human] Archive order: `fix-commit-gate-env-guard` → `wave-2-vault-lib-adoption` →
       this change; CHANGELOG heading + tag per release cadence (push main before tagging)
