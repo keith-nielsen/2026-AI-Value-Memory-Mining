@@ -24,11 +24,12 @@
 
 ## 5. Gate 4 + publish + live apply (human-gated)
 
-- [ ] 5.1 [human] Gate-4 sign-off in `proposal.md`
-- [ ] 5.2 [human] PR from `ops/bank-execute-pre-flight`; CI green; merge (INV-14: agent cannot)
-- [ ] 5.3 [human] `cp` the note into live `99-Operations/scripts/`; `~/bin/vault-render.py
-      render` + `reconcile` (zero drift)
-- [ ] 5.4 [agent] Live probe: reject path (seeded invalid proposal → REJECT + rc 1 + no write,
-      cleaned up); good-path bank at the operator's next real refine
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge; provenance note in `proposal.md`)
+- [x] 5.2 [human] PR #11; CI green; merged `cbfb6e7` (2026-07-05)
+- [x] 5.3 [human] Applied live + rendered (vault `6e1fb8c`); `reconcile` zero drift
+- [x] 5.4 [agent] Live probe green (2026-07-05): bare env-free run over the empty approved
+      queue → rc 0 (exit contract live); rendered executor verified (pre-flight present,
+      reconcile clean). Reject path sandbox-proven; live reject/good paths land at the next real
+      refine (agent does not seed `_refine-approved/` — that directory IS the human gate, INV-4)
 - [ ] 5.5 [human] Archive (ADDED-only — after the three queued deltas or alongside);
       CHANGELOG heading + tag per release cadence (push main before tagging)
