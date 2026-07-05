@@ -5,7 +5,7 @@ title: Session bootstrap loader (cold-start prime)
 trigger: "a fresh or /clear'd agent session begins, before any vault/repo work — load env, engage the gates, know the pointers"
 applies-to: both
 class: procedure
-last-validated: 2026-06-29
+last-validated: 2026-07-06
 ---
 # Runbook — Session Bootstrap Loader
 
@@ -35,7 +35,9 @@ gates + verification, not loading the whole rulebook.
    - **Re-read before acting** — apply an established rule from its artifact (spec / memory / runbook),
      never from recollection.
    - **Autonomy bans** — no autonomous writes to `40-Treasury/` or `99-Operations/` (INV-4/5).
-   - **Clean ops** — source env for the commit-gate hook; separate the action from its verification.
+   - **Clean ops** — hooks and the script fleet are env-free (root self-resolution, ADR-0023);
+     source `config.env` only for operator-shell conveniences (venv on `PATH`, vocabulary
+     overrides); separate the action from its verification.
 3. `[agent]` **Know the just-in-time pointers** (read only when a task touches them):
    - Built-but-unexercised ops + their docs → the `llm-context-reboot` Site load-list.
    - Deferred / not-built — do **not** attempt or assume available: Crucible, Mint, Forge, Hermes, n8n.

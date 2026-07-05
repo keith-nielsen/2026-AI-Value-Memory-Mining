@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-close-day.py
 runtime: manual
 class: script
 created: 2026-06-17
-updated: 2026-07-05
+updated: 2026-07-06
 ---
 ## Rationale
 The deterministic engine for the `daily-close-runbook`. It assigns every item of a daily
@@ -133,9 +133,10 @@ def main():
             print("FAIL: closed: not set"); ok = False
         if CLOSE not in path.read_text():
             print("FAIL: no ## Close manifest"); ok = False
-        for d in re.findall(r'`([a-z]+)`', path.read_text().split(CLOSE)[-1]):
-            if d not in DISPOSITIONS and d in ("claim","site","crucible","banked",
-                    "slagged","spoiled","realized","recorded","passover"):
+        # every manifest disposition (the trailing `— \`word\`` of a manifest row) ∈ vocab —
+        # flags typos; the old guard could only flag defaults removed from the env vocab
+        for d in re.findall(r'— `([a-z]+)`$', path.read_text().split(CLOSE)[-1], re.M):
+            if d not in DISPOSITIONS:
                 print(f"FAIL: disposition not in vocab: {d}"); ok = False
         print("close-lint OK" if ok else "close-lint FAIL")
         sys.exit(0 if ok else 1)

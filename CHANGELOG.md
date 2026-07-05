@@ -12,6 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Fixed
+- **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
+  (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
+  manifest disposition against `DISPOSITIONS` (typos FAIL — the old guard was near-tautological,
+  R7); bootstrap-runbook clean-ops line updated for the env-free hook/fleet reality (template;
+  live copy operator-applied).
+
 ### Added
 - **Refine executor pre-flight + batch isolation** (change `bank-execute-pre-flight`; fleet-review
   B4). The sole automated Treasury writer now validates every proposal whole before any write:
