@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **Refine executor pre-flight + batch isolation** (change `bank-execute-pre-flight`; fleet-review
+  B4). The sole automated Treasury writer now validates every proposal whole before any write:
+  schema, path containment (target in `40-Treasury/`, links in `40-Treasury/Catalog/`), INV-11
+  stem, **create never overwrites (INV-9)**, append-target existence, `GRADES`/`PILLARS` vocab,
+  link-target existence. Rejections print all reasons, write nothing, and don't stop the batch;
+  any reject exits 1. `maintenance`: ADDED Requirement.
+
 ### Changed
 - **Commit ownership + close de-sweep** (change `commit-ownership-de-sweep`; operator decision
   B3-(a)). Every mutation now owns its scoped commit: daily-note commits the note it creates
