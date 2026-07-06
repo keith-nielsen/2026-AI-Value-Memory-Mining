@@ -86,7 +86,7 @@ floors spot-check: `vault_naming.py --check` rc 0 with vault_lib and frontmatter
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ (2026-07-06 — diff = Gate-1 list)
 **Consequences explicitly accepted:**
 
 > Sacrifice: none — undocumented operations and unstated floors become documented; the one new
@@ -95,5 +95,10 @@ floors spot-check: `vault_naming.py --check` rc 0 with vault_lib and frontmatter
 **ADR:** none
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen
+Date: 2026-07-06
+
+> Provenance: operator-directed queue continuation; publish sequence executed deliberately
+> (PR #15, CI green, merge `df13ea5`), applied live (`cc40a05` — both runbooks in live
+> `96-Runbooks/`, now 5 runbooks). Recorded post-merge; the operator's push is the confirming
+> act.
