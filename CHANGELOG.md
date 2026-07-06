@@ -13,6 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
+- **Runbooks + declared floors** (change `runbooks-and-floors`; fleet-review B6/B7).
+  New `render-reconcile-runbook` (the INV-3 deploy/drift loop) and `refine-pipeline-runbook`
+  (detect → propose → human gate → atomic bank, with B4 reject semantics). `maintenance` gains
+  "Platform and Dependency Floors": Python ≥ 3.12, `python-frontmatter` as the sole third-party
+  dependency (hook paths stdlib-only), Linux/POSIX floor — new dependencies become governed
+  decisions. `USING-THIS-TEMPLATE` documents the floors.
 - **Render fence lint + publish-guard inventory** (change `reconcile-fence-lint-guard-inventory`;
   fleet-review B5/R8). `vault-render.py` refuses a note with ≠1 `python|bash` fence (VIOLATION,
   exit 1 — the extractor no longer silently takes the first); `outbound-publish-guard.py` (the

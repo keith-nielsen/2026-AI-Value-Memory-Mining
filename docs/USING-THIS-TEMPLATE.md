@@ -19,6 +19,13 @@ mining.
 | Git | Version control; the vault is a repository |
 | `python-frontmatter` | Installed into a vault-local venv (see Step 3) — modern distros block `pip install` into the system Python under PEP 668 |
 
+**Declared floors** (spec: `maintenance` → "Platform and Dependency Floors"): Python ≥ 3.12
+(CI tests 3.12 + 3.13); Linux/POSIX only — bash hooks, executable bits, and path semantics are
+assumed, and Windows is an explicit non-goal; `python-frontmatter` is the fleet's *sole*
+third-party dependency, and the hook-critical paths (`vault_naming.py --check`, the git hooks,
+`vault_lib` root/config helpers) stay stdlib-only so they run on the system Python without the
+venv.
+
 Optional for Phase 3 (agent operations, deferred):
 - [Hermes Agent v0.15.2](https://github.com/Nous-Research/hermes) — Kanban worker runtime
 - [n8n](https://n8n.io) — Orchestration / egress-control layer
