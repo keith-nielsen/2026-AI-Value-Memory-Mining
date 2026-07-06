@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Changed
+- **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
+  join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
+  via `vault_naming.py --check`, usage/source/destination gates (exit 1/3), and pathspec-scoped
+  commits of exactly the moved effort — the last `add -A` sweeps in the fleet are gone.
+
 ### Fixed
 - **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
   (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
