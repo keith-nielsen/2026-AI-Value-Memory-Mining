@@ -18,10 +18,9 @@
       clean render rc 0
 
 ## 5. Gate 4 + publish + live apply (human-gated)
-- [ ] 5.1 [human] Gate-4 sign-off
-- [ ] 5.2 [human] push branch; PR; CI; merge (INV-14)
-- [ ] 5.3 [human] `cp` 2 notes + `render`/`reconcile` (guard render is operator-run; zero drift
-      expected — byte-identical)
-- [ ] 5.4 [agent] record; fence lint self-exercises on every future render
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge)
+- [x] 5.2 [human] PR #14; merged `52d16c1`
+- [x] 5.3 [human] Applied live + rendered (vault `1494595`); 17 notes, reconcile clean
+- [x] 5.4 [agent] Recorded 2026-07-06; rendered vault-render.py carries the VIOLATION lint
 - [ ] 5.5 [human] archive after `fleet-hygiene-bundle` and `commit-ownership-de-sweep`
       (accretion order); release cadence

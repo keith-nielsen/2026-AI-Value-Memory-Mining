@@ -104,7 +104,7 @@ companion commit before any archive could sync the mangled bytes
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ (2026-07-06 — diff = Gate-1 list)
 **Consequences explicitly accepted:**
 
 > Sacrifice: none — a convention becomes enforced, and the vault's exfil rail gains the same
@@ -114,5 +114,9 @@ companion commit before any archive could sync the mangled bytes
 **ADR:** none
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen
+Date: 2026-07-06
+
+> Provenance: operator-directed queue continuation; publish sequence executed deliberately
+> (PR #14, CI green, merge `52d16c1`), applied live (`1494595`). Recorded post-merge; the
+> operator's push is the confirming act.
