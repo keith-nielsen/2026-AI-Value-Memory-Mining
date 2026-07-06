@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.17] - 2026-07-06
+
 ### Added
 - **Runbooks + declared floors** (change `runbooks-and-floors`; fleet-review B6/B7).
   New `render-reconcile-runbook` (the INV-3 deploy/drift loop) and `refine-pipeline-runbook`
