@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-render.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-05
+updated: 2026-07-06
 ---
 ## Rationale
 GitOps-style deploy/drift-detection for Layer-0 scripts (INV-3). `render` extracts
@@ -12,7 +12,9 @@ each script's code block to its `deploy_target` and marks it executable; `reconc
 compares deployed files to source and reports drift without overwriting — auto-fix is
 explicitly prohibited. Human must re-run `render` to resolve drift. This script
 bootstraps itself: run it directly from the source note on first install, then it
-manages all subsequent scripts. Because it deploys `vault_lib.py` it must not import
+manages all subsequent scripts. Enforces the exactly-one-code-fence rule (B5): a note
+with zero or multiple `python|bash` fences is a VIOLATION — nothing renders for it and
+the run exits 1 — because the extractor would otherwise silently take the first fence. Because it deploys `vault_lib.py` it must not import
 it — it carries an inline copy of the same root-resolution contract (`$VAULT_ROOT` if
 it marks a vault, else walk up from cwd to a `99-Operations/` config marker; ADR-0023).
 
@@ -41,13 +43,18 @@ mode = sys.argv[1] if len(sys.argv) > 1 else "reconcile"   # render | reconcile
 assert mode in ("render", "reconcile")
 CODE = re.compile(r"^```(?:python|bash)\n(.*?)^```", re.S | re.M)
 drift = 0
+bad = 0
 for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
     post = frontmatter.load(note)
     target = pathlib.Path(os.path.expanduser(str(post["deploy_target"])))
-    m = CODE.search(post.content)
-    if not m:
-        print(f"WARN: no code block in {note.name}"); continue
-    src = m.group(1)
+    blocks = CODE.findall(post.content)
+    if len(blocks) != 1:
+        # exactly-one-fence rule (spec: "a single fenced code block") — a second fence
+        # would silently never render; fail loud instead of guessing which block is real
+        print(f"VIOLATION: {note.name} has {len(blocks)} code fences (exactly 1 required)")
+        bad += 1
+        continue
+    src = blocks[0]
     if mode == "render":
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(src); target.chmod(0o755)
@@ -58,5 +65,5 @@ for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
             print(f"DRIFT: {target} differs from {note.name}"); drift += 1
         else:
             print(f"ok: {target}")
-sys.exit(1 if (mode == "reconcile" and drift) else 0)
+sys.exit(1 if (bad or (mode == "reconcile" and drift)) else 0)
 ```

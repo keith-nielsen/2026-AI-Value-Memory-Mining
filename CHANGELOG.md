@@ -12,6 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **Render fence lint + publish-guard inventory** (change `reconcile-fence-lint-guard-inventory`;
+  fleet-review B5/R8). `vault-render.py` refuses a note with ≠1 `python|bash` fence (VIOLATION,
+  exit 1 — the extractor no longer silently takes the first); `outbound-publish-guard.py` (the
+  INV-14 PreToolUse rail) gains a literate source note (`runtime: harness hook`, enum extended)
+  so `reconcile` finally guards it against drift.
+
 ### Changed
 - **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
   join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
