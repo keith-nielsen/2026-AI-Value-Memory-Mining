@@ -1,4 +1,4 @@
-<\!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 ## MODIFIED Requirements
 
 ### Requirement: One Mutation, One Commit (INV-2)
