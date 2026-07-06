@@ -1,0 +1,7 @@
+# Test/dev dependencies for the fleet pytest suite (tests/).
+# These are NOT fleet runtime dependencies — the runtime floor stays python-frontmatter
+# alone (spec: maintenance → "Platform and Dependency Floors"). The harness renders and
+# drives the deployed scripts, so it needs frontmatter (to bootstrap the renderer) plus
+# pytest itself.
+python-frontmatter==1.3.0
+pytest>=8,<10

@@ -331,3 +331,27 @@ jobs:
         # py_compile all scripts, bash -n + shellcheck (preinstalled on the runner)
         # the shell scripts, fresh-vault pipeline smoke, and executor boundary test.
         run: bash .github/scripts/validate-scripts.sh
+
+  fleet-pytest:
+    name: Fleet behaviour tests (py ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "${{ matrix.python }}"
+
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Run fleet behaviour suite
+        # renders the fleet into a throwaway HOME + vault and drives the deployed scripts
+        # as subprocesses — close lifecycle + gates, refine pre-flight + batch isolation,
+        # scoped commits, render fence lint, env-free root resolution, shell-pair gates.
+        run: pytest tests/ -v
