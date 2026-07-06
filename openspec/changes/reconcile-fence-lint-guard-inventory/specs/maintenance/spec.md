@@ -1,43 +1,42 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 ## MODIFIED Requirements
 
-### Requirement: One Mutation, One Commit (INV-2)
+### Requirement: Literate Meta-Script Format
 
-Every automated mutation SHALL end in exactly one Git commit with a structured message.
-No script produces zero commits (silent no-op on unchanged state is acceptable;
-producing zero commits when a mutation occurred is not) or multiple commits.
+Every operational artifact SHALL be stored as a literate meta-script note in
+`99-Operations/scripts/`: a Markdown file with YAML frontmatter describing where
+it deploys and when it runs, plus a `## Rationale` section and a single fenced
+code block (the artifact). Layer 0 is the source of truth (INV-3); the code block
+is the authoritative version of the script.
 
-**Ownership:** the script that performs a mutation commits it, scoped to exactly the files it
-mutated — no script relies on a later collector to sweep its writes into someone else's commit.
-Uncommitted operator working-tree content is never captured by a script commit.
+Required frontmatter fields:
 
-Commit message format: `<verb>: <subject>` (e.g., `rollover: 2 open dig(s) → 2026-06-14`).
+```yaml
+type: meta-script
+deploy_target: <host path>   # absolute or ~/... path the code block renders to
+runtime: cron | manual | git hook | harness hook
+schedule: "<cron expression>" # required iff runtime == cron
+class: script                # literal — Layer 0 holds deterministic defs only
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+```
 
-#### Scenario: rollover produces exactly one commit when digs exist
-- **WHEN** the rollover script runs with at least one `status: dig` effort in `30-Sites/`
-- **THEN** it appends wikilinks to today's daily note and produces exactly one commit
+#### Scenario: render deploys all scripts and reconcile confirms zero drift
+- **WHEN** `vault-render.py render` is run after Phase 1
+- **THEN** an executable file is produced at each `deploy_target` declared in the scripts
+- **WHEN** `vault-render.py reconcile` is then run
+- **THEN** it reports `ok` for all scripts (zero drift)
 
-#### Scenario: rollover produces no commit when nothing changed
-- **WHEN** the rollover script runs and all current digs are already in the carry-over heading
-- **THEN** it exits cleanly with no commit produced
+#### Scenario: reconcile detects but does not fix drift
+- **WHEN** a deployed host script is hand-edited after render
+- **THEN** `reconcile` reports `DRIFT: <target> differs from <source>`
+- **THEN** reconcile does not overwrite the deployed file (INV-3)
 
-#### Scenario: A created daily note is committed by its creator
-- **WHEN** the daily-note creator creates today's note
-- **THEN** it produces exactly one commit (`daily: opened <date>`) containing only that note
-- **WHEN** the note already exists
-- **THEN** no commit is produced
-
-#### Scenario: A banked proposal is one atomic commit
-- **WHEN** the refine executor applies an approved proposal
-- **THEN** it produces exactly one commit (`bank: <stem>`) containing the knowledge note, the
-  appended Catalog index links, and the consumed proposal's deletion (when the proposal was
-  tracked) — and nothing else
-
-#### Scenario: A close seals with a scoped commit, never a sweep
-- **WHEN** `vault-close-day.py` seals a day while unrelated uncommitted changes exist elsewhere
-  in the working tree
-- **THEN** the close commit contains exactly the sealed daily note (plus the consumed worklist
-  sidecar when git tracked it), and the unrelated changes remain uncommitted and untouched
+#### Scenario: render refuses a note that breaks the single-fence rule
+- **WHEN** `vault-render.py render` (or `reconcile`) encounters a meta-script note with zero or
+  more than one `python|bash` code fence
+- **THEN** it prints `VIOLATION: <note> has N code fences (exactly 1 required)`, renders nothing
+  for that note, and the run exits `1`
 
 ### Requirement: Script Inventory
 
@@ -61,6 +60,7 @@ Each is offline and deterministic (INV-6).
 | `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
 | `vault-lib-script.md` | `~/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
+| `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
 
 The **note filenames** follow the `silo-section-descriptor` naming convention (silo first, `script`
