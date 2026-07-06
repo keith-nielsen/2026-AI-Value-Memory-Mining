@@ -17,8 +17,8 @@
       rc 3; dest collision rc 3; happy dump rc 0; usage rc 1
 
 ## 5. Gate 4 + publish + live apply (human-gated)
-- [ ] 5.1 [human] Gate-4 sign-off
-- [ ] 5.2 [human] push branch; PR; CI; merge (INV-14)
-- [ ] 5.3 [human] `cp` 2 notes + `render`/`reconcile`
-- [ ] 5.4 [agent] record; live proof at next real slag/dump
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge)
+- [x] 5.2 [human] PR #13; CI green; merged `b6ccbd8`
+- [x] 5.3 [human] Applied live + rendered (vault `3ff560b`)
+- [x] 5.4 [agent] Recorded 2026-07-06; rendered movers carry all gates; live proof at next real slag/dump
 - [ ] 5.5 [human] archive after fix-commit-gate → wave-2 (accretion order); release cadence
