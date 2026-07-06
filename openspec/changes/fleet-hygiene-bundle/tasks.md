@@ -20,9 +20,10 @@
       byte-identical; runbook-lint fields/sections intact
 
 ## 5. Gate 4 + publish + live apply (human-gated)
-- [ ] 5.1 [human] Gate-4 sign-off
-- [ ] 5.2 [human] push branch; PR; CI; merge (INV-14)
-- [ ] 5.3 [human] `cp` 2 notes + `render`/`reconcile`; hand-apply runbook edit to live
-      `96-Runbooks/` (text in Site `bootstrap-runbook-refresh-proposal`)
-- [ ] 5.4 [agent] record; live close-lint proof at next close
+- [x] 5.1 [human] Gate-4 sign-off recorded (post-merge; provenance in proposal)
+- [x] 5.2 [human] PR #12; CI green; merged `8648133` (2026-07-06)
+- [x] 5.3 [human] Applied live + rendered + runbook hand-edit (vault `655b20e`); reconcile clean
+- [x] 5.4 [agent] Recorded 2026-07-06: rendered close-day carries the manifest-row check; live
+      runbook carries the env-free clean-ops line; reconcile zero drift. Live close-lint proof
+      at the operator's next close (typo path sandbox-proven)
 - [ ] 5.5 [human] archive (no ordering constraint) + release cadence
