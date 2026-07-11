@@ -39,6 +39,9 @@ TREASURY = (vault / "40-Treasury").resolve()
 CATALOG = (vault / "40-Treasury" / "Catalog").resolve()
 GRADES = set(vocab("GRADES"))
 PILLARS = set(vocab("PILLARS"))
+# INV-12 reachability: an empty index_links defaults here so a banked note is never an orphan.
+# This holding index is the visible "awaiting-catalog" queue; the operator creates it once.
+PENDING_CATALOG = "40-Treasury/Catalog/pending-catalog-index.md"
 
 
 def check(p):
@@ -91,6 +94,11 @@ for prop in sorted(approved.glob("*.json")):
         print(f"REJECT {prop.name}: invalid JSON ({e})")
         rejects += 1
         continue
+    # INV-12 reachability: an empty index_links is not a rejection — default it to the
+    # pending-catalog holding index so every banked note stays reachable via >=1 Catalog
+    # index. A missing / non-list index_links is still a schema rejection in check().
+    if isinstance(p.get("index_links"), list) and not p["index_links"]:
+        p["index_links"] = [PENDING_CATALOG]
     problems = check(p)
     if problems:
         for reason in problems:
