@@ -1,0 +1,10 @@
+{
+  "name": "value-memory-mining",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-tooling manifest: pins the OpenSpec CLI (@fission-ai/openspec) so validation is reproducible and Dependabot watches it for new releases. NOT shipped to a deployed vault (vault-template/ carries no Node dependency).",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@fission-ai/openspec": "1.4.1"
+  }
+}

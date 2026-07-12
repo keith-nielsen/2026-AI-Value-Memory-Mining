@@ -1,0 +1,61 @@
+name: OpenSpec latest canary
+
+# Continuous-assurance check: does the NEWEST published OpenSpec still validate our governance
+# corpus? This complements the Dependabot bump PR (which only tests the version it bumps *to*) by
+# testing `@latest` on a schedule, so a breaking upstream release is caught even before — or
+# without — a bump PR being merged. On failure it opens (once) a tracking issue and the run fails,
+# which emails the maintainer via the normal Actions notification.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  validate-latest:
+    name: Validate corpus against OpenSpec @latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Install OpenSpec @latest
+        run: npm install -g @fission-ai/openspec@latest --prefix ~/.local
+        env:
+          OPENSPEC_TELEMETRY: "0"
+
+      - name: Report installed version
+        run: ~/.local/bin/openspec --version
+
+      - name: Validate corpus (strict) against @latest
+        run: ~/.local/bin/openspec validate --all --strict
+        env:
+          OPENSPEC_TELEMETRY: "0"
+
+      - name: Open a tracking issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # ensure the dedupe label exists (idempotent)
+          gh label create openspec-canary --color b60205 \
+            --description "Weekly OpenSpec @latest compatibility canary" 2>/dev/null || true
+          open=$(gh issue list --label openspec-canary --state open --json number --jq 'length')
+          if [ "$open" = "0" ]; then
+            run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            body="The weekly OpenSpec canary failed: 'openspec validate --all --strict' against @fission-ai/openspec@latest no longer passes. A newer OpenSpec release may be incompatible with the governance corpus. Investigate before bumping the pinned version in package.json. Run: ${run_url}"
+            gh issue create \
+              --label openspec-canary \
+              --title "OpenSpec @latest broke corpus validation" \
+              --body "$body"
+          else
+            echo "An openspec-canary issue is already open; not duplicating."
+          fi

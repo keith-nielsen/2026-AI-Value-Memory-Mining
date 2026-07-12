@@ -18,13 +18,13 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install OpenSpec
-        run: npm install -g @fission-ai/openspec@latest --prefix ~/.local
+      - name: Install OpenSpec (pinned via package-lock.json)
+        run: npm ci
         env:
           OPENSPEC_TELEMETRY: "0"
 
       - name: Validate OpenSpec project
-        run: ~/.local/bin/openspec validate --all
+        run: node_modules/.bin/openspec validate --all
         env:
           OPENSPEC_TELEMETRY: "0"
 
