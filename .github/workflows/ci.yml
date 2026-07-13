@@ -150,6 +150,26 @@ jobs:
           sys.exit(1 if errors else 0)
           EOF
 
+      - name: Check README ADR count matches actual
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re, sys
+          files = sorted(pathlib.Path("openspec/adr").glob("[0-9][0-9][0-9][0-9]-*.md"))
+          n = len(files)
+          hi = max(int(p.name[:4]) for p in files)
+          readme = pathlib.Path("README.md").read_text()
+          errors = []
+          for m in re.finditer(r'(\d+)\s+(?:ADRs?|Architecture Decision Records?)\b', readme):
+            if int(m.group(1)) != n:
+              errors.append(f"README claims {m.group(1)} ADRs but {n} exist in openspec/adr/")
+          if f"{hi:04d}" not in readme:
+            errors.append(f"README should reference the latest ADR number {hi:04d}")
+          for e in sorted(set(errors)):
+            print(e, file=sys.stderr)
+          print(f"adr-count-lint OK: {n} ADRs, latest {hi:04d}" if not errors else "adr-count-lint FAIL")
+          sys.exit(1 if errors else 0)
+          EOF
+
   runbook-lint:
     name: Runbook lint
     runs-on: ubuntu-latest

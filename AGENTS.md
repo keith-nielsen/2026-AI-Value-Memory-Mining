@@ -78,6 +78,7 @@ These are enforced by code, not trust. See `openspec/constitution.md` for the ra
 | Area | Agent may | Agent may NOT |
 |---|---|---|
 | `30-Sites/<assigned>/` | Read + write | Touch other sites |
+| `20-Claims/` | Capture directly (create Claim notes) | Self-promote to `_refine-approved/` |
 | `20-Claims/_refine-proposals/` | Write (deposit proposals) | Self-promote to `_refine-approved/` |
 | `40-Treasury/` | Read only | Write directly (INV-4) |
 | `99-Operations/` | — (no access) | Write (INV-5) |

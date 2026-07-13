@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Changed
+- **Agent may capture directly into `20-Claims/`** (change `permit-agent-claims-capture`; ADR-0025;
+  `constitution-override` touching `access-control`). The Area Access Matrix Agent cell for `20-Claims/`
+  moves from `—` to `RW` and footnote 2 is reworded: the agent may create Claim notes directly (operator
+  efficiency / comfort-of-ride decision from the ADR-0022 Gate 4). The `_refine-approved/` Treasury gate
+  is untouched (Agent `—`), so promotion into `40-Treasury/` stays human-gated (INV-4). `20-Claims/` is
+  Layer-2 Workings (CONST-02); no Tier-0 invariant is weakened. Also: README ADR count corrected
+  (18 -> 25) and a CI guard added so the README ADR count must equal the actual `openspec/adr/` file count.
+
 ## [0.1.19] - 2026-07-13
 
 ### Added
