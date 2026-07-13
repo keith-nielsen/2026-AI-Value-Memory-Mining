@@ -258,7 +258,7 @@ Changing them requires the 4-gate Informed-Upheaval Protocol:
 
 If you're confident a change is right, document it as a constitution-override change in
 `openspec/changes/` using the template at
-`openspec/changes/templates/constitution-override/proposal.md`.
+`openspec/templates/constitution-override/proposal.md`.
 
 ---
 

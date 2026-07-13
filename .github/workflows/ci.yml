@@ -74,7 +74,7 @@ jobs:
 
       - name: Check Informed-Upheaval Protocol template exists
         run: |
-          test -f openspec/changes/templates/constitution-override/proposal.md || {
+          test -f openspec/templates/constitution-override/proposal.md || {
             echo "MISSING constitution-override template" >&2; exit 1; }
 
   vocabulary-lint:

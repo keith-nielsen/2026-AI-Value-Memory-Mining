@@ -10,7 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Changed
+- **Relocated the constitution-override ceremony template out of the OpenSpec change tree and adopted
+  OpenSpec 1.6.0** (change `relocate-override-template-openspec-16`; ADR-0026; `constitution-override`,
+  procedural — touches the `protects:`-tagged `maintenance` spec and pointer text in `constitution.md`,
+  no Tier-0/1 element overridden). OpenSpec 1.6.0's stricter default discovery enumerated the blank
+  template at `openspec/changes/templates/constitution-override/proposal.md` as a delta-less change and
+  failed it; the template now lives at `openspec/templates/constitution-override/proposal.md` (outside
+  the scanned `changes/`/`specs/` tree), with all 7 references and the CI `test -f` guard repointed in
+  lockstep. The `@fission-ai/openspec` pin advances `1.4.1 → 1.6.0` (supersedes Dependabot #18). A new
+  `maintenance` requirement codifies that governance tooling is version-pinned and ceremony templates
+  live outside the change tree, so this cannot recur. The ceremony and every constitutional principle are
+  unchanged.
 
 ## [0.1.20] - 2026-07-13
 
