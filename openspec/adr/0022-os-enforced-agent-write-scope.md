@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0022 — OS/harness-enforced agent write scope (INV-4/5 made pre-action)
 
-**Status:** Proposed (flips to Accepted at Gate-4 sign-off)
+**Status:** Accepted (Gate-4, 2026-07-13; operator-approved in session)
 **Date:** 2026-07-04
 **Relates:** `access-control` spec · change `os-enforced-agent-write-scope` · ADR-0018 (the enforcement
 posture precedent: structural, never trust-based) · live-vault Sites `determinism-failure-modes-claude`

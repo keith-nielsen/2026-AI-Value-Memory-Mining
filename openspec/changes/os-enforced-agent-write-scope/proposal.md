@@ -116,9 +116,9 @@ machine whose write inventory has never been observed under a sandbox (Sharp-edg
    operator direction routinely (e.g. the F3 recovery Claim). This change **does not deny** `20-Claims/`
    (matching practice and the v0.1 draft ACL), which means burn-in enforcement is *looser than the
    matrix* there. Operator to choose: (a) amend footnote ² to permit direct capture, or (b) add the
-   deny and route capture through proposals. Until decided, the looseness is documented, not silent.
+   deny and route capture through proposals. Until decided, the looseness is documented, not silent. **DECIDED at Gate 4 (2026-07-13):** operator chose (a) -- the agent is explicitly permitted direct 20-Claims/ capture (essential efficiency + comfort-of-ride requirement). Verified the shipped config already matches: 20-Claims is in neither the shell denyWrite nor permissions.deny. Access Matrix footnote to be amended to permit direct capture (documentation follow-up, folded with the README count fix).
 2. **`70-Tailings/` / `71-Spoil/` (matrix: agent R / —).** Not in this deny set (v0.1 ACL seed did not
-   cover them either; slag/dump script flows need design for the drive path). Follow-up change.
+   cover them either; slag/dump script flows need design for the drive path). Follow-up change. **DECIDED at Gate 4 (2026-07-13):** operator permits agent interaction with 70-Tailings/ / 71-Spoil/ for now (no concerns); formal scoping TBD in a follow-up.
 3. **README counts are stale** (still "18 ADRs" from v0.1.13 era; 21 exist pre-this-change). Not
    bundled here (F3/F4/F5 lesson: no unrelated sweeps) — flagged for a housekeeping commit.
 
@@ -168,7 +168,7 @@ machine whose write inventory has never been observed under a sandbox (Sharp-edg
 CHANGELOG `[Unreleased]`; ADR-0022 (Proposed)
 **All repo-side regression tests green (local):** ☑ — `openspec validate` (change + `--all --strict`) ·
 JSON parse both settings files · burn-in-only grep clean · vocabulary/constitution lint preconditions
-**CI green on this PR:** ☐ (runs on push — human)
+**CI green on this PR:** ☑ (PR #20, 24/24 green on 7296db9, 2026-07-13)
 **Live acceptance probes:** ☐ (run in-session after the operator applies the live settings — see
 `phase-1a-acceptance-probes.md` in the Site)
 
@@ -176,7 +176,7 @@ JSON parse both settings files · burn-in-only grep clean · vocabulary/constitu
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > Sacrifice (proposed wording for sign-off): the agent permanently loses the ability to write —
@@ -195,5 +195,6 @@ Accepted at sign-off
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen (operator)
+Date: 2026-07-13
+Authorization: Gate-4 approved by the operator in session ("Approved", 2026-07-13), with explicit decisions on discrepancies 1 and 2 recorded above. Recorded by the agent at the operator's standing direction -- the human decided; the agent transcribed.
