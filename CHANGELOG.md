@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.21] - 2026-07-13
+
 ### Changed
 - **Relocated the constitution-override ceremony template out of the OpenSpec change tree and adopted
   OpenSpec 1.6.0** (change `relocate-override-template-openspec-16`; ADR-0026; `constitution-override`,
