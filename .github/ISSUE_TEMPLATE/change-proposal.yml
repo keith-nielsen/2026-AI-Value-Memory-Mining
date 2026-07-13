@@ -8,7 +8,7 @@ body:
         Change proposals that affect **constitutional (Tier-0 / Tier-1) elements**
         require the 4-gate Informed-Upheaval Protocol documented in
         `openspec/constitution.md` and the template at
-        `openspec/changes/templates/constitution-override/proposal.md`.
+        `openspec/templates/constitution-override/proposal.md`.
 
         Non-constitutional changes follow the standard OpenSpec change flow in
         `CONTRIBUTING.md`.

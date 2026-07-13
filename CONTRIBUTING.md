@@ -25,7 +25,7 @@ If your change modifies anything tagged `protects:` in the spec files, or touche
 instead of the standard flow. Read `openspec/constitution.md` §3 carefully, then:
 
 ```
-Use the template at: openspec/changes/templates/constitution-override/proposal.md
+Use the template at: openspec/templates/constitution-override/proposal.md
 Change type must be: constitution-override
 All four gates must be satisfied before the PR can merge.
 ```

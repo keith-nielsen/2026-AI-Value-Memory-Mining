@@ -146,7 +146,7 @@ An override of any **Tier-0 or Tier-1** element is a first-class OpenSpec change
 of type **`constitution-override`**. It must pass four gates **in order**.
 Doc-only edits to `protects:`-tagged elements are rejected by CI without the ceremony.
 
-Use the template: `openspec/changes/templates/constitution-override/proposal.md`
+Use the template: `openspec/templates/constitution-override/proposal.md`
 
 ### Gate 1 — CHECK (impact analysis)
 - Name the principle ID(s) being overridden.

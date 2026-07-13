@@ -14,7 +14,7 @@
 >
 > Constitutional elements are defined in `openspec/constitution.md`.
 > The `constitution-override` change template is at
-> `openspec/changes/templates/constitution-override/proposal.md`.
+> `openspec/templates/constitution-override/proposal.md`.
 
 ---
 
