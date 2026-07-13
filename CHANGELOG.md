@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.19] - 2026-07-13
+
 ### Added
 - **OS/harness-enforced agent write scope — burn-in stage** (change: `os-enforced-agent-write-scope` —
   ADR-0022; enforcement for INV-4/INV-5, no new invariant). `vault-template/.claude/settings.json` now
