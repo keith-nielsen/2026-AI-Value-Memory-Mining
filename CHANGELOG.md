@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.20] - 2026-07-13
+
 ### Changed
 - **Agent may capture directly into `20-Claims/`** (change `permit-agent-claims-capture`; ADR-0025;
   `constitution-override` touching `access-control`). The Area Access Matrix Agent cell for `20-Claims/`
