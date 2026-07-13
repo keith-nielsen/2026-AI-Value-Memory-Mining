@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.18] - 2026-07-13
+
 ### Added
 - **Refine executor: empty `index_links` defaults to a pending-catalog holding index** (change
   `bank-execute-pending-catalog`; ADR-0024; `constitution-override` touching `maintenance`). An

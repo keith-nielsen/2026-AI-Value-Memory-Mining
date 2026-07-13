@@ -307,6 +307,15 @@ and its pre-flight MUST cover:
   rejection; `append` requires the target to exist.
 - **Vocabularies:** `grade` and `pillars` validate against the config SSOT (`GRADES`, `PILLARS`).
 - **Link targets:** every named Catalog index file exists.
+- **Catalog reachability (INV-12):** an **empty** `index_links` (a well-formed but zero-length list)
+  is NOT a rejection — the executor defaults it to the holding index
+  `40-Treasury/Catalog/pending-catalog-index.md` before the Containment and Link-targets checks, so
+  every banked note is reachable via ≥1 Catalog index and never a silent orphan. The holding index is
+  the visible *awaiting-catalog* queue (its backlog is outstanding curation work, surfaced by
+  `treasury-orphan`). It is an ordinary Catalog index that MUST exist (a deployed vault ships it from
+  the template); if it is absent the empty-`index_links` proposal is rejected by the Link-targets
+  check like any other missing target. A *missing* or *non-list* `index_links` remains a Schema
+  rejection — only an explicit empty list is defaulted.
 
 A proposal failing any check is REJECTed with all reasons printed and **no partial write** — the
 note, the index links, and the proposal file are all untouched. Rejection is **batch-isolated**:
@@ -327,6 +336,13 @@ fleet contract); a fully applied (or empty) batch exits `0`. Rejected proposals 
 #### Scenario: A missing Catalog target rejects the whole proposal pre-write
 - **WHEN** a proposal names an `index_links` entry that does not exist
 - **THEN** the proposal is REJECTed and the knowledge note is NOT created — no half-applied state
+
+#### Scenario: An empty index_links defaults to the pending-catalog holding index
+- **WHEN** an approved proposal's `index_links` is an explicit empty list and
+  `40-Treasury/Catalog/pending-catalog-index.md` exists
+- **THEN** the executor does NOT reject it; it banks the note and links it into
+  `pending-catalog-index.md` so the note is reachable (INV-12), and the note appears in the
+  awaiting-catalog queue for later re-homing into its pillar index
 
 #### Scenario: A path escape is rejected
 - **WHEN** a proposal's `target_note` resolves outside `40-Treasury/` (e.g. via `..`) or an index
