@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0024: Empty `index_links` defaults to a pending-catalog holding index
 
-- **Status:** Proposed (flips to Accepted at Gate 4)
+- **Status:** Accepted (Gate-4, 2026-07-13; operator-approved in session)
 - **Date:** 2026-07-11
 - **Change:** `bank-execute-pending-catalog` (`constitution-override`; touches `maintenance` spec,
   `protects: [INV-2, INV-3, INV-6]`)

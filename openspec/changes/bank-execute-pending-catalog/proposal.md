@@ -95,13 +95,13 @@ reachability is strengthened.
 **Implementation complete:** ☑ (code + template index + spec delta + test + ADR + changelog)
 **All regression tests green:** ☑ — `openspec validate --all --strict` = 8/8; `pytest tests/` = 25 passed
 (incl. the new default-to-holding case + the unchanged named-missing-target reject)
-**CI green on this PR:** ☐ (pending push)
+**CI green on this PR:** ☑ — PR #19, all checks green on head `114929c` (2026-07-13)
 
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > The system loses the (currently legal) ability to bank a Treasury note with **zero** Catalog links in
@@ -114,5 +114,8 @@ reachability is strengthened.
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: Keith Nielsen (operator)
+Date: 2026-07-13
+Authorization: Gate-4 approved by the operator in session ("Approved", 2026-07-13); recorded by the
+agent at the operator's explicit standing direction — the human made the decision, the agent only
+transcribed it.
