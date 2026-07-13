@@ -81,13 +81,13 @@ already implies — Layer-2 Workings is agent-writable working space — not ove
 
 **Implementation complete:** ☑ — spec delta; AGENTS.md; README count; ci.yml guard; ADR-0025; CHANGELOG.
 **All regression tests green:** ☑ — `openspec validate --all --strict`; `pytest tests/`.
-**CI green on this PR:** ☐ (runs on push)
+**CI green on this PR:** ☑ (PR #21, 24/24 green on 43c03d5, 2026-07-13)
 
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > The agent gains routine direct-capture write to `20-Claims/` (Layer-2 Workings, CONST-02). No Tier-0
@@ -100,5 +100,6 @@ already implies — Layer-2 Workings is agent-writable working space — not ove
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ______________________
-Date: ______________________
+Name: Keith Nielsen (operator)
+Date: 2026-07-13
+Authorization: Gate-4 approved by the operator in session ("Approved", 2026-07-13); recorded by the agent at the operator's standing direction -- the human decided; the agent transcribed.

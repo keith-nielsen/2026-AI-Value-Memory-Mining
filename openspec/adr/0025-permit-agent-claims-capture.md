@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0025: Permit agent direct capture into 20-Claims
 
-- **Status:** Proposed (flips to Accepted at Gate-4 sign-off)
+- **Status:** Accepted (Gate-4, 2026-07-13; operator-approved in session)
 - **Date:** 2026-07-13
 - **Change:** `permit-agent-claims-capture` (`constitution-override`; touches `access-control` spec,
   `protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`)
