@@ -84,7 +84,19 @@ These are enforced by code, not trust. See `openspec/constitution.md` for the ra
 | `80-Crucible/` | — (no access) | Enter (INV-8) |
 
 Enforcement: the `vault-template/99-Operations/scripts/bank-execute-script.md` executor and
-the `vault-template/99-Operations/hooks/pre-commit` hook are the real boundaries.
+the `vault-template/99-Operations/hooks/pre-commit` hook are the real boundaries — plus, since
+`os-enforced-agent-write-scope` (ADR-0022), **pre-action enforcement in the agent harness**:
+an OS sandbox denies shell writes (any child process, any interpreter) to
+`40-Treasury/ 99-Operations/ .claude/ 96-Runbooks/ 97-Molds/ 10-Logbook/`, and permission deny
+rules block structured-tool writes to the same scope plus script-owned Logbook artifacts
+(`Daily/*.md`, `kanban.md`). The disposition sidecar (`Daily/*.resolutions.json`) is the one
+agent-writable close artifact — written via the Write tool only, never via shell.
+
+**Drive contract:** to run a `[script]` step, invoke the rendered script by its **bare exact
+invocation** (e.g. `~/bin/vault-daily-note.py`) — that form is sandbox-excluded so the script can
+write what it owns. An interpreter-prefixed (`python3 ~/bin/…`), chained, or relative invocation runs
+*sandboxed* and its protected writes fail closed. The sandbox is a fence you operate inside, not a
+gate you acknowledge; a kernel denial means *surface it to the operator*, never route around it.
 
 ---
 

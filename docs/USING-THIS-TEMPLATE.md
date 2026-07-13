@@ -165,6 +165,31 @@ publish (`gh repo create`, `npm publish`, `gh release`, …).
 
 ---
 
+## Step 4c: Agent Write-Scope Sandbox (burn-in → strict)
+
+The template's `.claude/settings.json` ships with the **agent write-scope enforcement** on
+(`os-enforced-agent-write-scope`, ADR-0022): an OS sandbox denies agent shell writes — including any
+child process or interpreter — to `40-Treasury/ 99-Operations/ .claude/ 96-Runbooks/ 97-Molds/
+10-Logbook/`, and permission deny rules block the structured file tools on the same scope plus the
+script-owned Logbook artifacts. Rendered vault scripts stay drivable via their **bare exact
+invocation** (they are sandbox-excluded); system cron jobs are unaffected (cron is not the agent).
+
+Sandbox dependencies (Linux/WSL2): `sudo apt-get install bubblewrap socat`. On Ubuntu 24.04+, if
+`sysctl kernel.apparmor_restrict_unprivileged_userns` returns `1`, add the AppArmor `bwrap` profile
+from the Claude Code sandboxing docs. macOS needs nothing (Seatbelt). Verify with `/sandbox` inside
+Claude Code. Without the dependencies, Claude Code warns and runs unsandboxed — install them.
+
+Adoption is **two-stage by design**:
+
+1. **Burn-in (as shipped):** the sandbox escape hatch stays on — a command that fails under the
+   sandbox falls back to the regular permission prompt. Treat every fallback as a signal: add the
+   path to `sandbox.filesystem.allowWrite` or the command to `excludedCommands` deliberately.
+2. **Strict (later, once burn-in is clean):** add `"failIfUnavailable": true` and
+   `"allowUnsandboxedCommands": false` to the `sandbox` block. **Order matters:** never set
+   `failIfUnavailable` before the dependencies verify green, or Claude Code will refuse to start.
+
+---
+
 ## Step 5: Set Up Crons (Optional)
 
 Three scripts run on a schedule. Each must see the full vault configuration, so

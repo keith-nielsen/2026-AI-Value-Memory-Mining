@@ -1,4 +1,38 @@
 {
+  "permissions": {
+    "deny": [
+      "Edit(/40-Treasury/**)",
+      "Edit(/99-Operations/**)",
+      "Edit(/.claude/**)",
+      "Edit(/96-Runbooks/**)",
+      "Edit(/97-Molds/**)",
+      "Edit(/10-Logbook/Daily/*.md)",
+      "Edit(/10-Logbook/kanban.md)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "denyWrite": [
+        "./40-Treasury",
+        "./99-Operations",
+        "./.claude",
+        "./96-Runbooks",
+        "./97-Molds",
+        "./10-Logbook"
+      ]
+    },
+    "excludedCommands": [
+      "~/bin/vault-close-day.py *",
+      "~/bin/vault-daily-note.py",
+      "~/bin/vault-daily-note.py *",
+      "~/bin/vault-rollover.py",
+      "~/bin/vault-rollover.py *",
+      "~/bin/vault-kanban-render.py",
+      "~/bin/vault-kanban-render.py *",
+      "~/bin/vault-refine-execute.py *"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
