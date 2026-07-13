@@ -21,3 +21,16 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "deps(pip)"
+
+  # OpenSpec CLI (@fission-ai/openspec) — the SDD tool the repo's governance/validation depends on.
+  # A new release opens a bump PR; the OpenSpec-validate CI job runs on that PR as the compatibility
+  # gate (green = safe to adopt, red = incompatible before adoption). Pinned in package.json.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps(openspec)"

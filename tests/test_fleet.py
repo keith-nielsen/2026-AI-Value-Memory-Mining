@@ -190,6 +190,24 @@ def test_bank_rejects_path_traversal(fleet):
     assert not (fleet.vault.parent / "escaped.md").exists()
 
 
+def test_bank_defaults_empty_index_links_to_pending_catalog(fleet):
+    # INV-12 reachability: an explicit empty index_links is defaulted to the holding index
+    # (which the template ships), not rejected and not left an orphan.
+    fleet.write("40-Treasury/Catalog/pending-catalog-index.md",
+                "---\ntype: index\npillar: pending\n---\n# Pending-catalog index\n\n## Awaiting catalog\n")
+    make_proposal(fleet, "uncataloged", **good_create(index_links=[]))
+    fleet.setup_commit("queue proposal with empty index_links")
+    r = fleet.run("vault-refine-execute.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert fleet.exists("40-Treasury/good-insight.md")
+    # linked into the holding queue, not orphaned
+    assert "[[good-insight]]" in fleet.read("40-Treasury/Catalog/pending-catalog-index.md")
+    # atomic bank: the holding index rode the commit and the proposal was consumed
+    files = set(fleet.head_files())
+    assert "40-Treasury/Catalog/pending-catalog-index.md" in files
+    assert not fleet.exists("20-Claims/_refine-approved/uncataloged.json")
+
+
 def test_bank_rejects_bad_vocabulary(fleet):
     make_proposal(fleet, "badgrade", **good_create(
         target="40-Treasury/bad-grade-note.md",

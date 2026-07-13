@@ -25,6 +25,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `allowUnsandboxedCommands: false`) is a deliberate later stage. `access-control` ADDED Requirement;
   AGENTS.md drive contract; USING-THIS-TEMPLATE Step 4c.
 
+## [0.1.18] - 2026-07-13
+
+### Added
+- **Refine executor: empty `index_links` defaults to a pending-catalog holding index** (change
+  `bank-execute-pending-catalog`; ADR-0024; `constitution-override` touching `maintenance`). An
+  explicit empty `index_links` is no longer a silent orphan nor a hard block — the executor links the
+  banked note into `40-Treasury/Catalog/pending-catalog-index.md` (a new template Catalog index), so
+  every banked note stays reachable via ≥1 Catalog index (INV-12) and un-cataloged notes form a
+  visible "awaiting-catalog" queue. Missing / non-list `index_links` remains a schema rejection.
+  Surfaced by the Crucible prove-out dig (Qwen dry-run #10). `maintenance`: MODIFIED pre-flight requirement.
+
 ## [0.1.17] - 2026-07-06
 
 ### Added

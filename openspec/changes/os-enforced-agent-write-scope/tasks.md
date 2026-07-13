@@ -29,12 +29,12 @@
 
 ## 5. Live vault (operator + agent, out of band of this repo)
 
-- [ ] 5.1 [human] `sudo apt-get install socat` (bubblewrap present; AppArmor sysctl already 0)
-- [ ] 5.2 [human] Review + apply Site-authored `settings-live-burn-in.json` → `.claude/settings.json`;
+- [x] 5.1 [human] `sudo apt-get install socat` (bubblewrap present; AppArmor sysctl already 0)
+- [x] 5.2 [human] Review + apply Site-authored `settings-live-burn-in.json` → `.claude/settings.json`;
       delete superseded v0.1 trial hook from `settings.local.json`; restart Claude Code; `/sandbox`
       Dependencies + Config tabs verified
-- [ ] 5.3 [agent] Execute `phase-1a-acceptance-probes.md` in-session; SE-4 failure ⇒ stop-and-escalate
-- [ ] 5.4 [both] Burn-in observation: capture every sandbox fallback as an observation for Stage B
+- [x] 5.3 [agent] Execute `phase-1a-acceptance-probes.md` in-session; SE-4 failure ⇒ stop-and-escalate
+- [x] 5.4 [both] Burn-in observation: capture every sandbox fallback as an observation for Stage B
 
 ## 6. Gate 4 + release (human-gated)
 
