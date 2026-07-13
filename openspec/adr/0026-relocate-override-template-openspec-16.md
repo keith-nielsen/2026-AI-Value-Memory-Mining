@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0026: Relocate the ceremony template out of the change tree; adopt OpenSpec 1.6.0
 
-- **Status:** Proposed (flips to Accepted at Gate-4)
+- **Status:** Accepted (Gate-4, 2026-07-13; operator-approved in session)
 - **Date:** 2026-07-13
 - **Change:** `relocate-override-template-openspec-16` (`constitution-override`, procedural — touches the
   `protects:`-tagged `maintenance` spec [`protects: [INV-2, INV-3, INV-6]`] and pointer text in

@@ -91,14 +91,16 @@ tooling is version-pinned, and ceremony templates live outside `openspec/changes
 
 **Implementation complete:** ☑ — template moved; 7 refs + CI guard repointed; pin bumped + lock
 regenerated; spec delta; README count; ADR-0026; CHANGELOG.
-**All regression tests green:** ☐ — filled at Gate-3 close (local validate/pytest/lints).
+**All regression tests green:** ☑ — `openspec validate --all --strict` (8 passed/0 failed); `pytest
+tests/` (25 passed); adr-count guard (26/latest-0026); constitution-lint (5 CONST + template at new
+path + 6 specs `protects:`); repointed README link resolves.
 **CI green on this PR:** ☐ — filled after the PR runs.
 
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑
 **Consequences explicitly accepted:**
 
 > The repo adopts OpenSpec 1.6.0 and its stricter default discovery. The ceremony template moves to
@@ -112,6 +114,7 @@ Accepted at sign-off
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: <operator>
-Date: <YYYY-MM-DD>
-Authorization: <pending operator "Approved">
+Name: Keith Nielsen (operator)
+Date: 2026-07-13
+Authorization: Gate-4 approved by the operator in session ("Approved", 2026-07-13); recorded by the agent
+at the operator's standing direction — the human decided, the agent transcribed.
