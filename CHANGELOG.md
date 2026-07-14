@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.23] - 2026-07-14
+
 ### Added
 - **GitHub Release object per version tag** (change `release-object-per-tag`; conforming override,
   additive — Gate-4 sign-off recorded in the proposal). The ship ceremony now documents and mandates
