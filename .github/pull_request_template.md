@@ -6,12 +6,15 @@
 
 <!-- Machine-checked by the scope-review CI job. List every path this PR is
      authorized to touch: root-relative, one per line, directories end with "/",
-     no globs (they never match). Ceremony changes: copy the Gate-1 blast radius.
+     no globs (they never match). Non-file surfaces the checker inspects are
+     declared with a prefix: "env: NAME", "dep: package", "endpoint: /route".
+     Ceremony changes: copy the Gate-1 blast radius.
      Lines starting with "#" are comments. -->
 
 ```scope
 openspec/changes/<change-id>/
 CHANGELOG.md
+# env: MY_NEW_WORKFLOW_VAR
 ```
 
 ## Change type

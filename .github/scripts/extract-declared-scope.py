@@ -11,9 +11,12 @@ Fail-closed: a missing, empty, or malformed block exits non-zero with an
 instructive message. Entry rules (matched to OverReach 0.7.0 `memberPath`
 semantics — probed 2026-07-14):
   - one root-relative path per line; directories end with "/"
-  - every entry must contain "/" or "." (keeps matching in the strict
+  - every path entry must contain "/" or "." (keeps matching in the strict
     path branch, out of the fuzzy token branches)
   - no glob characters (*, ?, [ ) — globs silently never match in 0.7.0
+  - non-file surfaces the checker inspects are declared with a prefix:
+    "env: NAME", "dep: package", "endpoint: /route" (added after dogfood
+    run 1, where the gate correctly flagged its own PR_BODY env var)
   - lines starting with "#" are comments
 """
 import json
@@ -29,9 +32,14 @@ HOW_TO_FIX = (
     "```scope\n"
     "openspec/changes/<change-id>/\n"
     "CHANGELOG.md\n"
+    "env: MY_NEW_VAR\n"
+    "dep: some-package\n"
     "```\n"
-    "One root-relative path per line; directories end with '/'; no globs."
+    "One root-relative path per line; directories end with '/'; no globs.\n"
+    "Non-file surfaces use a prefix: 'env: NAME', 'dep: package', 'endpoint: /route'."
 )
+
+ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def fail(msg: str) -> None:
@@ -48,10 +56,28 @@ def main() -> None:
     if not m:
         fail("no ```scope fenced block found in the PR body.")
 
-    entries = []
+    files, envs, deps, endpoints = [], [], [], []
     for raw in m.group(1).replace("\r", "").split("\n"):
         line = raw.strip()
         if not line or line.startswith("#"):
+            continue
+        if line.startswith("env:"):
+            name = line[len("env:"):].strip()
+            if not ENV_NAME_RE.match(name):
+                fail(f"entry '{line}' — '{name}' is not a valid environment-variable name.")
+            envs.append(name)
+            continue
+        if line.startswith("dep:"):
+            name = line[len("dep:"):].strip()
+            if not name or " " in name:
+                fail(f"entry '{line}' — '{name}' is not a valid dependency name.")
+            deps.append(name)
+            continue
+        if line.startswith("endpoint:"):
+            route = line[len("endpoint:"):].strip()
+            if not route.startswith("/"):
+                fail(f"entry '{line}' — endpoints are declared as absolute routes ('/x/y').")
+            endpoints.append(route)
             continue
         if GLOB_CHARS & set(line):
             fail(
@@ -61,24 +87,29 @@ def main() -> None:
         if "/" not in line and "." not in line:
             fail(
                 f"entry '{line}' has neither '/' nor '.' — write directories "
-                "with a trailing '/' and files as root-relative paths."
+                "with a trailing '/' and files as root-relative paths "
+                "(or use an 'env:' / 'dep:' / 'endpoint:' prefix for non-file surfaces)."
             )
-        entries.append(line)
+        files.append(line)
 
-    if not entries:
+    if not files:
         fail("the ```scope block contains no path entries.")
 
     scope = {
-        "files_allowed": entries,
+        "files_allowed": files,
         "features_allowed": [],
-        "endpoints_allowed": [],
-        "deps_allowed": [],
-        "env_allowed": [],
+        "endpoints_allowed": endpoints,
+        "deps_allowed": deps,
+        "env_allowed": envs,
         "behavioral_changes_allowed": [],
     }
     json.dump(scope, sys.stdout, indent=2)
     print()
-    print(f"declared-scope: {len(entries)} entries extracted.", file=sys.stderr)
+    print(
+        f"declared-scope: {len(files)} path, {len(envs)} env, {len(deps)} dep, "
+        f"{len(endpoints)} endpoint entries extracted.",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

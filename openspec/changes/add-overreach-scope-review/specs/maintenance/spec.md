@@ -4,8 +4,10 @@
 ### Requirement: Scope-Review CI Gate (Declared Scope)
 
 Every pull request SHALL declare its authorized change surface as a fenced ```scope block in the
-PR body — root-relative paths, one per line, directories with a trailing `/`, no glob syntax; for
-ceremony changes the declaration mirrors the Gate-1 blast radius. CI SHALL enforce the declaration
+PR body — root-relative paths, one per line, directories with a trailing `/`, no glob syntax; the
+non-file surfaces the checker inspects are declared with prefixed entries (`env: NAME`,
+`dep: package`, `endpoint: /route`); for ceremony changes the declaration mirrors the Gate-1
+blast radius. CI SHALL enforce the declaration
 deterministically (INV-6 posture at the CI layer — offline, no LLM in the decision path):
 
 - **Extraction is fail-closed:** a missing, empty, or malformed declaration fails the job with an

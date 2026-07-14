@@ -99,6 +99,12 @@ treated as an additive quality gate, not a security rail; nothing existing depen
   T1–T6 + E2E green (2026-07-14).
 - The PR itself dogfoods the gate: its body carries the Declared-scope block for this exact
   file set; the `scope-review` job must report PASS on it.
+- **Dogfood run 1 (2026-07-14): the gate correctly failed its own PR** — `[HIGH] scope.env:
+  Added environment variable "PR_BODY"` (the job's own workflow env var, undeclared). True
+  positive, and it exposed a declaration-language gap: only files were declarable. Fixed in this
+  change: prefixed non-file entries (`env:` / `dep:` / `endpoint:`) added to the extract script,
+  template, and spec delta; this PR's block declares `env: PR_BODY`. Recorded as evidence the
+  detector catches non-file smuggling (the F8/F9 blast-radius-miss class).
 - CI green on the PR = Gate 3 complete (recorded here when checks finish).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF

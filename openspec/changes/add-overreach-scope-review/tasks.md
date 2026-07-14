@@ -15,6 +15,9 @@
 - [x] 2.5 README CI comment line
 - [x] 2.6 CHANGELOG `[Unreleased]` entry incl. evaluation hat-tip (operator attribution policy)
 - [x] 2.7 Spec delta: maintenance +1 ADDED Requirement, 4 scenarios
+- [x] 2.8 Non-file declaration primitive (`env:` / `dep:` / `endpoint:` prefixes) — added after
+      dogfood run 1 flagged the job's own `PR_BODY` env var (true positive; gap was the
+      declaration language, not the detector)
 
 ## 3. Verification
 - [x] 3.1 Local script matrix T1–T6 (extract: valid/missing/glob/tokenish · threshold:
