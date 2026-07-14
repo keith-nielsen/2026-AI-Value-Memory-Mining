@@ -375,3 +375,36 @@ jobs:
         # as subprocesses — close lifecycle + gates, refine pre-flight + batch isolation,
         # scoped commits, render fence lint, env-free root resolution, shell-pair gates.
         run: pytest tests/ -v
+
+  scope-review:
+    name: Scope review (OverReach, burn-in)
+    runs-on: ubuntu-latest
+    # Phase A burn-in: report-only (continue-on-error). The Phase-B blocking flip
+    # is its own governed change after clean burn-in — see the maintenance spec.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    continue-on-error: true
+    env:
+      OVERREACH_TELEMETRY: "0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Extract declared scope from PR body (fail-closed)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 .github/scripts/extract-declared-scope.py > scope.json
+
+      - name: Diff against merge base
+        run: git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+
+      - name: OverReach (pinned, scope-injection mode — no LLM, no keys)
+        run: npx -y overreach@0.7.0 --prompt "declared-scope gate" --diff pr.diff --scope scope.json --json > result.json || true
+
+      - name: Enforce MEDIUM+ threshold
+        run: python3 .github/scripts/check-scope-findings.py result.json

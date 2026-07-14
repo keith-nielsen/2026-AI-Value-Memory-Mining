@@ -12,6 +12,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **Scope-review CI gate** (change `add-overreach-scope-review`; conforming override, additive —
+  Gate-4 sign-off recorded in the proposal). Every PR now declares its authorized surface as a
+  fenced ```scope block (for ceremony changes: the Gate-1 blast radius, machine-checked); a new
+  `scope-review` CI job compares the diff against the declaration deterministically — offline, no
+  LLM in the decision path — and fails on any medium-or-higher finding. Phase-A burn-in
+  (report-only); the blocking flip follows as its own change. Adopts **OverReach**
+  ([Naveja00/OverReach](https://github.com/Naveja00/OverReach), MIT), exact-pinned at 0.7.0, in
+  scope-injection mode.
+  *Provenance hat-tip:* selected by the 2026-07-14 competitive landscape analysis, which also
+  evaluated (with thanks): BRACE (CC BY 4.0 — its self-assessment checklist was run against the
+  live deployment), statewright, microsoft/agent-governance-toolkit, eqtylab/cupcake,
+  falcosecurity/prempti, ThumbGate, mori, elephantasm-core, traceguard, Terminalcontrol
+  (FleetView), and nousresearch/hermes-agent.
+
 ## [0.1.21] - 2026-07-13
 
 ### Changed
