@@ -33,7 +33,7 @@
 - [ ] 3.3 PR CI green, including `scope-review` PASS on this PR's own declaration (dogfood)
 
 ## 4. Ceremony
-- [ ] 4.1 Gate-4 human sign-off (operator replies Approved; recorded in proposal.md)
-- [ ] 4.2 Merge; archive the change per batch-archive-in-merge-order practice
+- [x] 4.1 Gate-4 human sign-off — **Approved, Keith Nielsen, 2026-07-14** (recorded in proposal.md)
+- [x] 4.2 Merge; archive the change per batch-archive-in-merge-order practice
 - [ ] 4.3 Burn-in watch: ≥3–5 PRs, record false-positive rate; then propose the Phase-B blocking
       flip as its own change

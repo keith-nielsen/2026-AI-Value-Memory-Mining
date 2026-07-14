@@ -129,10 +129,11 @@ basename/substring/token/fuzzy branches).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**PENDING operator sign-off.** Per §5, this change is not merged until the operator has reviewed
-the consequences above and replied **Approved**.
-
-- [ ] Blast radius re-checked against the final diff
-- [ ] Consequences explicitly accepted (per-PR scope-block ceremony added; two repo-owned
+- [x] Blast radius re-checked against the final diff (10 files, all declared; scope-review PASS
+      on the PR's own diff; CI 13/13 green on `62de747`)
+- [x] Consequences explicitly accepted (per-PR scope-block ceremony added; two repo-owned
       stdlib scripts to maintain; **zero external runtime dependencies**)
-- [ ] Human sign-off recorded here
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-14** (operator reviewed the
+      proposal via read-only `view` and replied `Approved`; recorded by Claude Code per the
+      standing Gate-4 ritual — the human decision is the operator's reply, the agent only
+      transcribes it)
