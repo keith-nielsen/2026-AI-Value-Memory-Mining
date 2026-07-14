@@ -3,12 +3,17 @@
 Claude Code PreToolUse guard — outbound / exfil safety rail (INV-14).  PORTABLE.
 
 Two jobs:
-  1. HARD DENY any push / add-remote / repo-create / release that touches a deployed vault.
-     The protected vault path is taken from $VAULT_ROOT (else $CLAUDE_PROJECT_DIR). When neither
-     marks a vault (e.g. running in the public template repo), the vault-deny is inert and only
-     job (2) applies.
-  2. ASK (loud, unmissable banner) before ANY public repo creation or publish to a de-facto
-     distribution hub — a PERMANENT, PUBLIC-FACING, effectively-irreversible record.
+  1. HARD DENY any push / add-remote / repo-create / release whose EFFECTIVE TARGET is a deployed
+     vault. The protected vault path is taken from $VAULT_ROOT (else $CLAUDE_PROJECT_DIR). The
+     effective target is the directory/repo the command actually acts on — honoring a leading
+     `cd <path> &&`, `git -C <path>`, and `gh … -R <owner/repo>` — not merely the shell's reported
+     cwd, which in a live session is always the vault even when the command cd's into a sibling repo.
+     When neither env var marks a vault (e.g. the public template repo), the vault-deny is inert.
+  2. ASK (loud, unmissable banner) before ANY outward-replication or distribution publish that was
+     not vault-denied — git push / remote-add / repo-create / release, and npm/twine/docker/… . An
+     ASK cannot proceed without an explicit human Yes in any permission mode: no outward op silently
+     defers. A read-only command that merely mentions a trigger token also raises the ASK (the guard
+     is a conservative text matcher — an extra confirmation is the safe failure direction).
 
 Output: Claude Code PreToolUse JSON on stdout. Exit 0 always (silent = defer to normal flow).
 """
@@ -20,7 +25,7 @@ import sys
 VAULT = (os.environ.get("VAULT_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or "").rstrip("/")
 
 OUTWARD = re.compile(
-    r"\bgit\s+push\b"
+    r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b"  # `git push`, incl. `git -C <path> push` / `-c k=v`
     r"|\bgit\s+remote\s+(add|set-url)\b"
     r"|\bgh\s+repo\s+create\b"
     r"|\bgh\s+release\s+(create|edit|upload)\b",
@@ -40,6 +45,37 @@ PUBLISH = re.compile(
     r"|\bgem\s+push\b",
     re.IGNORECASE,
 )
+
+# Redirect forms that move a command's effective target off the reported cwd.
+_LEAD_CD = re.compile(r"^\s*cd\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)\s*(?:&&|;)")
+_GIT_C = re.compile(r"\bgit\s+-C\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
+_GH_R = re.compile(r"\bgh\s[^\n]*?\s-R(?:=|\s+)(?P<repo>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
+
+
+def _unquote(s: str) -> str:
+    s = s.strip()
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in "'\"":
+        s = s[1:-1]
+    return s
+
+
+def _targets_vault(cmd: str, cwd: str) -> bool:
+    """True iff the command's effective target resolves inside the protected vault."""
+    if not VAULT:
+        return False
+    # Conservative: an outward op naming the vault path as an operand is treated as vault-outward.
+    if VAULT in cmd:
+        return True
+    # An explicit `-R owner/repo` names a GitHub repo, not the local vault working tree.
+    if _GH_R.search(cmd):
+        return False
+    # `git -C <path>` or a leading `cd <path> &&` redirect the effective directory.
+    m = _GIT_C.search(cmd) or _LEAD_CD.match(cmd)
+    if m:
+        path = os.path.abspath(os.path.expanduser(_unquote(m.group("path")))).rstrip("/")
+        return path == VAULT or path.startswith(VAULT + "/")
+    # No redirect: fall back to the reported cwd.
+    return cwd == VAULT or cwd.startswith(VAULT + "/")
 
 
 def emit(decision: str, reason: str) -> None:
@@ -68,10 +104,8 @@ def main() -> None:
     cmd = (data.get("tool_input") or {}).get("command", "") or ""
     cwd = (data.get("cwd", "") or "").rstrip("/")
 
-    in_vault = bool(VAULT) and (cwd == VAULT or cwd.startswith(VAULT + "/") or VAULT in cmd)
-
-    # 1) HARD DENY: vault data leaving the machine (INV-14).
-    if in_vault and OUTWARD.search(cmd):
+    # 1) HARD DENY: an outward op whose effective target is the deployed vault (INV-14).
+    if OUTWARD.search(cmd) and _targets_vault(cmd, cwd):
         emit(
             "deny",
             "\n".join(
@@ -92,25 +126,26 @@ def main() -> None:
         )
         sys.exit(0)
 
-    # 2) ASK (loud): public / distribution-hub publishing, anywhere.
-    if PUBLISH.search(cmd):
+    # 2) ASK (loud): any outward-replication / publish not vault-denied — a structural hard stop.
+    if OUTWARD.search(cmd) or PUBLISH.search(cmd):
         emit(
             "ask",
             "\n".join(
                 [
                     "",
                     "  *********************************************************************",
-                    "  **  ⚠️  PERMANENT  PUBLIC-FACING  RECORD  —  READ  BEFORE  YES  ⚠️  **",
+                    "  **  ⚠️  OUTBOUND — CODE / DATA LEAVING THIS MACHINE — HARD STOP  ⚠️  **",
                     "  *********************************************************************",
                     "",
-                    "  THIS COMMAND PUBLISHES TO A PUBLIC, EXTERNALLY-DISTRIBUTED LOCATION.",
-                    "  ONCE LIVE IT IS CACHED, MIRRORED, AND INDEXED — IT CANNOT BE RELIABLY",
-                    "  UN-PUBLISHED.  TREAT IT AS IRREVERSIBLE.",
+                    "  THIS COMMAND SENDS CODE OR DATA TO A REMOTE (push / release / publish).",
+                    "  A PUSHED OR PUBLISHED RECORD IS CACHED, MIRRORED, AND INDEXED — TREAT IT",
+                    "  AS EFFECTIVELY IRREVERSIBLE.",
                     "",
                     "  CONFIRM ALL THREE BEFORE APPROVING:",
                     "    (1) it contains NO private / vault / confidential / personal data;",
-                    "    (2) PUBLIC distribution is genuinely intended;",
-                    "    (3) you are doing this DELIBERATELY — not on autopilot or while tired.",
+                    "    (2) sending it to this remote is genuinely intended;",
+                    "    (3) you are doing this DELIBERATELY — not on autopilot or while tired,",
+                    "        having reviewed the overview summary + proposal.md.",
                     "",
                     "  If you are not certain of all three: choose NO.",
                     "",

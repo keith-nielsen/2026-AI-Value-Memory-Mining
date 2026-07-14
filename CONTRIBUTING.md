@@ -18,6 +18,28 @@ edits to `vault-template/` or `openspec/specs/`.
 6. Open a PR — the PR template checklist will guide you
 ```
 
+### Shipping a version (tag → release → mirror)
+
+After a change is merged to `main`, the ship is **not complete** until a GitHub **Release object**
+exists for the new version. A git tag and a GitHub Release are different objects — pushing a tag does
+**not** create a Release, and the Releases page / profile badge track the newest *Release*, not the
+newest tag. Every `vX.Y.Z` tag gets a Release, created and verified as the final ship steps:
+
+```
+1. git tag -a vX.Y.Z -m "vX.Y.Z — <title>"
+2. git push origin main --follow-tags
+3. gh release create vX.Y.Z --verify-tag --latest \
+     -t "vX.Y.Z — <title>" -n "<notes from the tag / CHANGELOG>"
+4. gh release view vX.Y.Z            # PARITY CHECK — must resolve and be marked Latest
+5. Mirror any vault-template hook/guard change into the live vault (operator action)
+```
+
+Steps 2–3 are outward operations: the INV-14 outbound guard raises a hard stop, and the operator
+approves each deliberately after reviewing the overview summary + `proposal.md`. Because release
+creation and verification are part of the same ceremony that cuts the tag, a tag can never again
+accumulate without its Release (the drift that stranded the Releases page at v0.1.13 while tags ran to
+v0.1.22).
+
 ### Touching a constitutional element?
 
 If your change modifies anything tagged `protects:` in the spec files, or touches
