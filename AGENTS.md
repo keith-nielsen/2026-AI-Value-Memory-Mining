@@ -154,6 +154,15 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
   from it, and **never even _propose_** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
+- **Outward ops hard-stop, then inform (ADR-0027).** Any `git push` / `gh release` / publish — even to
+  the operator-authorized framework repo — hits the INV-14 harness-guard ASK; it cannot proceed without
+  an explicit human Yes. Before triggering it, present an **overview summary + the absolute path to the
+  governing `proposal.md`**. The guard judges "vault or not" by the command's *effective target*
+  (`cd`/`git -C`/`gh -R`), not the shell cwd — so a sibling-repo publish is *asked*, a vault-outward one
+  is *denied*. Never route around the ASK "to be helpful."
+- **Every version tag ships with a GitHub Release.** A tag ≠ a Release; after merge, cut the tag, then
+  `gh release create <tag> --verify-tag --latest`, then verify with `gh release view <tag>` (see
+  CONTRIBUTING → "Shipping a version"). A tag without a Release is an incomplete ship.
 
 ## Things never to do
 

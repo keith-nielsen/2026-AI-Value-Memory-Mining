@@ -10,7 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Added
+- **GitHub Release object per version tag** (change `release-object-per-tag`; conforming override,
+  additive — Gate-4 sign-off recorded in the proposal). The ship ceremony now documents and mandates
+  tag → `gh release create --verify-tag --latest` → `gh release view` parity check → mirror, so a tag
+  can never again strand without its Release (the drift that pinned the Releases page at v0.1.13 while
+  tags ran to v0.1.22). Documented in `CONTRIBUTING.md` and `AGENTS.md`.
+
+### Changed
+- **INV-14 outbound guard made target-aware and gap-closed** (ADR-0027; conforming — the Safety band is
+  tightened, nothing relaxed). `outbound-publish-guard.py` now judges "targets the vault" by the
+  command's *effective target* (`cd` / `git -C` / `gh -R`), not the shell's reported cwd — removing the
+  false HARD-DENY that blocked every legitimate publish to the sibling framework repo from a
+  vault-rooted session. It also raises the ASK **hard stop** on **any** non-denied outward op (now
+  including a plain `git push`, and `git -C <path> push`), closing a gap where a push could defer
+  unprompted. Vault-outward commands are still hard-denied. Mirrored byte-identically across the hook's
+  three homes (repo, vault-template, literate meta-script note).
 
 ## [0.1.22] - 2026-07-14
 
