@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.22] - 2026-07-14
+
 ### Added
 - **Scope-review CI gate** (change `add-overreach-scope-review`; conforming override, additive —
   Gate-4 sign-off recorded in the proposal). Every PR now declares its authorized surface as a
