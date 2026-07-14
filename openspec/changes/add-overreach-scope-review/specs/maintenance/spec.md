@@ -14,13 +14,13 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
   instructive message. The PR body reaches the extractor via environment variable, never shell
   interpolation. Entries containing glob characters, or lacking both `/` and `.`, are rejected
   (the pinned checker matches directory prefixes and exact paths only).
-- **Comparison is deterministic and pinned:** the diff against the merge base is compared to the
-  declared scope by the exact-pinned checker (`overreach@0.7.0`, MIT) in scope-injection mode —
-  no API keys, no network model calls, no repository writes. Checker upgrades are ordinary
-  governed changes.
-- **The threshold is repo-owned:** the job fails on any finding of severity medium or higher
-  (an out-of-scope file is medium; the checker's own exit code fires only on high and SHALL NOT
-  be the gate). Low-severity findings are advisory. Malformed checker output fails closed.
+- **Comparison is deterministic and self-contained:** the diff against the merge base is compared
+  to the declared scope by a repo-owned, stdlib-only comparator — exact-path / directory-prefix
+  matching, no fuzzy branches, no third-party runtime dependency, no registry fetch, no network.
+  The gate SHALL NOT depend on external packages at run time (the declared-scope concept and
+  schema were informed by an evaluated external tool, credited in the CHANGELOG).
+- **The threshold is repo-owned:** the job fails on any finding — undeclared file (medium) or
+  undeclared workflow env var / dependency (high). Malformed inputs fail closed.
 - **Two-stage adoption:** Phase A runs report-only (`continue-on-error`) as burn-in; the flip to
   blocking is its own governed change after clean burn-in. Dependabot PRs are exempt by actor.
 
@@ -42,5 +42,5 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
 - **THEN** the threshold step exits 0 and reports PASS with any low-severity advisories
 
 #### Scenario: Checker crash fails closed
-- **WHEN** the checker invocation produces missing or malformed JSON output
-- **THEN** the threshold step exits non-zero (fail-closed); the gate never passes by silence
+- **WHEN** the comparator receives a missing or malformed scope file or diff
+- **THEN** it exits non-zero (fail-closed); the gate never passes by silence

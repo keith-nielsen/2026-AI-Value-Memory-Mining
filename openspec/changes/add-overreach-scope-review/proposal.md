@@ -20,11 +20,15 @@ The determinism failure record (vault Site `determinism-failure-modes-claude`, F
 class with no mechanical counter anywhere in the stack: **class-3 wandering** — an agent doing
 work beyond what was asked — plus the F4/F5 commit-bundling class, countered today only by local
 staging discipline. The 2026-07-14 competitive landscape analysis (vault Site
-`competitive-landscape-analysis-to-incorporate`, action N2) selected **OverReach**
-(MIT, `Naveja00/OverReach`) in its deterministic scope-injection mode as the merge-boundary gate:
-every PR declares its authorized surface machine-readably; CI compares the actual diff against the
-declaration by set arithmetic — no LLM anywhere in the decision path, holding identically
-regardless of which model authored the PR, at what effort, or at what context length.
+`competitive-landscape-analysis-to-incorporate`, action N2) identified the merge-boundary gate
+pattern via **OverReach** (MIT, `Naveja00/OverReach`): every PR declares its authorized surface
+machine-readably; CI compares the actual diff against the declaration by set arithmetic — no LLM
+anywhere in the decision path, holding identically regardless of which model authored the PR, at
+what effort, or at what context length. After a supply-chain audit (the tool's `npx` invocation
+resolves a **113-package floating transitive tree** at every CI run — the classic
+flip-on-us-later vector), the operator directed a **clean-room, stdlib-only reimplementation of
+the concept** (2026-07-14): the gate carries **zero runtime dependencies** and OverReach is
+credited as concept source, not adopted as code.
 
 The declaration is not a new concept: for ceremony changes it is the **Gate-1 blast radius**,
 which this gate converts from prose into a machine-checked contract.
@@ -32,15 +36,18 @@ which this gate converts from prose into a machine-checked contract.
 ## What Changes
 
 - **`maintenance` spec:** +1 ADDED Requirement — every PR carries a fenced ```scope declaration;
-  CI extracts it (fail-closed), diffs against the merge base, runs the pinned checker offline, and
-  enforces a fail-on-MEDIUM-or-higher threshold; two-stage adoption (report-only burn-in → blocking
-  flip as its own change); dependabot exempt.
-- **`.github/workflows/ci.yml`:** +1 job `scope-review` (Phase A: `continue-on-error: true`).
+  CI extracts it (fail-closed), diffs against the merge base, and compares deterministically with
+  a self-contained comparator; two-stage adoption (report-only burn-in → blocking flip as its own
+  change); dependabot exempt.
+- **`.github/workflows/ci.yml`:** +1 job `scope-review` (Phase A: `continue-on-error: true`;
+  `permissions: contents: read` least-privilege token; no Node, no registry contact).
 - **`.github/scripts/extract-declared-scope.py`** (new): PR body (via env, injection-safe) →
-  OverReach internal-shape `scope.json`; rejects globs and non-path entries; fail-closed.
-- **`.github/scripts/check-scope-findings.py`** (new): applies the MEDIUM+ threshold to the JSON
-  result (OverReach's own exit code fires only on HIGH — an out-of-scope file is MEDIUM and would
-  pass silently; probed 2026-07-14); fails closed on malformed output.
+  `scope.json` (schema retained from the evaluated tool); rejects globs and non-path entries;
+  fail-closed.
+- **`.github/scripts/check-scope-findings.py`** (new): stdlib-only comparator — diff paths vs
+  declared entries (exact / dir-prefix only, no fuzzy branches), added workflow env vars vs
+  `env:` declarations, added manifest deps vs `dep:` declarations; undeclared file = medium,
+  undeclared env/dep = high; any finding fails; malformed inputs fail closed.
 - **`.github/pull_request_template.md`:** +Declared-scope section and checklist line.
 - **`README.md`:** CI comment line gains `+ scope-review`.
 - **`CHANGELOG.md`:** `[Unreleased]` entry, including the attribution hat-tip to every project
@@ -74,13 +81,18 @@ which this gate converts from prose into a machine-checked contract.
       standalone premise holds)
 - [ ] Existing CI jobs — **no change** (new job is additive; runs only on `pull_request`)
 
-**External dependency being adopted:** `overreach@0.7.0` (MIT), exact-pinned, invoked via `npx`
-in CI only. Probed 2026-07-14: `--scope` injection makes the run LLM-free and offline; no repo
-writes in this mode; telemetry fires only on `overreach init` (never run in CI) and
-`OVERREACH_TELEMETRY=0` is set regardless. Known limitations accepted and encoded: no glob
-support (extract script rejects globs); path matching has lenient branches (extract script
-requires path-shaped entries to stay in the strict branch); pre-1.0 single-maintainer project —
-treated as an additive quality gate, not a security rail; nothing existing depends on it.
+**External dependency being adopted: NONE** (revised 2026-07-14 at operator direction, after the
+supply-chain audit). The gate is two stdlib-only Python scripts owned by this repo — no registry
+fetch, no install hooks, no floating transitive tree, nothing new in the trust ring. History of
+the decision, kept for the record: the initial draft invoked `overreach@0.7.0` via `npx`; the
+audit found the tool itself frozen (npm version immutability) but its 3 semver-ranged deps pull a
+**113-package transitive tree resolved fresh every CI run** — the flip-on-us-later vector. The
+tree audit was clean today (zero install hooks; telemetry init-only; LLM paths bypassed), but the
+operator chose concept-extraction over dependency adoption. **Attribution:** the declared-scope
+concept, the scope-JSON schema, and the severity taxonomy were learned from evaluating OverReach
+(MIT, `Naveja00/OverReach`) — credited in the CHANGELOG; no code was copied (the comparator is a
+clean-room implementation with deliberately stricter matching: exact/dir-prefix only, no
+basename/substring/token/fuzzy branches).
 
 ## Gate 2 — PLAN (Migration + Regression)
 
@@ -107,6 +119,12 @@ treated as an additive quality gate, not a security rail; nothing existing depen
   change: prefixed non-file entries (`env:` / `dep:` / `endpoint:`) added to the extract script,
   template, and spec delta; this PR's block declares `env: PR_BODY`. Recorded as evidence the
   detector catches non-file smuggling (the F8/F9 blast-radius-miss class).
+- **Dogfood run 2 (2026-07-14, local, post-reimplementation): a second true positive** — the
+  stricter stdlib comparator flagged `OVERREACH_TELEMETRY` as an undeclared workflow env var on
+  this PR's own diff, a finding the evaluated tool had missed on the identical input. Resolved
+  by the reimplementation itself (that env var existed only for the removed npx invocation).
+  Unit matrix U1–U4 green (creep FAIL incl. manifest file, env detect, declared-env PASS,
+  malformed fail-closed); real-diff dogfood PASS after the ci.yml rework.
 - CI green on the PR = Gate 3 complete (recorded here when checks finish).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
@@ -115,6 +133,6 @@ treated as an additive quality gate, not a security rail; nothing existing depen
 the consequences above and replied **Approved**.
 
 - [ ] Blast radius re-checked against the final diff
-- [ ] Consequences explicitly accepted (new external dev-dependency in CI, pre-1.0, pinned;
-      per-PR scope-block ceremony added)
+- [ ] Consequences explicitly accepted (per-PR scope-block ceremony added; two repo-owned
+      stdlib scripts to maintain; **zero external runtime dependencies**)
 - [ ] Human sign-off recorded here

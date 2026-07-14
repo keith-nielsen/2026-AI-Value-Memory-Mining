@@ -20,6 +20,11 @@
       declaration language, not the detector)
 - [x] 2.9 Agent priming: AGENTS.md Operating-notes bullet (survives context resets via the repo's
       auto-loaded adapter chain; CI fail-closed error remains the memory-independent floor)
+- [x] 2.10 **Trust-ring minimization (operator direction 2026-07-14):** clean-room stdlib
+      reimplementation of the comparator; npx invocation + Node setup + OVERREACH_TELEMETRY
+      removed; `permissions: contents: read` added; OverReach re-credited as concept source
+      (no code copied). Dogfood run 2: the stricter comparator caught OVERREACH_TELEMETRY as an
+      undeclared env var on this PR's own diff — a finding the evaluated tool missed.
 
 ## 3. Verification
 - [x] 3.1 Local script matrix T1–T6 (extract: valid/missing/glob/tokenish · threshold:

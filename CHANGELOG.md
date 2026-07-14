@@ -17,13 +17,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Gate-4 sign-off recorded in the proposal). Every PR now declares its authorized surface as a
   fenced ```scope block (for ceremony changes: the Gate-1 blast radius, machine-checked); a new
   `scope-review` CI job compares the diff against the declaration deterministically — offline, no
-  LLM in the decision path — and fails on any medium-or-higher finding. Phase-A burn-in
-  (report-only); the blocking flip follows as its own change. Adopts **OverReach**
-  ([Naveja00/OverReach](https://github.com/Naveja00/OverReach), MIT), exact-pinned at 0.7.0, in
-  scope-injection mode.
-  *Provenance hat-tip:* selected by the 2026-07-14 competitive landscape analysis, which also
-  evaluated (with thanks): BRACE (CC BY 4.0 — its self-assessment checklist was run against the
-  live deployment), statewright, microsoft/agent-governance-toolkit, eqtylab/cupcake,
+  LLM in the decision path — and fails on any undeclared file (medium), workflow env var, or
+  manifest dependency (high). Phase-A burn-in (report-only); the blocking flip follows as its own
+  change. The gate is **self-contained**: two stdlib-only Python scripts, zero runtime
+  dependencies (a supply-chain audit rejected the initial `npx` form — a 113-package floating
+  transitive tree resolved per run).
+  *Concept credit:* the declared-scope gate pattern, scope-JSON schema, and severity taxonomy
+  were learned from **OverReach** ([Naveja00/OverReach](https://github.com/Naveja00/OverReach),
+  MIT) — reimplemented clean-room with stricter matching; no code copied.
+  *Provenance hat-tip:* from the 2026-07-14 competitive landscape analysis, which also evaluated
+  (with thanks): BRACE (CC BY 4.0 — its self-assessment checklist was run against the live
+  deployment), statewright, microsoft/agent-governance-toolkit, eqtylab/cupcake,
   falcosecurity/prempti, ThumbGate, mori, elephantasm-core, traceguard, Terminalcontrol
   (FleetView), and nousresearch/hermes-agent.
 

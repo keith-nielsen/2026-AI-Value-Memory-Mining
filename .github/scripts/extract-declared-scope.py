@@ -8,16 +8,18 @@ inject commands). Finds the fenced ```scope block, validates its entries, and
 prints OverReach's internal Scope JSON on stdout.
 
 Fail-closed: a missing, empty, or malformed block exits non-zero with an
-instructive message. Entry rules (matched to OverReach 0.7.0 `memberPath`
-semantics — probed 2026-07-14):
+instructive message. Entry rules (enforced by the companion comparator,
+check-scope-findings.py — exact path or directory prefix, nothing fuzzy):
   - one root-relative path per line; directories end with "/"
-  - every path entry must contain "/" or "." (keeps matching in the strict
-    path branch, out of the fuzzy token branches)
-  - no glob characters (*, ?, [ ) — globs silently never match in 0.7.0
-  - non-file surfaces the checker inspects are declared with a prefix:
-    "env: NAME", "dep: package", "endpoint: /route" (added after dogfood
-    run 1, where the gate correctly flagged its own PR_BODY env var)
+  - every path entry must contain "/" or "." (bare tokens are ambiguous)
+  - no glob characters (*, ?, [ ) — matching is exact-path / dir-prefix only
+  - non-file surfaces are declared with a prefix: "env: NAME", "dep: package",
+    "endpoint: /route" (added after dogfood run 1, where the gate correctly
+    flagged its own PR_BODY env var)
   - lines starting with "#" are comments
+The emitted JSON shape (files_allowed / env_allowed / deps_allowed / ...)
+originated as the evaluated tool's scope schema (OverReach, MIT) and is
+retained as this repo's declaration schema.
 """
 import json
 import os
@@ -81,8 +83,8 @@ def main() -> None:
             continue
         if GLOB_CHARS & set(line):
             fail(
-                f"entry '{line}' contains a glob character — OverReach 0.7.0 "
-                "matches directory prefixes and exact paths only; globs never match."
+                f"entry '{line}' contains a glob character — matching is "
+                "exact-path / directory-prefix only; globs never match."
             )
         if "/" not in line and "." not in line:
             fail(

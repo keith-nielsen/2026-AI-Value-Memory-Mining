@@ -145,12 +145,12 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   steps 3–4 and 6 are human `[gate]`s).
 - Never self-authorize a `constitution-override` — Gate 4 is human-only.
 - **Every PR body carries a Declared-scope block** (fenced ` ```scope `): root-relative paths, one
-  per line, directories end `/`, **no globs**; non-file surfaces via `env: NAME` / `dep: pkg` /
-  `endpoint: /route`; ceremony PRs copy the Gate-1 blast radius. The `scope-review` CI job
-  extracts it **fail-closed** and fails the check on any undeclared surface (MEDIUM+). If the
-  check fires: shrink the diff or amend the declaration deliberately — never work around the
-  gate; it is the process. Note `gh pr create --body-file` bypasses the PR template, so include
-  the block yourself.
+  per line, directories end `/`, **no globs** (matching is exact-path / dir-prefix only); non-file
+  surfaces via `env: NAME` / `dep: pkg` / `endpoint: /route`; ceremony PRs copy the Gate-1 blast
+  radius. The `scope-review` CI job (self-contained, stdlib-only) extracts it **fail-closed** and
+  fails the check on any undeclared surface. If the check fires: shrink the diff or amend the
+  declaration deliberately — never work around the gate; it is the process. Note
+  `gh pr create --body-file` bypasses the PR template, so include the block yourself.
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
   from it, and **never even _propose_** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
