@@ -122,7 +122,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 │   └── USING-THIS-TEMPLATE.md  #   fork quick-start guide
 │
 ├── .github/                     # GitHub integration
-│   ├── workflows/ci.yml         #   CI: openspec validate + constitution-lint + naming tests + md-lint
+│   ├── workflows/ci.yml         #   CI: openspec validate + constitution-lint + naming tests + md-lint + scope-review
 │   ├── ISSUE_TEMPLATE/          #   bug.yml + change-proposal.yml
 │   ├── pull_request_template.md
 │   ├── CODEOWNERS

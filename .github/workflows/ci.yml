@@ -375,3 +375,30 @@ jobs:
         # as subprocesses — close lifecycle + gates, refine pre-flight + batch isolation,
         # scoped commits, render fence lint, env-free root resolution, shell-pair gates.
         run: pytest tests/ -v
+
+  scope-review:
+    name: Scope review (declared-scope gate, burn-in)
+    runs-on: ubuntu-latest
+    # Phase A burn-in: report-only (continue-on-error). The Phase-B blocking flip
+    # is its own governed change after clean burn-in — see the maintenance spec.
+    # Self-contained: both scripts are stdlib-only Python — no registry fetch, no
+    # third-party code in the trust ring (concept credit: OverReach, MIT; see CHANGELOG).
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Extract declared scope from PR body (fail-closed)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 .github/scripts/extract-declared-scope.py > scope.json
+
+      - name: Diff against merge base
+        run: git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+
+      - name: Compare diff to declared scope (deterministic, stdlib-only)
+        run: python3 .github/scripts/check-scope-findings.py scope.json pr.diff
