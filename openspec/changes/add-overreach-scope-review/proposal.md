@@ -66,6 +66,8 @@ which this gate converts from prose into a machine-checked contract.
 - [x] `.github/scripts/extract-declared-scope.py` — new
 - [x] `.github/scripts/check-scope-findings.py` — new
 - [x] `.github/pull_request_template.md` — +section, +checklist line
+- [x] `AGENTS.md` — +1 Operating-notes bullet (agent priming: the block is required, the gate is
+      the process, `--body-file` bypasses the template — added at operator prompt, 2026-07-14)
 - [x] `README.md` — one comment line
 - [x] `CHANGELOG.md` — `[Unreleased]` entry
 - [ ] `vault-template/` — **no change** (repo-side CI only; the deployed vault is untouched —

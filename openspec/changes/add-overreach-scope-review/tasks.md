@@ -18,6 +18,8 @@
 - [x] 2.8 Non-file declaration primitive (`env:` / `dep:` / `endpoint:` prefixes) — added after
       dogfood run 1 flagged the job's own `PR_BODY` env var (true positive; gap was the
       declaration language, not the detector)
+- [x] 2.9 Agent priming: AGENTS.md Operating-notes bullet (survives context resets via the repo's
+      auto-loaded adapter chain; CI fail-closed error remains the memory-independent floor)
 
 ## 3. Verification
 - [x] 3.1 Local script matrix T1–T6 (extract: valid/missing/glob/tokenish · threshold:
