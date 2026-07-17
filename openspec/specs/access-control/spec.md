@@ -247,10 +247,10 @@ post-hoc commit-gate ("OS-level enforcement is deferred per §14.1" is hereby un
   Out-of-vault writes are denied by default and re-allowed only for operator-listed paths.
 - **Structured-tool layer (harness permission rules):** the harness's file tools (Edit/Write and
   equivalents), which bypass the shell sandbox by design, are bound by declarative deny rules covering
-  the same protected areas plus the script-owned Logbook artifacts (`10-Logbook/Daily/*.md`,
-  `10-Logbook/kanban.md`). The sole agent-writable close artifact — the disposition sidecar
-  `10-Logbook/Daily/*.resolutions.json` — remains writable by **pattern disjointness** (deny rules
-  carry no carve-outs) and SHALL be written via the structured Write tool only, never via shell.
+  the same protected areas plus the script-owned Logbook artifacts (`10-Logbook/Daily/*.md`). The sole
+  agent-writable close artifact — the disposition sidecar `10-Logbook/Daily/*.resolutions.json` —
+  remains writable by **pattern disjointness** (deny rules carry no carve-outs) and SHALL be written
+  via the structured Write tool only, never via shell.
 
 **Script drive path:** the Agent MAY drive an owning script (the F13 "drive, never reproduce" rule) via
 an operator-maintained exclusion list of **exact rendered-script invocations**; an excluded command
@@ -274,8 +274,8 @@ reduced-trust and must be declared, not assumed equivalent.
   cooperation is involved
 
 #### Scenario: Structured-tool write to a script-owned artifact is denied
-- **WHEN** the Agent invokes a harness file tool against `10-Logbook/Daily/<date>.md`, `kanban.md`, or
-  any protected area
+- **WHEN** the Agent invokes a harness file tool against `10-Logbook/Daily/<date>.md` or any protected
+  area
 - **THEN** the harness permission layer denies the call pre-action
 - **AND** a Write-tool call targeting `10-Logbook/Daily/<date>.resolutions.json` is permitted (the
   disposition sidecar is the one agent-owned close artifact)
@@ -284,13 +284,4 @@ reduced-trust and must be declared, not assumed equivalent.
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
   `~/bin/vault-daily-note.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
-- **WHEN** the same script is invoked in any other form (e.g. `python3 ~/bin/vault-daily-note.py`, or
-  chained after another command)
-- **THEN** it runs sandboxed and any write to a protected area fails closed
-
-#### Scenario: Strict mode is a separate, ordered step
-- **WHEN** the operator moves from burn-in to strict enforcement
-- **THEN** sandbox dependencies are verified present first, and the strict settings
-  (`failIfUnavailable`, no unsandboxed fallback) are applied as their own deliberate change — never
-  bundled into the initial adoption
 

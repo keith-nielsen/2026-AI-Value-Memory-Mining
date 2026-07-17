@@ -70,15 +70,7 @@ producing zero commits when a mutation occurred is not) or multiple commits.
 mutated — no script relies on a later collector to sweep its writes into someone else's commit.
 Uncommitted operator working-tree content is never captured by a script commit.
 
-Commit message format: `<verb>: <subject>` (e.g., `rollover: 2 open dig(s) → 2026-06-14`).
-
-#### Scenario: rollover produces exactly one commit when digs exist
-- **WHEN** the rollover script runs with at least one `status: dig` effort in `30-Sites/`
-- **THEN** it appends wikilinks to today's daily note and produces exactly one commit
-
-#### Scenario: rollover produces no commit when nothing changed
-- **WHEN** the rollover script runs and all current digs are already in the carry-over heading
-- **THEN** it exits cleanly with no commit produced
+Commit message format: `<verb>: <subject>` (e.g., `bank: trustless-provenance-sealing`).
 
 #### Scenario: A created daily note is committed by its creator
 - **WHEN** the daily-note creator creates today's note
@@ -103,25 +95,32 @@ Commit message format: `<verb>: <subject>` (e.g., `rollover: 2 open dig(s) → 2
 The following scripts SHALL be implemented as literate meta-script notes in Phase 1–2.
 Each is offline and deterministic (INV-6).
 
+The vault does **not** project effort state. No fleet script renders a board, dashboard, or
+carry-over list of outstanding efforts: the vault exists to distil insight, and tracking
+outstanding effort is a distinct lens delegated outside it. A projection with no consumer is not a
+neutral cost — it decays into a stale artifact that answers wrongly rather than admitting it cannot.
+
 | Script note | Deploy target | Runtime | Purpose |
 |---|---|---|---|
 | `render-reconcile-script.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
-| `daily-note-script.md` | `~/bin/vault-daily-note.py` | cron `1 0 * * *` | Create today's daily note from Mold; idempotent; commits the created note (`daily: opened <date>`) |
+| `daily-note-script.md` | `~/bin/vault-daily-note.py` | manual | Create today's daily note from Mold; idempotent; commits the created note (`daily: opened <date>`) |
 | `knowledge-lint-script.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
 | `treasury-orphan-script.md` | `~/bin/vault-orphans.py` | manual / weekly | Report Treasury notes not linked from any Catalog index |
-| `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | cron daily | Queue ore whose grade cleared the Sort gate |
+| `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
 | `bank-execute-script.md` | `~/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury; one atomic commit per banked proposal (`bank: <stem>`) |
 | `spoil-dump-script.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
 | `site-slag-script.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
 | `tailings-reprospect-script.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
-| `dig-rollover-script.md` | `~/bin/vault-rollover.py` | cron `2 0 * * *` | Append open dig carry-overs to today's daily note; gated on prior day `closed` |
 | `daily-close-script.md` | `~/bin/vault-close-day.py` | manual | Disposition every item of a daily, write the `## Close` manifest, set `closed:`; emits the `unknown/other` worklist; seals with a scoped commit (daily + consumed sidecar), never a sweep |
-| `kanban-render-script.md` | `~/bin/vault-kanban-render.py` | manual | Render read-only Markdown Kanban board |
 | `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
 | `vault-lib-script.md` | `~/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
 | `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
+
+No script declares a `cron` runtime or a `schedule:`. `render` deploys code and marks it executable;
+it does **not** install schedules, and nothing reads a `schedule:` field. A cadence a script cannot
+install is a decoration, not a configuration (ADR-0028).
 
 The **note filenames** follow the `silo-section-descriptor` naming convention (silo first, `script`
 trailing). **Deploy targets are unchanged.** The `commit-gate` and `push-guard` hooks are deterministic
@@ -139,6 +138,12 @@ importable libraries (the `vault_naming` precedent).
 #### Scenario: Daily note creator is idempotent
 - **WHEN** the daily-note creator runs twice on the same day
 - **THEN** the note is created on the first run and `exists` is printed on the second; no duplicate is created
+
+#### Scenario: Retiring a script removes its deploy target in lockstep
+- **WHEN** a script note is removed from the inventory
+- **THEN** its deploy target is deleted from the host in the same apply — `reconcile` iterates
+  **notes**, so a deployed artifact whose note no longer exists is invisible to drift detection and
+  would persist as operational code outside the render inventory (the R8 gap)
 
 #### Scenario: Push-guard denies an un-allowlisted push
 - **WHEN** `git push` runs from a deployed vault and the target remote URL is not listed in `PUSH_ALLOWLIST` or `PUBLIC_REMOTE_ALLOWLIST`
@@ -179,18 +184,18 @@ result in an appended `## Close` manifest, then sets the `closed:` frontmatter t
 date. The ritual MUST preserve **append-only** (no item above `## Close` is edited or
 removed), **total-disposition** (no untagged item), and **strict-order close** (day N+1 may
 not be closed while day N is open). Capture MUST always have a home — the next day's stub is
-created unconditionally — but **advancing** (rollover / carry-over) is gated on the prior day
-being `closed`. The deterministic engine `vault-close-day.py` (`[script]`, INV-6, no LLM)
-classifies by rule and **emits an `unknown/other` worklist** for an agent or human to resolve;
-it never calls a model itself.
+created unconditionally, and its creation is never gated. The deterministic engine
+`vault-close-day.py` (`[script]`, INV-6, no LLM) classifies by rule and **emits an
+`unknown/other` worklist** for an agent or human to resolve; it never calls a model itself.
 
 #### Scenario: A closed day is fully dispositioned
 - **WHEN** `vault-close-day.py` finalizes a day
 - **THEN** the `## Close` manifest accounts for every item, `closed:` is set to the close date, and `close-lint` exits 0
 
-#### Scenario: Advancing is gated on the prior close
-- **WHEN** rollover runs and the previous day is not `closed`
-- **THEN** it does not carry over, and the new day's note carries a `⚠ BLOCKED: close <prev>` banner — while the capture stub still exists
+#### Scenario: An open prior day is surfaced without gating capture
+- **WHEN** the daily-note creator creates today's stub and the previous day is not `closed`
+- **THEN** the stub is still created (capture is never gated) and carries a `⚠ BLOCKED: close <prev>`
+  banner
 
 #### Scenario: An empty day auto-closes
 - **WHEN** `vault-close-day.py` runs on a day with no items
@@ -203,40 +208,21 @@ it never calls a model itself.
 
 ### Requirement: Shared Fleet Plumbing and Exit-Code Contract (vault_lib)
 
-The maintenance fleet SHALL include a shared, deterministic library module — `~/bin/vault_lib.py`,
-rendered from `vault-lib-script.md` — providing the five concerns every script previously
-improvised:
-
-- **Vault-root resolution:** `$VAULT_ROOT` is honored when it marks a vault; otherwise the root is
-  found by walking up from the working directory to the first directory whose `99-Operations/`
-  holds `config.defaults.env` or `config.env`. A drive-path script (one listed in the harness's
-  exact-invocation exclusion list) SHALL therefore work when invoked **bare, with no pre-sourced
-  environment**, from any working directory inside the vault.
-- **Config vocabulary:** controlled vocabularies resolve with the precedence the shell sourcing
-  order establishes — process environment > `config.env` (instance) > `config.defaults.env`
-  (framework) > declared code default. Values are read as raw strings; no shell evaluation (INV-6).
-- **Frontmatter access:** one YAML-typed accessor (`fm`, `is_closed`); `closed: false` or an absent
-  `closed:` key is **not closed**, fleet-wide.
-- **Scoped commits:** `commit_paths(vault, paths, message)` — scoped `git add` plus a
-  **pathspec-scoped commit** of exactly the named paths (the INV-2 shape). It never sweeps:
-  unrelated content that happens to be staged is left staged, not committed. An unchanged result
-  is a **clean no-op** — an informative message, no commit, exit `0` — per the INV-2 clause that a
-  silent no-op on unchanged state is acceptable while a failure is not.
-- **Exit-code contract:** `0` success or clean no-op · `1` violation (lint/usage failure) ·
-  `2` needs-input (a worklist was emitted) · `3` gate-blocked. A script whose run is refused by an
-  operational gate (missing precondition, strict-order guard) SHALL exit `3` and print a
-  `BLOCKED:` line — never `0`.
+Fleet scripts SHALL resolve the vault root, controlled vocabularies, frontmatter access, and
+scoped commits through the shared `vault_lib` module rather than improvising each. The fleet
+exit-code contract is: `0` ok · `1` violation · `2` needs-input (a worklist was emitted) ·
+`3` gate-blocked. A script whose run is refused by an operational gate (missing precondition,
+strict-order guard) SHALL exit `3` and print a `BLOCKED:` line — never `0`.
 
 Adoption: the full Python fleet is adopted — the drive-path set (`daily-close`, `daily-note`,
-`dig-rollover`, `kanban-render`, `bank-execute`) plus `knowledge-lint`, `treasury-orphan`,
-`tailings-reprospect`, `ore-detect`, and the `naming-rules` mirror-writer (whose `vault_lib`
-import is **lazy**, inside `__main__` only, so `--check` and module import stay dependency-free
-for the hooks). The shell pair (`site-slag`, `spoil-dump`) conforms via an inline
-bash copy of the root-resolution contract (bash cannot import the Python module), INV-11 slug
-validation through `vault_naming.py --check`, source/destination gates (`BLOCKED`, exit 3), and
-pathspec-scoped commits of exactly the moved effort — never `add -A`. **Bootstrap exception:** `render-reconcile-script` deploys `vault_lib.py`
-itself and therefore SHALL NOT import it; it carries an inline copy of the root-resolution
-contract instead.
+`bank-execute`) plus `knowledge-lint`, `treasury-orphan`, `tailings-reprospect`, `ore-detect`, and
+the `naming-rules` mirror-writer (whose `vault_lib` import is **lazy**, inside `__main__` only, so
+`--check` and module import stay dependency-free for the hooks). The shell pair (`site-slag`,
+`spoil-dump`) conforms via an inline bash copy of the root-resolution contract (bash cannot import
+the Python module), INV-11 slug validation through `vault_naming.py --check`, source/destination
+gates (`BLOCKED`, exit 3), and pathspec-scoped commits of exactly the moved effort — never `add -A`.
+**Bootstrap exception:** `render-reconcile-script` deploys `vault_lib.py` itself and therefore SHALL
+NOT import it; it carries an inline copy of the root-resolution contract instead.
 
 **The bare-drive guarantee extends through governance hooks:** a git hook fired by a drive-path
 commit (the `core.hooksPath` commit-gate, and any future hook on that path) SHALL NOT require a
@@ -246,21 +232,21 @@ caller's environment.
 
 #### Scenario: A drive-path script runs bare with no pre-sourced environment
 - **WHEN** a rendered drive-path script is invoked by its bare exact form (e.g.
-  `~/bin/vault-kanban-render.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
+  `~/bin/vault-daily-note.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
 - **THEN** it resolves the vault root via the config marker walk and completes normally
 - **WHEN** the same invocation happens with no `VAULT_ROOT` and cwd outside any vault
 - **THEN** it prints a `BLOCKED:` line and exits `3`
 
 #### Scenario: A gate refusal is machine-distinguishable from success
-- **WHEN** the rollover script runs and the previous day is not `closed`
-- **THEN** it prints `BLOCKED: previous day <date> not closed — run daily-close first` and exits `3`
-- **WHEN** the rollover script runs and there is nothing to carry over
+- **WHEN** `vault-close-day.py` runs for a day whose earlier day is still open (strict-order guard)
+- **THEN** it prints a `BLOCKED:` line and exits `3`
+- **WHEN** `vault-close-day.py` runs for a day that is already closed
 - **THEN** it exits `0`
 
-#### Scenario: The closed test is YAML-typed and fleet-wide
+#### Scenario: The closed test is YAML-typed
 - **WHEN** a prior daily note carries `closed: false` (or no `closed:` value)
-- **THEN** the daily-note creator applies the `⚠ BLOCKED` banner and the rollover gate refuses —
-  both via the same `vault_lib.is_closed`, with no divergence between the two scripts
+- **THEN** the daily-note creator treats the day as **open** and applies the `⚠ BLOCKED` banner, via
+  `vault_lib.is_closed` — a bare `closed:` key is not truthiness
 
 #### Scenario: The shared library self-check is read-only
 - **WHEN** `vault_lib.py` is executed bare inside a vault
@@ -272,10 +258,10 @@ caller's environment.
 - **THEN** the gate evaluates the staged names normally — INV-11 enforcement unchanged, a
   violating name is still `BLOCKED` — and does not fail on a missing environment variable
 
-#### Scenario: A repeated render is a clean no-op
-- **WHEN** a committing render script (e.g. kanban) runs twice in a row with no underlying state
-  change, so the second render produces identical content
-- **THEN** the second run prints an `unchanged — no commit needed` line, produces no commit, and
+#### Scenario: A repeated committing run is a clean no-op
+- **WHEN** a committing fleet script runs twice in a row with no underlying state change, so the
+  second run's named paths are unchanged
+- **THEN** `commit_paths` prints an `unchanged — no commit needed` line, produces no commit, and
   exits `0` — it does not crash on an empty index
 
 #### Scenario: A scoped commit ignores unrelated staged content
