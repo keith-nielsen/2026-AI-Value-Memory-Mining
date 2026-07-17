@@ -4,7 +4,7 @@ deploy_target: ~/bin/vault-lint.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-05
+updated: 2026-07-17
 ---
 ## Rationale
 Validates Treasury knowledge notes against the §10.1 frontmatter schema and checks
@@ -15,6 +15,14 @@ step; exits 1 (`EXIT_VIOLATION`) on any violation so CI can block merges. Root a
 `PILLARS`/`GRADES`/`KNOWLEDGE_STAGES` vocabularies resolve via the shared `vault_lib`
 (process env > config files; all three are required — no code default), so the bare
 invocation works without a pre-sourced environment (ADR-0023, wave-2 adoption).
+
+Validates the `PILLARS` vocabulary itself before using it (ADR-0029): every token must be a
+valid kebab slug, because a pillar token is interpolated directly into its Catalog index name
+(`<pillar>-domain-index.md`) and must satisfy the grammar that filename does. The ≥3-token floor
+governs `.md` stems, not name fragments, so it is **not** applied — `mental` is a valid pillar,
+`mental-health` is one pillar, `Mental_Health` is a violation. A malformed vocabulary exits
+immediately rather than cascading: every note's `pillars` would otherwise fail the subset check
+below, burying the single real fault under a pile of false ones.
 
 Honors the special-file exemptions (`is_exempt`): tool-mandated / convention filenames
 (README.md, dailies, *.example, .obsidian/*.json, …) are skipped before the kebab /
@@ -31,6 +39,18 @@ from vault_naming import validate_name, is_valid_slug, is_exempt, has_min_hyphen
 from vault_lib import EXIT_VIOLATION, find_vault_root, fm, vocab
 vault = find_vault_root()
 pillars = set(vocab("PILLARS"))
+# --- vocabulary integrity: PILLARS tokens must be kebab slugs (ADR-0029) ---
+# A pillar token is interpolated straight into the Catalog index name
+# <pillar>-domain-index.md, so it must satisfy the same slug grammar the filename does.
+# The >=3-token floor (INV-11) governs .md *stems*, not name fragments — deliberately
+# NOT applied here, so single-word pillars like `mental` stay valid.
+# Exits immediately: a malformed vocabulary makes every note's `pillars` fail the
+# subset check below, burying the one real fault under a cascade of false ones.
+bad_pillars = [t for t in sorted(pillars) if not is_valid_slug(t)]
+if bad_pillars:
+    for t in bad_pillars:
+        print(f"LINT PILLARS: token {t!r} is not a kebab slug: {validate_name(t) or 'non-kebab'}")
+    sys.exit(EXIT_VIOLATION)
 grades = set(vocab("GRADES"))
 stages = set(vocab("KNOWLEDGE_STAGES"))
 violations = []
