@@ -1,0 +1,11 @@
+{
+  "_comment": "LOCKSTEP prefixes: template paths that MUST stay byte-identical to a deployed vault. A governed change edits the repo's vault-template/<prefix>/...; the post-merge mirror copies it into the live vault; this manifest lets template-parity.py prove the mirror is complete. Everything NOT under a lockstep prefix is SEED (seeded once at deploy, then owned/edited per instance: CLAUDE.md, config, 40-Treasury/, Catalog indexes, README, .claude/settings.json) and is deliberately not compared. Matching is directory-prefix, so any file under a prefix in EITHER tree is compared and a newly-shipped file cannot go silently unchecked.",
+  "lockstep": [
+    "99-Operations/scripts/",
+    "99-Operations/schemas/"
+  ],
+  "_exclude_comment": "Files under a lockstep prefix that legitimately diverge because the live vault GENERATES them (the template ships the generator, not its output). Deliberate duplication per the operation's standing list — do not rationalize. naming-rules.json is emitted into the live vault by vault_naming.py.",
+  "exclude": [
+    "99-Operations/schemas/naming-rules.json"
+  ]
+}
