@@ -24,14 +24,14 @@ rename pass.
 
 #### Scenario: A newly added sub-3-token content name is blocked
 
-- **WHEN** `20-Claims/xrp.md` is staged as an addition and committed
+- **WHEN** `20-Claims/sample-claim.md` is staged as an addition and committed
 - **THEN** the commit gate exits non-zero
 - **THEN** the message names the file and reports `fewer than 3 hyphen-tokens (INV-11)`
 - **THEN** no commit is created
 
 #### Scenario: A newly added conforming name passes
 
-- **WHEN** `20-Claims/xrp-tokenomics-claim.md` is staged as an addition and committed
+- **WHEN** `20-Claims/sample-conforming-claim.md` is staged as an addition and committed
 - **THEN** the gate exits zero and the commit is created
 
 #### Scenario: Convention-mandated names are exempt at the gate

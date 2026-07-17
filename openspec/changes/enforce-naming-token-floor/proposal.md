@@ -79,9 +79,11 @@ the comment; that reason has expired.
 **Migration: none.** 0 offenders across 118 live `.md` files. No rename, no grandfathering step.
 
 **Behaviour change for the operator — this is the real cost.** After this, a *newly added*
-content note must be named with ≥3 kebab tokens. `xrp.md` or `kanban.md` would be **BLOCKED at
-commit**. That is precisely ADR-0015's intent, but it is a live workflow constraint and is the
-thing to accept or reject at Gate 4.
+content note must be named with ≥3 kebab tokens; a hypothetical two-token
+`20-Claims/sample-claim.md` would be **BLOCKED at commit**. **No existing artifact is
+affected** — the corpus measures 0 offenders, and the gate is `--diff-filter=AR` regardless.
+The constraint applies only to names not yet created. That is precisely ADR-0015's intent, but
+it is a live workflow constraint and is the thing to accept or reject at Gate 4.
 
 ## Ceremony
 

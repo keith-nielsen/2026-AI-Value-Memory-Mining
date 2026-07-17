@@ -75,14 +75,19 @@ unchanged — this ADR adds no rule, it switches on ADR-0015's.**
 - INV-11 moves from convention to mechanism, which is what ADR-0015 called for. **No name is
   renamed**; conformance was already 100%, which is *why* the switch can flip.
 - **Live workflow constraint (the real cost):** a newly added content note must carry ≥3 kebab
-  tokens. `xrp.md` and `kanban.md` would now be **BLOCKED at commit**. That is ADR-0015's
-  intent, but it is a change to how the operator names things, and it is the thing accepted at
-  Gate 4.
+  tokens, so a hypothetical two-token `20-Claims/sample-claim.md` would be **BLOCKED at
+  commit**. **No existing artifact is affected** — the corpus measures 0 offenders, and the
+  gate is `--diff-filter=AR` regardless. The constraint applies only to names not yet created.
+  That is ADR-0015's intent, but it changes how the operator names things, and it is the thing
+  accepted at Gate 4.
 - Test fixtures `good-insight` and `existing-note` (2 tokens each) were renamed to
   `good-durable-insight` / `existing-durable-note`. The fixtures were themselves violating the
   convention the repo documents — a small, honest confirmation that unenforced rules decay.
-- **Sacrifice:** short names are gone for new content. `xrp.md` must become
-  `xrp-tokenomics-claim.md`. The floor was always a *floor, not a ceiling* (ADR-0015), so this
-  costs terseness at creation time and buys names that survive a flat/search/migrated view.
+- **Sacrifice:** short names are gone for new content — a two-token stem must gain a third
+  meaningful token. The existing corpus already reads this way (`investigate-xrp-tokenomics`,
+  `xrp-consensus-protocol-whitepaper`), which is why conformance was 100% before the switch:
+  the convention was being followed by hand. The floor was always a *floor, not a ceiling*
+  (ADR-0015), so this costs terseness at creation time and buys names that survive a
+  flat/search/migrated view.
   The escape hatch is the exemption list, which is deliberately narrow and rationale-documented
   (`docs/naming-exemptions-rationale.md`) — not a general opt-out.
