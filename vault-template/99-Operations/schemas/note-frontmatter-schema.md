@@ -71,8 +71,9 @@ closed: YYYY-MM-DD          # set by daily-close; absent/blank = open (legacy or
 ```yaml
 type: meta-script
 deploy_target: path        # host path the code block renders to
-runtime: enum              # cron | manual
-schedule: string           # cron expression; required iff runtime == cron
+runtime: enum              # manual | git hook | harness hook
+                           # (no cron: the vault is a self-priming pump, not a driven
+                           #  one — nothing installs schedules; ADR-0028)
 class: script              # literal (Layer 0 holds deterministic defs only)
 created: YYYY-MM-DD
 updated: YYYY-MM-DD

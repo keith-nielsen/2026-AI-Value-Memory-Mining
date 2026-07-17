@@ -6,8 +6,7 @@
       "Edit(/.claude/**)",
       "Edit(/96-Runbooks/**)",
       "Edit(/97-Molds/**)",
-      "Edit(/10-Logbook/Daily/*.md)",
-      "Edit(/10-Logbook/kanban.md)"
+      "Edit(/10-Logbook/Daily/*.md)"
     ]
   },
   "sandbox": {
@@ -26,10 +25,6 @@
       "~/bin/vault-close-day.py *",
       "~/bin/vault-daily-note.py",
       "~/bin/vault-daily-note.py *",
-      "~/bin/vault-rollover.py",
-      "~/bin/vault-rollover.py *",
-      "~/bin/vault-kanban-render.py",
-      "~/bin/vault-kanban-render.py *",
       "~/bin/vault-refine-execute.py *"
     ]
   },

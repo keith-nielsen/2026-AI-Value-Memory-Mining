@@ -45,7 +45,7 @@ Auto-refine fires for `silver` and `gold` (configurable in `99-Operations/config
 ```
 vault-root/
 ├── 00-Docs/         ← you are here (deletable)
-├── 10-Logbook/      ← daily notes + kanban projection
+├── 10-Logbook/      ← daily notes
 ├── 20-Claims/       ← raw captures + refine pipeline queue/approved
 ├── 30-Sites/        ← active workings (dig → ore)
 ├── 40-Treasury/     ← refined bullion + Catalog indexes (Layer 1)

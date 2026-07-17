@@ -44,6 +44,20 @@ Hermes (human + harness). Retiring the projections **parks** them without forecl
 
 ## Decision
 
+**The organising principle (operator, 2026-07-17): the state machine is a *self-priming pump, not a
+driven one*.** Nothing outside the vault ticks it. Each operation primes itself at the point of need
+— which is what the fleet was already built for and had never been allowed to be: `vault_lib`'s
+root-marker walk means every script runs bare, from any cwd, with no pre-sourced environment
+(ADR-0023). A declared cadence contradicted that design; it implied an external driver the vault does
+not have and should not want. Extracting cadence out of the framework makes the design coherent:
+**self-locating scripts, run on demand, by an actor who decided to run them.** Cadence for effort
+tracking is later embedded in the Hermes harness, where the driver actually lives.
+
+This also reframes what is being retired. It is not "delete two dead scripts" — it is **remove the
+framework's pretence of being driven.** The kanban and the carry-over were the two artifacts that only
+made sense under a driver: something had to tick, so that something could be rendered, so that
+something could be read. None of that was true.
+
 - **Retire `kanban-render` and `dig-rollover`** from the fleet: notes deleted, Script Inventory rows
   removed, deploy targets deleted from the host **explicitly and in lockstep**. The spec gains a
   clause stating the vault does not project effort state, and a scenario recording *why the deletion
@@ -102,3 +116,11 @@ Hermes (human + harness). Retiring the projections **parks** them without forecl
 - **Sacrifice, stated plainly:** the vault gives up the *appearance* of effort visibility it has had
   since inception, and accepts a period with none at all, rather than keep two artifacts that
   answered the question wrongly. A stale projection is more dangerous than no projection.
+- **Automation retracted means the operator manages their own time.** That is accepted deliberately,
+  not regretted: a pump that primes itself is only started by someone who intends to start it. The
+  framework stops asserting a cadence it cannot keep, and the human keeps the cadence they actually
+  have — until Hermes carries it.
+- **Doing less is the point.** Two scripts, two false declarations, four spec scenarios and a CI check
+  leave; nothing of value goes with them. The vault's focus is value distilled from ideas, and every
+  artifact that is not that competes for the same attention — reviewer, operator, and model alike.
+  Focus is the deliverable here, not tidiness.

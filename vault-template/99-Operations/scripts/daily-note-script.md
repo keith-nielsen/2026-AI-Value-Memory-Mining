@@ -1,19 +1,23 @@
 ---
 type: meta-script
 deploy_target: ~/bin/vault-daily-note.py
-runtime: cron
-schedule: "1 0 * * *"
+runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-05
+updated: 2026-07-17
 ---
 ## Rationale
-Capture must always have a guaranteed home, so today's daily note is created from
-the Mold at 00:01 — **unconditionally** (capture is never gated). Idempotent: does
-nothing if the note already exists. Runs one minute before the roll-over script so the
-note is present when carry-over links are appended. If the previous day is not yet
-`closed`, the new note is still created but carries a `⚠ BLOCKED` banner — capture is
-fine; *advancing* (carry-over) is what's gated (see rollover). Root resolution and the
+Capture must always have a guaranteed home, so today's daily note is created from the
+Mold **unconditionally** (capture is never gated) — on demand, when the operator sits
+down to capture. Idempotent: does nothing if the note already exists. **Run on demand,
+never on a tick** (ADR-0028): the vault is a *self-priming pump, not a driven one* —
+nothing outside it ticks it, and the previously declared `cron` / `schedule:` was a
+decoration no mechanism ever honoured (`render` deploys code; it does not install
+schedules). A stub minted by a timer on a day nobody wrote is an obligation, not a
+capture surface — it would still demand a strict-order close. If the previous day is
+not yet `closed`, the note is still created but carries a `⚠ BLOCKED` banner — capture
+is fine; closing **in order** is what's enforced (see `daily-close`). Root resolution
+and the
 `closed` test come from the shared `vault_lib` (ADR-0023): the bare drive invocation
 works without a pre-sourced environment, and `closed` is YAML-typed (`closed: false`
 counts as open; the previous regex treated any non-empty value as closed). **Owns its

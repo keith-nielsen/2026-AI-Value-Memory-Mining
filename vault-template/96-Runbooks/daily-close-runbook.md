@@ -27,18 +27,18 @@ silently vanishes, the Logbook becomes a complete meta-corpus, and the next day 
    etc. Record resolutions in the sidecar (items themselves stay untouched — append-only).
 3. `[script]` re-run `vault-close-day.py <date>` → appends the `## Close` manifest, sets
    `closed: <today>`, one commit. Then `vault-close-day.py --check <date>` asserts the invariants.
-4. `[script]` open the next day + carry over: `vault-daily-note.py` then `vault-rollover.py`
-   (rollover refuses while the prior day is unclosed; the capture stub always exists).
+4. `[script]` open the next day when you next capture: `vault-daily-note.py` (run on demand — the
+   capture stub always exists, and carries a `⚠ BLOCKED` banner while the prior day is unclosed).
 
 ## Pitfalls
 - **Append-only:** never edit items above `## Close`; dispositions live in the manifest / sidecar, not inline.
-- Parked `ore` does not carry over (the kanban / refine-queue is its home) — by design, not a leak.
+- Parked `ore` does not carry over (the refine-queue is its home) — by design, not a leak.
 - The script never calls a model (INV-6); the `[agent]` resolution happens outside it.
 - **Harvest:** when an `unknown/other` recurs, add a deterministic rule so the AI surface shrinks toward zero.
 
 ## Verification
 - `vault-close-day.py --check <date>` exits 0: `closed:` set, total-disposition, vocab ∈ enum, append-only intact.
-- The next day's note exists; its `## Carry-over` lists only open `dig` Sites.
+- The next day's note exists when you next capture (`vault-daily-note.py`, on demand).
 
 ## Rollback
 - Before commit: `git checkout -- <path-to-day>.md` restores the pre-close state.

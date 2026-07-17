@@ -26,7 +26,7 @@ Copyright 2026 Keith Nielsen
 
 2. **An OpenSpec SDD showcase** — the repository is itself governed by
    [OpenSpec v1.4.1](openspec/project.md): a formal project spec, a constitution with
-   constitutional protection, 27 ADRs, 6 capability specs, and a live change-management
+   constitutional protection, 28 ADRs, 6 capability specs, and a live change-management
    workflow. It demonstrates what a principled, spec-driven personal-tools project
    looks like.
 
@@ -97,13 +97,13 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
 │   ├── constitution.md          #   constitutional protection + Informed-Upheaval Protocol
-│   ├── adr/                     #   27 Architecture Decision Records (ADR-0001–0027)
+│   ├── adr/                     #   28 Architecture Decision Records (ADR-0001–0028)
 │   ├── specs/                   #   6 capability specs (vault-structure, value-pipeline, …)
 │   └── changes/                 #   change workflow: archive/, live/, templates/
 │
 ├── vault-template/              # Forkable vault skeleton
 │   ├── 00-Docs/                 #   onboarding (deletable)
-│   ├── 10-Logbook/              #   daily notes + kanban
+│   ├── 10-Logbook/              #   daily notes
 │   ├── 20-Claims/               #   raw captures + refine pipeline queue/approved
 │   ├── 30-Sites/                #   active workings
 │   ├── 40-Treasury/Catalog/     #   bullion + 7 Catalog indexes (6 pillars + Home)
@@ -228,8 +228,7 @@ All scripts are stored as literate meta-script notes in
 | `vault-dump.sh` | `[script]` | manual | Move spent husk to Spoil |
 | `vault-slag.sh` | `[script]` | manual | Move uneconomic effort to Tailings |
 | `vault-reprospect.py` | `[script]` | manual | List slagged efforts for re-evaluation |
-| `vault-rollover.py` | `[script]` | `2 0 * * *` | Append carry-over links to daily note |
-| `vault-kanban-render.py` | `[script]` | manual | Render Markdown kanban board |
+
 
 ---
 
@@ -243,7 +242,7 @@ the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 |----------|---------|
 | [`openspec/project.md`](openspec/project.md) | Standing goals, 14 invariants, tech stack |
 | [`openspec/constitution.md`](openspec/constitution.md) | Constitutional protection, Informed-Upheaval Protocol |
-| [`openspec/adr/`](openspec/adr/) | 27 ADRs: framework choice → private-by-default |
+| [`openspec/adr/`](openspec/adr/) | 28 ADRs: framework choice → private-by-default |
 | [`openspec/specs/`](openspec/specs/) | 6 capability specs with `protects:` tags |
 | [`openspec/changes/`](openspec/changes/) | 13 archived changes, 1 live (deferred), override template |
 

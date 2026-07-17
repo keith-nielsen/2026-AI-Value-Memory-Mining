@@ -85,6 +85,10 @@ scripts as **worked examples for rules that survive**:
 
 - [ ] `openspec/specs/maintenance/spec.md` — MODIFY 4 Requirements (Script Inventory; One Mutation
       One Commit; Daily Close Lifecycle; Shared Fleet Plumbing)
+- [ ] `openspec/specs/access-control/spec.md` [`protects: [CONST-02, INV-4, INV-5, INV-6, INV-7,
+      INV-8, INV-14]`] — MODIFY *OS/Harness-Enforced Agent Write Scope*: the structured-tool deny
+      enumeration and its scenario name `10-Logbook/kanban.md` as a script-owned artifact. **Added at
+      Gate 3 — this spec was MISSED in the first Gate-1 pass** (see the miss note below).
 - [ ] `openspec/constitution.md` — **no change** (no principle text is touched; cron schedules are
       already Tier 2 there)
 - [ ] `vault-template/99-Operations/scripts/dig-rollover-script.md` — **DELETE**
@@ -127,6 +131,25 @@ scripts as **worked examples for rules that survive**:
       `~/bin/vault-rollover.py`, `~/bin/vault-kanban-render.py`, `10-Logbook/kanban.md`; remove the
       two script notes from live `99-Operations/scripts/`; `cp` the modified notes; `render`;
       `reconcile` → expect **15/15 `ok:`**, zero drift
+
+**Gate-1 miss, recorded (F8/F9 class — blast-radius miss):**
+
+> The first Gate-1 pass enumerated the blast radius by reading the `maintenance` spec and grepping the
+> **vault-template and docs**. It did **not** grep `openspec/specs/`, so it missed that
+> **`access-control`** — a second `protects:`-tagged spec, carrying seven Tier-0 invariants — names
+> `10-Logbook/kanban.md` in its structured-tool deny enumeration and in a scenario. The miss surfaced
+> only at Gate 3, from a residual-reference sweep run *after* the edits.
+>
+> **Why it happened:** the agent reasoned about the change's *subject* (a script and its artifact) and
+> enumerated where scripts are described, rather than mechanically searching every protected surface
+> for the artifact's name. Gate 1 says "enumerate the full blast radius"; the enumeration was
+> reasoned, not executed.
+>
+> **The correction, which is the point of recording this:** a blast radius is a **grep result, not a
+> recollection**. `grep -rn '<artifact>' openspec/ vault-template/ docs/ .github/` is the enumeration;
+> anything narrower is a guess that will hold right up until it doesn't. Had this reached Gate 4,
+> `constitution-lint` would likely have caught the untouched `access-control` reference — but "CI will
+> catch it" is exactly the posture ADR-0028 argues against.
 
 **Explicitly NOT in the blast radius (verified, recorded so a reviewer need not re-derive):**
 

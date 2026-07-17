@@ -90,7 +90,7 @@ the `vault-template/99-Operations/hooks/pre-commit` hook are the real boundaries
 an OS sandbox denies shell writes (any child process, any interpreter) to
 `40-Treasury/ 99-Operations/ .claude/ 96-Runbooks/ 97-Molds/ 10-Logbook/`, and permission deny
 rules block structured-tool writes to the same scope plus script-owned Logbook artifacts
-(`Daily/*.md`, `kanban.md`). The disposition sidecar (`Daily/*.resolutions.json`) is the one
+(`Daily/*.md`). The disposition sidecar (`Daily/*.resolutions.json`) is the one
 agent-writable close artifact — written via the Write tool only, never via shell.
 
 **Drive contract:** to run a `[script]` step, invoke the rendered script by its **bare exact
@@ -138,8 +138,8 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 
 - `grep -rl PATTERN .` emits paths **without** the `./` prefix — an exclusion anchored `^\./…`
   silently fails to match. Use `grep -v 'openspec/changes/'` (no `^./`).
-- `vault-kanban-render.py` and `vault-close-day.py` **auto-commit**; a prior `git add` can let
-  their commit sweep in unrelated staged changes. Stage/commit deliberately around them.
+- `vault-close-day.py` **auto-commits**; a prior `git add` can let its commit sweep in unrelated
+  staged changes. Stage/commit deliberately around it.
 - Vault scripts need `VAULT_ROOT` exported (the pre-commit hook fails loudly without it).
 - The operator's SSH signing key is theirs — **never sign/stamp/tag as them** (`provenance-seal-runbook`
   steps 3–4 and 6 are human `[gate]`s).
