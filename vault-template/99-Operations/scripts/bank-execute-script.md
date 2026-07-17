@@ -22,7 +22,10 @@ every proposal is validated whole — JSON schema, path containment (target insi
 A proposal failing any check is REJECTed whole, with all reasons printed and **no
 partial write**; the batch continues — one bad proposal cannot block or half-apply
 another. Any reject exits `1` (`EXIT_VIOLATION`); a clean batch exits `0`.
-One note per proposal; multiple proposals can be batched.
+One note per proposal; multiple proposals can be batched. **Catalog linking is idempotent**
+(INV-12): a link is appended to an index only if that index does not already carry it — so an
+`append` to an already-catalogued note extends the note without duplicating its existing bullet,
+while a genuinely new index is still linked.
 
 ## Implementation
 ```python
@@ -129,7 +132,11 @@ for prop in sorted(approved.glob("*.json")):
                         + f"\n\n{p['insight_md']}\n\n## Provenance\n{p['provenance_md']}\n")
     for link in p["index_links"]:
         mp = vault / link
-        mp.write_text(mp.read_text() + f"\n- [[{note.stem}]]")
+        # Idempotent (INV-12): only add the catalog link if the index does not already carry it.
+        # append mode extends a note that is usually already catalogued — an unconditional write
+        # would duplicate its existing bullet; a genuinely new index is still linked.
+        if f"[[{note.stem}]]" not in mp.read_text():
+            mp.write_text(mp.read_text() + f"\n- [[{note.stem}]]")
     prop.unlink()
     # atomic bank (B3): note + index links + consumed proposal, one scoped commit
     commit_paths(vault, [note, *(vault / l for l in p["index_links"]), prop],
