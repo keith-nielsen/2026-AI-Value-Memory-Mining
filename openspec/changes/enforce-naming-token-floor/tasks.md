@@ -52,16 +52,16 @@
 
 ## 7. ADR + README (Gate-4 — do NOT land early)
 
-- [ ] 7.1 Move `adr-0030-draft.md` → `openspec/adr/0030-*.md`; flip Status → Accepted.
+- [x] 7.1 Move `adr-0030-draft.md` → `openspec/adr/0030-*.md`; flip Status → Accepted.
       Land in the **same commit** as 7.2/7.3 — its presence alone fails `adr-count-lint`.
-- [ ] 7.2 `README.md`: ADR count → **30** (2 occurrences)
-- [ ] 7.3 `README.md`: range → `ADR-0001–0030`
-- [ ] 7.4 `adr-count-lint` green
+- [x] 7.2 `README.md`: ADR count → **30** (2 occurrences)
+- [x] 7.3 `README.md`: range → `ADR-0001–0030`
+- [x] 7.4 `adr-count-lint` green
 
 ## 8. Ceremony
 
-- [ ] 8.1 PR with the ```scope block
-- [ ] 8.2 **Gate-4 human sign-off** — the operator accepts the live workflow constraint:
+- [x] 8.1 PR with the ```scope block
+- [x] 8.2 **Gate-4 human sign-off** — the operator accepts the live workflow constraint:
       **newly created** content names must carry ≥3 kebab tokens. No existing artifact is
       affected (corpus measures 0 offenders; the gate is `--diff-filter=AR` regardless) — the
       constraint applies only to names not yet made.

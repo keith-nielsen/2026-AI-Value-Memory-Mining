@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0030 — Switch on ADR-0015's token floor: enforcement at the gate, the executor, and the linter
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-07-17
 **Relates:** `naming-rules` (INV-11) · `maintenance` · change `enforce-naming-token-floor` · **completes ADR-0015** (which deferred this) · sibling of ADR-0029 (pillar tokens)
 
