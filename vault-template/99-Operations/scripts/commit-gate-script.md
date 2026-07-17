@@ -8,8 +8,12 @@ updated: 2026-07-06
 ---
 ## Rationale
 Unbypassable commit-gate for INV-11. Fires on every commit — by human, script, agent,
-or external sync tool — and blocks on any added or renamed `.md` file whose stem
-violates the naming ruleset. Lives in a tracked folder so it ships with the repo;
+or external sync tool — and blocks on any added or renamed `.md` file whose name
+violates the naming ruleset: cross-platform safety, kebab-case, and the ≥3-token floor
+(`--check-strict`, ADR-0030 switching on the rule ADR-0015 deferred). Exemption-aware —
+`README.md`, `CLAUDE.md`, dailies, `*.example` and friends pass untouched. Scoped to
+`--diff-filter=AR`, so **existing names stay grandfathered**: the gate structurally
+cannot block a commit over a name that was already there. Lives in a tracked folder so it ships with the repo;
 activated once per clone via `git config core.hooksPath 99-Operations/hooks`.
 `render` must mark it executable (`chmod +x`) after deployment. The hook is
 **environment-free by design**: it reads only the staged git state and calls the
@@ -26,8 +30,10 @@ fail=0
 # only newly added or renamed files; existing names are grandfathered
 while IFS= read -r f; do
     [[ "$f" == *.md ]] || continue
-    base="$(basename "$f")"; stem="${base%.md}"
-    if ! python3 "${HOME}/bin/vault_naming.py" --check "$stem"; then
+    base="$(basename "$f")"
+    # --check-strict takes the BASENAME: the exemption gate matches full filenames
+    # (README.md, dailies, *.example). Exempt names pass without a kebab/floor check.
+    if ! python3 "${HOME}/bin/vault_naming.py" --check-strict "$base"; then
         echo "BLOCKED: '$f' violates naming rules (INV-11)" >&2
         fail=1
     fi

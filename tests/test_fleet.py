@@ -40,7 +40,7 @@ def make_proposal(fleet, name, **fields):
     fleet.write(f"20-Claims/_refine-approved/{name}.json", json.dumps(fields, indent=2))
 
 
-def good_create(target="40-Treasury/good-insight.md", **over):
+def good_create(target="40-Treasury/good-durable-insight.md", **over):
     p = {
         "target_note": target,
         "mode": "create",
@@ -139,13 +139,13 @@ def test_bank_applies_conforming_proposal_atomically(fleet):
     fleet.setup_commit("queue proposal")
     r = fleet.run("vault-refine-execute.py")
     assert r.returncode == EXIT_OK, r.stdout + r.stderr
-    assert fleet.exists("40-Treasury/good-insight.md")
-    note = fleet.read("40-Treasury/good-insight.md")
+    assert fleet.exists("40-Treasury/good-durable-insight.md")
+    note = fleet.read("40-Treasury/good-durable-insight.md")
     assert "grade: gold" in note
-    assert fleet.head_message() == "bank: good-insight"
+    assert fleet.head_message() == "bank: good-durable-insight"
     # one atomic commit: the note, its Catalog index, and the consumed proposal (a deletion)
     files = set(fleet.head_files())
-    assert "40-Treasury/good-insight.md" in files
+    assert "40-Treasury/good-durable-insight.md" in files
     assert "40-Treasury/Catalog/technology-domain-index.md" in files
     assert "20-Claims/_refine-approved/a-good.json" in files
     assert not fleet.exists("20-Claims/_refine-approved/a-good.json")
@@ -160,14 +160,14 @@ def test_bank_rejects_malformed_json_without_write(fleet):
 
 
 def test_bank_rejects_inv9_overwrite(fleet):
-    fleet.write("40-Treasury/existing-note.md", "PRECIOUS existing content\n")
-    make_proposal(fleet, "collide", **good_create(target="40-Treasury/existing-note.md"))
+    fleet.write("40-Treasury/existing-durable-note.md", "PRECIOUS existing content\n")
+    make_proposal(fleet, "collide", **good_create(target="40-Treasury/existing-durable-note.md"))
     fleet.setup_commit("existing + colliding proposal")
     r = fleet.run("vault-refine-execute.py")
     assert r.returncode == EXIT_VIOLATION
     assert "INV-9" in r.stdout
     # the existing note is untouched — no partial write clobbered it
-    assert fleet.read("40-Treasury/existing-note.md") == "PRECIOUS existing content\n"
+    assert fleet.read("40-Treasury/existing-durable-note.md") == "PRECIOUS existing content\n"
 
 
 def test_bank_rejects_missing_index_link_before_writing(fleet):
@@ -178,7 +178,7 @@ def test_bank_rejects_missing_index_link_before_writing(fleet):
     assert r.returncode == EXIT_VIOLATION
     assert "index link target missing" in r.stdout
     # pre-flight rejects the whole proposal — the note is never written
-    assert not fleet.exists("40-Treasury/good-insight.md")
+    assert not fleet.exists("40-Treasury/good-durable-insight.md")
 
 
 def test_bank_rejects_path_traversal(fleet):
@@ -199,9 +199,9 @@ def test_bank_defaults_empty_index_links_to_pending_catalog(fleet):
     fleet.setup_commit("queue proposal with empty index_links")
     r = fleet.run("vault-refine-execute.py")
     assert r.returncode == EXIT_OK, r.stdout + r.stderr
-    assert fleet.exists("40-Treasury/good-insight.md")
+    assert fleet.exists("40-Treasury/good-durable-insight.md")
     # linked into the holding queue, not orphaned
-    assert "[[good-insight]]" in fleet.read("40-Treasury/Catalog/pending-catalog-index.md")
+    assert "[[good-durable-insight]]" in fleet.read("40-Treasury/Catalog/pending-catalog-index.md")
     # atomic bank: the holding index rode the commit and the proposal was consumed
     files = set(fleet.head_files())
     assert "40-Treasury/Catalog/pending-catalog-index.md" in files
@@ -392,6 +392,18 @@ def test_lint_reports_bad_vocabulary_without_cascading(fleet):
     assert "durable-financial-insight" not in r.stdout, r.stdout
 
 
+def test_bank_rejects_sub3_target_before_writing(fleet):
+    # ADR-0030: the executor must reject a floor violation at PRE-FLIGHT. The commit gate now
+    # enforces the floor too, so a sub-3 stem that slipped past pre-flight would be written to
+    # Treasury and *then* blocked at commit — stranding the executor half-applied.
+    make_proposal(fleet, "shortname", **good_create(target="40-Treasury/short-note.md"))
+    fleet.setup_commit("queue sub-3 proposal")
+    r = fleet.run("vault-refine-execute.py")
+    assert r.returncode == EXIT_VIOLATION, r.stdout + r.stderr
+    assert "hyphen-tokens" in r.stdout, r.stdout
+    assert not fleet.exists("40-Treasury/short-note.md")   # no Treasury write
+
+
 def test_multiword_pillar_is_one_kebab_token(fleet):
     # `mental-health` is ONE pillar. The proof is the subset check: were it parsed as two
     # tokens (`mental`, `health`), {mental-health} would not be a subset and the note below
@@ -402,6 +414,44 @@ def test_multiword_pillar_is_one_kebab_token(fleet):
     r = fleet.run("vault-lint.py")
     assert r.returncode == EXIT_OK, r.stdout + r.stderr
     assert "LINT PILLARS" not in r.stdout
+
+
+def test_commit_gate_blocks_new_sub3_token_name(fleet):
+    # ADR-0030: the floor is enforced at the gate for ADDED names.
+    fleet.write("20-Claims/xrp.md", "# xrp\n")
+    fleet.git("add", "20-Claims/xrp.md")
+    r = fleet.git("commit", "-m", "add a sub-3 claim")   # NOT --no-verify: the gate must fire
+    assert r.returncode != 0, r.stdout + r.stderr
+    assert "BLOCKED" in (r.stdout + r.stderr), r.stdout + r.stderr
+    assert "hyphen-tokens" in (r.stdout + r.stderr), r.stdout + r.stderr
+
+
+def test_commit_gate_allows_conforming_new_name(fleet):
+    fleet.write("20-Claims/xrp-tokenomics-claim.md", "# claim\n")
+    fleet.git("add", "20-Claims/xrp-tokenomics-claim.md")
+    r = fleet.git("commit", "-m", "add a conforming claim")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_commit_gate_exempts_convention_names(fleet):
+    # README.md / dailies / *.example are tool- or convention-mandated: the gate must not
+    # apply the kebab/floor rule to them (RULES["exempt_names"] / ["exempt_globs"]).
+    fleet.write("20-Claims/README.md", "# readme\n")
+    fleet.write("10-Logbook/Daily/2026-07-17.md", DAILY_TMPL.format(day="2026-07-17"))
+    fleet.git("add", "-A")
+    r = fleet.git("commit", "-m", "add exempt names")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_commit_gate_grandfathers_existing_names(fleet):
+    # --diff-filter=AR means the gate cannot fire on a name that was already committed.
+    # This is why enforcement could switch on without a rename pass (ADR-0030).
+    fleet.write("20-Claims/xrp.md", "# xrp\n")
+    fleet.setup_commit("pre-existing sub-3 name lands via --no-verify")
+    (fleet.vault / "20-Claims" / "xrp.md").write_text("# xrp\nedited\n")
+    fleet.git("add", "20-Claims/xrp.md")
+    r = fleet.git("commit", "-m", "modify the grandfathered file")   # M, not A/R
+    assert r.returncode == 0, r.stdout + r.stderr
 
 
 def test_space_bearing_pillar_is_inexpressible(fleet):
