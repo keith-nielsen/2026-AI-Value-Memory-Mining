@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.24] - 2026-07-17
+
 ### Removed
 - **Effort projections retired** (`retire-effort-projections`, ADR-0028): `kanban-render-script`
   (`~/bin/vault-kanban-render.py`, `10-Logbook/kanban.md`) and `dig-rollover-script`
