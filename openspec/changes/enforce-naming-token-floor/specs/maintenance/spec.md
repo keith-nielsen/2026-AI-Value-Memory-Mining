@@ -24,7 +24,7 @@ a stem rather than stems themselves (ADR-0029).
 
 #### Scenario: A sub-3-token effort folder fails the lint
 
-- **WHEN** the linter encounters `30-Sites/xrp/`
+- **WHEN** the linter encounters `30-Sites/sample/`
 - **THEN** it records `effort folder not >=3-token kebab (INV-11)`
 
 #### Scenario: The live corpus passes with the rule enabled

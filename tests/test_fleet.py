@@ -418,8 +418,8 @@ def test_multiword_pillar_is_one_kebab_token(fleet):
 
 def test_commit_gate_blocks_new_sub3_token_name(fleet):
     # ADR-0030: the floor is enforced at the gate for ADDED names.
-    fleet.write("20-Claims/xrp.md", "# xrp\n")
-    fleet.git("add", "20-Claims/xrp.md")
+    fleet.write("20-Claims/sample-claim.md", "# sample\n")
+    fleet.git("add", "20-Claims/sample-claim.md")
     r = fleet.git("commit", "-m", "add a sub-3 claim")   # NOT --no-verify: the gate must fire
     assert r.returncode != 0, r.stdout + r.stderr
     assert "BLOCKED" in (r.stdout + r.stderr), r.stdout + r.stderr
@@ -427,8 +427,8 @@ def test_commit_gate_blocks_new_sub3_token_name(fleet):
 
 
 def test_commit_gate_allows_conforming_new_name(fleet):
-    fleet.write("20-Claims/xrp-tokenomics-claim.md", "# claim\n")
-    fleet.git("add", "20-Claims/xrp-tokenomics-claim.md")
+    fleet.write("20-Claims/sample-conforming-claim.md", "# claim\n")
+    fleet.git("add", "20-Claims/sample-conforming-claim.md")
     r = fleet.git("commit", "-m", "add a conforming claim")
     assert r.returncode == 0, r.stdout + r.stderr
 
@@ -446,10 +446,10 @@ def test_commit_gate_exempts_convention_names(fleet):
 def test_commit_gate_grandfathers_existing_names(fleet):
     # --diff-filter=AR means the gate cannot fire on a name that was already committed.
     # This is why enforcement could switch on without a rename pass (ADR-0030).
-    fleet.write("20-Claims/xrp.md", "# xrp\n")
+    fleet.write("20-Claims/sample-claim.md", "# sample\n")
     fleet.setup_commit("pre-existing sub-3 name lands via --no-verify")
-    (fleet.vault / "20-Claims" / "xrp.md").write_text("# xrp\nedited\n")
-    fleet.git("add", "20-Claims/xrp.md")
+    (fleet.vault / "20-Claims" / "sample-claim.md").write_text("# sample\nedited\n")
+    fleet.git("add", "20-Claims/sample-claim.md")
     r = fleet.git("commit", "-m", "modify the grandfathered file")   # M, not A/R
     assert r.returncode == 0, r.stdout + r.stderr
 

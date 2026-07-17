@@ -40,8 +40,8 @@
 
 ## 6. Regression
 
-- [x] 6.1 Gate blocks a newly added sub-3 name (`20-Claims/xrp.md`), message names the floor
-- [x] 6.2 Gate allows a conforming add (`xrp-tokenomics-claim.md`)
+- [x] 6.1 Gate blocks a newly added sub-3 name (`20-Claims/sample-claim.md`), message names the floor
+- [x] 6.2 Gate allows a conforming add (`sample-conforming-claim.md`)
 - [x] 6.3 Gate exempts `README.md` + dailies
 - [x] 6.4 Gate grandfathers an existing name on **modify** (status `M`, not `A`/`R`)
 - [x] 6.5 Executor rejects a sub-3 `target_note` with **no** Treasury write
@@ -62,7 +62,9 @@
 
 - [ ] 8.1 PR with the ```scope block
 - [ ] 8.2 **Gate-4 human sign-off** — the operator accepts the live workflow constraint:
-      new content names must carry ≥3 kebab tokens; `xrp.md` is blocked at commit
+      **newly created** content names must carry ≥3 kebab tokens. No existing artifact is
+      affected (corpus measures 0 offenders; the gate is `--diff-filter=AR` regardless) — the
+      constraint applies only to names not yet made.
 - [ ] 8.3 Archive → `openspec/changes/archive/2026-07-17-enforce-naming-token-floor/`
 - [ ] 8.4 CHANGELOG; tag; `gh release create` + `gh release view` parity
 - [ ] 8.5 Mirror to the live vault (renders `vault_naming.py`, the hook, the linter, the
