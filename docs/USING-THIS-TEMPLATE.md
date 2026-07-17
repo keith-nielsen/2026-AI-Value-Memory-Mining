@@ -73,10 +73,33 @@ cp 99-Operations/config.env.example 99-Operations/config.env
 export PILLARS="mental health financial social technology calling"
 ```
 
+**Pin `PILLARS` even if you keep the default set.** Left unpinned you inherit the framework's
+*example* default, so a future update to the public `config.defaults.env` would silently re-pillar
+your vault.
+
+**Naming rule (ADR-0029): each pillar is ONE lowercase kebab slug; whitespace separates pillars.**
+
+| You write | You get |
+|---|---|
+| `PILLARS="mental health financial"` | **3** pillars — `mental`, `health`, `financial` |
+| `PILLARS="mental-health financial"` | **2** pillars — `mental-health`, `financial` |
+
+A multi-word pillar is one hyphenated token. Whitespace *always* separates, so there is no way to put
+a space inside a pillar name — deliberately: each pillar is interpolated straight into its Catalog
+index filename (`<pillar>-domain-index.md`), which may not contain spaces (INV-11). The linter rejects
+any token that is not a valid kebab slug (`Mental_Health`, `CON`, `-lead`).
+
+Want a prettier display name? Alias it at the link, not in the vocabulary:
+
+```markdown
+[[mental-health-domain-index|Mental Health]]
+```
+
 Pillar design principles:
 - **Distinct**: minimal overlap between pillars
 - **Top-level**: no pillar should be a sub-category of another
 - **Durable**: stable for years, not months
+- **Kebab**: `mental-health` — never `mental health` (that is two pillars) or `Mental_Health` (rejected)
 
 Then update `40-Treasury/Catalog/` to match. Either rename the example index files or
 create new ones from `97-Molds/index-mold-blank.md`. The Home index (`home-master-index.md`) should link to

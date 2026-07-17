@@ -326,3 +326,95 @@ def test_shell_pair_rejects_unsafe_name(fleet, script):
     # before any source lookup — the move never starts
     r = fleet.run(script, "bad:slug")
     assert r.returncode == EXIT_VIOLATION
+
+
+# --------------------------------------------------------------------------------------
+# vocabulary integrity: PILLARS tokens are kebab slugs (ADR-0029)
+# --------------------------------------------------------------------------------------
+
+KNOWLEDGE_TMPL = """---
+type: knowledge
+title: {title}
+pillars: [{pillar}]
+grade: gold
+stage: refined
+crucible: false
+created: 2026-07-17
+updated: 2026-07-17
+---
+# {title}
+
+Durable value.
+"""
+
+
+def pin_pillars(fleet, value):
+    """Pin PILLARS in the sandbox's private config.env.
+
+    vault_lib._CONFIGS reads ("config.defaults.env", "config.env") in order, later wins —
+    so this overrides the framework default the way a real adopter would, by editing their
+    private config rather than the public tracked one.
+    """
+    cfg = fleet.vault / "99-Operations" / "config.env"
+    cfg.write_text(cfg.read_text() + f'\nexport PILLARS="{value}"\n')
+
+
+def test_lint_accepts_default_pillar_vocabulary(fleet):
+    # the shipped example default: six single-word tokens, all valid kebab slugs
+    r = fleet.run("vault-lint.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "LINT PILLARS" not in r.stdout
+
+
+@pytest.mark.parametrize("token,why", [
+    ("Mental_Health", "uppercase + underscore"),
+    ("CON", "reserved device name"),
+    ("-lead", "leading hyphen"),
+])
+def test_lint_rejects_malformed_pillar_token(fleet, token, why):
+    pin_pillars(fleet, f"{token} financial social technology calling")
+    r = fleet.run("vault-lint.py")
+    assert r.returncode == EXIT_VIOLATION, f"{why}: {r.stdout + r.stderr}"
+    assert "LINT PILLARS" in r.stdout, r.stdout
+    assert token in r.stdout, r.stdout
+
+
+def test_lint_reports_bad_vocabulary_without_cascading(fleet):
+    # a malformed vocabulary must surface as ONE vocabulary violation, not as a per-note
+    # frontmatter pile-up: every note's `pillars` would fail the subset check against it.
+    pin_pillars(fleet, "Mental_Health financial social technology calling")
+    fleet.write("40-Treasury/durable-financial-insight.md",
+                KNOWLEDGE_TMPL.format(title="Durable financial insight", pillar="financial"))
+    r = fleet.run("vault-lint.py")
+    assert r.returncode == EXIT_VIOLATION
+    assert "LINT PILLARS" in r.stdout
+    # the valid note must not be dragged in by the broken vocabulary
+    assert "durable-financial-insight" not in r.stdout, r.stdout
+
+
+def test_multiword_pillar_is_one_kebab_token(fleet):
+    # `mental-health` is ONE pillar. The proof is the subset check: were it parsed as two
+    # tokens (`mental`, `health`), {mental-health} would not be a subset and the note below
+    # would fail. Passing therefore proves single-token parsing, not merely a clean lint.
+    pin_pillars(fleet, "mental-health financial social technology calling")
+    fleet.write("40-Treasury/mental-health-sleep-insight.md",
+                KNOWLEDGE_TMPL.format(title="Sleep insight", pillar="mental-health"))
+    r = fleet.run("vault-lint.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "LINT PILLARS" not in r.stdout
+
+
+def test_space_bearing_pillar_is_inexpressible(fleet):
+    # The complement of the test above, and the real protection ADR-0029 relies on:
+    # whitespace ALWAYS separates, so "mental health" cannot name one pillar. It parses as
+    # two (`mental`, `health`), and a note claiming the space-bearing name fails the subset
+    # check. This is why the kebab rule needs no pillar->slug transform: the filename-hostile
+    # value can never enter the vocabulary in the first place.
+    pin_pillars(fleet, "mental health financial social technology calling")
+    fleet.write("40-Treasury/spaced-pillar-claim.md",
+                KNOWLEDGE_TMPL.format(title="Spaced pillar claim", pillar='"mental health"'))
+    r = fleet.run("vault-lint.py")
+    assert r.returncode == EXIT_VIOLATION
+    assert "pillars must be non-empty subset" in r.stdout, r.stdout
+    # and the vocabulary itself is well-formed — the fault is the note, not the config
+    assert "LINT PILLARS" not in r.stdout, r.stdout
