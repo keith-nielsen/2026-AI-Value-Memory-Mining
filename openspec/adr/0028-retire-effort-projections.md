@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0028 — Retire the effort projections (kanban board, dig carry-over) and the decorative cron cadence
 
-**Status:** Proposed (Gate-4 pending — human sign-off; agents may not sign)
+**Status:** **Accepted** (Gate-4, 2026-07-17 — operator-approved in session)
 **Date:** 2026-07-17
 **Change:** `retire-effort-projections` (`constitution-override`, **conforming** — touches the
 `maintenance` spec [`protects: [INV-2, INV-3, INV-6]`, MODIFIES four Requirements]; **no Tier-0/1

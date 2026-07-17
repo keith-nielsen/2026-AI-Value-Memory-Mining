@@ -207,15 +207,44 @@ scripts as **worked examples for rules that survive**:
 
 ## Gate 3 — EXECUTE + REGRESSION TEST
 
-**Implementation complete:** ☐
-**All regression tests green:** ☐
-**CI green on this PR:** ☐
+**Implementation complete:** ☑ (commit `0b1a5b9`)
+**All regression tests green:** ☑
+**CI green on this PR:** ☐ (pending push)
+
+Local regression, 2026-07-17:
+
+- `openspec validate --all --strict` → **8 passed, 0 failed**
+- `pytest` → **25 passed**
+- `adr-count` guard (CI logic run verbatim) → **OK: 28 ADRs, latest 0028**
+- `vault-template/.claude/settings.json` → valid JSON (deny 6 entries, excludedCommands 4)
+- fleet → **15 notes** (was 17); `grep '^runtime: cron\|^schedule:' vault-template/` → **none**
 
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
+**Second review confirms blast radius was fully addressed:** ☑ — **executed, not reasoned** (the F17
+corrective, applied to the change that produced it):
+
+```
+$ grep -rln 'vault-rollover|vault-kanban-render|kanban\.md|dig-rollover-script|kanban-render-script' \
+    openspec/specs openspec/constitution.md vault-template docs .github README.md AGENTS.md CONTRIBUTING.md
+openspec/specs/maintenance/spec.md
+openspec/specs/access-control/spec.md
+
+$ grep -rn '^runtime: cron|^schedule:' vault-template/
+  (none)
+```
+
+Both surviving hits are the **canonical specs**, which OpenSpec updates from this change's deltas at
+**archive** time — and both have deltas queued (`specs/maintenance/spec.md`,
+`specs/access-control/spec.md`). Every other surface is clean. `docs/USING-THIS-TEMPLATE.md` retains
+two deliberate mentions of "crontab" — the rewritten Step 5 explaining that the framework installs
+none, and the closing line telling the reader to own a cadence themselves if they want one.
+
+**The transcript is the enumeration.** A reviewer re-runs the command and diffs; this gate is no longer
+"did the agent think of everything?"
+
 **Consequences explicitly accepted:**
 
 > **The vault loses every automatic surface for outstanding effort state.** After this, nothing in
@@ -240,9 +269,16 @@ scripts as **worked examples for rules that survive**:
 > not a one-way door — which is part of why retiring now, while the effort/insight coupling is still
 > being thought through, is cheaper than keeping dead machinery warm.
 
-**ADR created:** `openspec/adr/0028-retire-effort-projections.md` ☐
-**ADR captures:** context / options / choice / consequence / **sacrifice** ☐
+**ADR created:** `openspec/adr/0028-retire-effort-projections.md` ☑
+**ADR captures:** context / options / choice / consequence / **sacrifice** ☑
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: **Keith Nielsen (operator)** — approved explicitly in session, 2026-07-17:
+*"Gate 4 sign-off on the proposal that is in-flight currently: Approved."*
+Date: **2026-07-17**
+
+> **Provenance of this record:** transcribed by the agent (Claude, Opus 4.8) from the operator's
+> explicit in-session approval. **The agent did not originate the sign-off and cannot.** The operator
+> had previously confirmed the sacrifice separately ("Yes, automation means we need to manage our time
+> ourselves… extracting out the cadence from the framework is my desire right now"), satisfying
+> constitution §5(b) before Gate 3 was executed.
