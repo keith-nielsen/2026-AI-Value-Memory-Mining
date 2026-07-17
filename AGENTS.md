@@ -163,6 +163,12 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 - **Every version tag ships with a GitHub Release.** A tag ≠ a Release; after merge, cut the tag, then
   `gh release create <tag> --verify-tag --latest`, then verify with `gh release view <tag>` (see
   CONTRIBUTING → "Shipping a version"). A tag without a Release is an incomplete ship.
+- **After a post-merge mirror into the live vault, prove it.** A mirror is a manual `cp` with no
+  built-in completeness check — an unfinished apply (file deployed but its INV-3 source note stale, or
+  a file missed) looks identical to done. Run `tools/template-parity.py <VAULT_ROOT>`: it byte-compares
+  the LOCKSTEP scaffold (`99-Operations/scripts/` + `schemas/`) between `vault-template/` and the live
+  vault and exits non-zero on any `DIFFERS`/`MISSING-*`. `reconcile` does NOT cover this axis (it is
+  note → `~/bin`, not template → live).
 
 ## Things never to do
 

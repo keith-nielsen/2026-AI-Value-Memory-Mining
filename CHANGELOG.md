@@ -10,7 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Added
+- **Template–live parity check** (`add-template-parity-check`): a repo-owned, stdlib-only,
+  detection-only tool (`tools/template-parity.py` + `tools/template-sync-manifest.json`) that verifies
+  a deployed vault's LOCKSTEP scaffold (`99-Operations/scripts/`, `99-Operations/schemas/`) is
+  byte-identical to what `vault-template/` ships — the mirror-completeness axis `reconcile` never
+  covered (`reconcile` is note → `~/bin`; this is template → live). Byte-exact and bidirectional per
+  lockstep prefix, with a manifest `exclude` for vault-generated artifacts (`naming-rules.json`); it
+  prints the count of files checked and never auto-fixes (INV-3 posture). Motivated by three unfinished
+  applies caught by hand on 2026-07-17. Repo-only (the deployed vault stays standalone, F15); not a CI
+  gate (CI has no live vault). `maintenance` spec: +1 Requirement.
 
 ## [0.1.26] - 2026-07-17
 
