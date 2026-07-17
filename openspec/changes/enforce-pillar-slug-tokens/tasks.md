@@ -31,14 +31,14 @@
 
 ## 4. ADR + README
 
-- [ ] 4.1 Move `adr-0029-draft.md` (in this change dir) → `openspec/adr/0029-pillar-slug-tokens.md`
+- [x] 4.1 Move `adr-0029-draft.md` (in this change dir) → `openspec/adr/0029-pillar-slug-tokens.md`
       and flip **Status: Proposed → Accepted**. The ADR is a **Gate-4** artifact
       (constitution §3), so it stays in the change dir until sign-off. Land it in the
       **same commit** as 4.2/4.3 — the file's mere presence fails `adr-count-lint`
       until the README counts are bumped.
-- [ ] 4.2 `README.md`: `28 ADRs` → `29 ADRs` (2 occurrences: lines ~29, ~245)
-- [ ] 4.3 `README.md`: `ADR-0001–0028` → `ADR-0001–0029` (line ~100)
-- [ ] 4.4 `adr-count-lint` passes (checks the `\d+ ADRs` count AND that `0029`
+- [x] 4.2 `README.md`: `28 ADRs` → `29 ADRs` (2 occurrences: lines ~29, ~245)
+- [x] 4.3 `README.md`: `ADR-0001–0028` → `ADR-0001–0029` (line ~100)
+- [x] 4.4 `adr-count-lint` passes (checks the `\d+ ADRs` count AND that `0029`
       appears in README)
 
 ## 5. Regression
@@ -94,8 +94,8 @@ the vocabulary entirely (test 5.3c), rather than relying on a downstream gate th
 
 ## 7. Ceremony
 
-- [ ] 7.1 PR opened with the mandatory ```scope block
-- [ ] 7.2 Human Gate-4 sign-off recorded
+- [x] 7.1 PR opened with the mandatory ```scope block
+- [x] 7.2 Human Gate-4 sign-off recorded
 - [ ] 7.3 Archive the change to `openspec/changes/archive/2026-07-17-enforce-pillar-slug-tokens/`
 - [ ] 7.4 CHANGELOG entry; tag; `gh release create` + `gh release view` parity check
 - [ ] 7.5 Mirror to the live vault

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0029 — Pillar tokens are kebab-case slugs; the `PILLARS` delimiter stays whitespace
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-07-17
 **Relates:** `maintenance` spec · change `enforce-pillar-slug-tokens` · constitution §2 (Tier 2 — pillar names) · extends ADR-0013 (naming-and-identity), ADR-0016 (system-artifact-naming) · constrained by ADR-0015 (≥3-token floor — deliberately **not** applied to pillar tokens)
 
