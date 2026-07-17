@@ -119,13 +119,13 @@ fi
 rm -f "$VAULT/20-Claims/_refine-approved/bad.json"
 # A conforming one must be applied.
 cat > "$VAULT/20-Claims/_refine-approved/good.json" <<'JSON'
-{ "target_note": "40-Treasury/good-insight.md", "mode": "create",
+{ "target_note": "40-Treasury/good-durable-insight.md", "mode": "create",
   "insight_md": "Durable value.", "provenance_md": "Tried X.",
   "index_links": ["40-Treasury/Catalog/technology-domain-index.md"],
   "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
 JSON
 python3 "$HOME/bin/vault-refine-execute.py" >/dev/null 2>&1
-[ -f "$VAULT/40-Treasury/good-insight.md" ] && ok "executor applies conforming proposal" || no "executor good-path"
+[ -f "$VAULT/40-Treasury/good-durable-insight.md" ] && ok "executor applies conforming proposal" || no "executor good-path"
 
 echo
 [ $FAIL -eq 0 ] && echo "VALIDATION OK" || echo "VALIDATION FAILED"

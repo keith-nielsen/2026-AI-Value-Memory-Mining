@@ -29,7 +29,7 @@ One note per proposal; multiple proposals can be batched.
 #!/usr/bin/env python3
 import datetime, json, pathlib, sys, frontmatter
 sys.path.insert(0, str(pathlib.Path.home() / "bin"))
-from vault_naming import is_valid_slug  # naming.md
+from vault_naming import is_valid_slug, has_min_hyphen_tokens  # naming.md
 from vault_lib import EXIT_VIOLATION, commit_paths, find_vault_root, vocab
 
 vault = find_vault_root()
@@ -60,6 +60,11 @@ def check(p):
         v.append(f"target_note escapes 40-Treasury: {p['target_note']}")
     if not is_valid_slug(note.stem):                  # INV-11: reject at the boundary
         v.append(f"target_note stem '{note.stem}' is not a valid kebab slug")
+    elif not has_min_hyphen_tokens(note.stem):        # INV-11 floor (ADR-0015 / ADR-0030)
+        # Must reject BEFORE any write: the commit gate now enforces the floor too, so a
+        # sub-3 stem that got past pre-flight would be written and then blocked at commit,
+        # stranding the executor half-applied.
+        v.append(f"target_note stem '{note.stem}' has fewer than 3 hyphen-tokens (INV-11)")
     if p["mode"] == "create":
         if note.exists():
             v.append(f"create would overwrite existing {p['target_note']} (INV-9)")

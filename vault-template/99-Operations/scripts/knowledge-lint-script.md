@@ -69,18 +69,24 @@ for p in (vault / "40-Treasury").glob("*.md"):        # Catalog is in a subfolde
         violations.append((p, f"stage must be one of {sorted(stages)}"))
 
 # --- name conformance (INV-11) ---
-# Treasury note stems must be valid kebab slugs (special-file exemptions skipped).
+# Content stems carry the full rule: kebab + the >=3-token floor (ADR-0015's rule, switched
+# on by ADR-0030 — conformance reached, so nothing is grandfathered here any more).
+# Treasury note stems (special-file exemptions skipped).
 for p in (vault / "40-Treasury").glob("*.md"):
     if is_exempt(p.name):
         continue
     if not is_valid_slug(p.stem):
         violations.append((p, f"Treasury stem not a kebab slug: {validate_name(p.stem) or 'non-kebab'}"))
-# Effort folders (Sites + Tailings) must be valid kebab slugs.
+    elif not has_min_hyphen_tokens(p.stem):
+        violations.append((p, "Treasury stem not >=3-token kebab (INV-11)"))
+# Effort folders (Sites + Tailings) — kebab slugs carrying the content floor.
 for area in ["30-Sites", "70-Tailings"]:
     for d in (vault / area).glob("*/"):
         if not is_valid_slug(d.name):
             violations.append((d, f"effort folder not a kebab slug: {validate_name(d.name) or 'non-kebab'}"))
-# All other content file stems must at least be cross-platform-safe names.
+        elif not has_min_hyphen_tokens(d.name):
+            violations.append((d, "effort folder not >=3-token kebab (INV-11)"))
+# All other content file stems.
 for area in ["20-Claims", "10-Logbook", "40-Treasury/Catalog"]:
     for p in (vault / area).rglob("*.md"):
         if is_exempt(p.name):          # README.md, dailies, *.example, .obsidian/*.json, ...
@@ -88,9 +94,8 @@ for area in ["20-Claims", "10-Logbook", "40-Treasury/Catalog"]:
         bad = validate_name(p.stem)
         if bad:
             violations.append((p, f"name violation: {bad}"))
-        # --- staged: enable when mechanical >=3-token-kebab enforcement is switched on ---
-        # elif not is_valid_slug(p.stem) or not has_min_hyphen_tokens(p.stem):
-        #     violations.append((p, "stem not >=3-token kebab (INV-11)"))
+        elif not is_valid_slug(p.stem) or not has_min_hyphen_tokens(p.stem):
+            violations.append((p, "stem not >=3-token kebab (INV-11)"))
 
 for p, v in violations:
     print(f"LINT {p}: {v}")
