@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.27] - 2026-07-18
+
 ### Added
 - **Template–live parity check** (`add-template-parity-check`): a repo-owned, stdlib-only,
   detection-only tool (`tools/template-parity.py` + `tools/template-sync-manifest.json`) that verifies
