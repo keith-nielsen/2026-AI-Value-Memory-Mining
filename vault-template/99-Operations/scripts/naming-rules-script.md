@@ -100,7 +100,32 @@ def is_valid_slug(slug):
     """Stricter check for machine-generated names (effort folders, Treasury stems)."""
     return bool(_slug_re.match(slug)) and not validate_name(slug)
 
+def check_strict(filename):
+    """Full INV-11 content rule for ONE filename (WITH extension) — exemption gate, then
+    safety, then kebab, then the >=3-token floor (ADR-0015 rule; ADR-0030 enforcement).
+
+    Takes the basename, not the stem, because `is_exempt` matches on the full filename
+    (README.md, dailies, *.example). Returns a list of violations; empty == valid.
+    """
+    if is_exempt(filename):
+        return []
+    stem = filename[:-3] if filename.endswith(".md") else filename
+    v = validate_name(stem)
+    if not _slug_re.match(stem):
+        v.append("not a kebab slug (%s)" % RULES["slug_pattern"])
+    if not has_min_hyphen_tokens(stem):
+        v.append("fewer than %d hyphen-tokens (INV-11 floor)" % RULES["min_hyphen_tokens"])
+    return v
+
 if __name__ == "__main__":
+    # --check STEM        : cross-platform safety only — contract UNCHANGED for existing callers
+    # --check-strict NAME : full content rule, exemption-aware (commit gate; ADR-0030)
+    if len(sys.argv) >= 3 and sys.argv[1] == "--check-strict":
+        viol = check_strict(sys.argv[2])
+        if viol:
+            print("INVALID '%s': %s" % (sys.argv[2], "; ".join(viol)))
+            sys.exit(1)
+        sys.exit(0)
     if len(sys.argv) >= 3 and sys.argv[1] == "--check":
         viol = validate_name(sys.argv[2])
         if viol:
