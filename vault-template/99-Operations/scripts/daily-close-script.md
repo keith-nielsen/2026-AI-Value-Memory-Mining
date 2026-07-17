@@ -19,7 +19,7 @@ Vault root and the `DISPOSITIONS` vocabulary resolve via the shared `vault_lib` 
 without a pre-sourced environment; gate refusals (missing note, strict-order) exit `3`
 (`EXIT_BLOCKED`, fleet contract). **Seals with a scoped commit** (B3, commit-ownership): exactly
 the sealed daily plus the consumed worklist sidecar — the historical `add -A` sweep is gone;
-every other mutation (daily-note creation, banked proposals, rollover links, kanban) is committed
+every other mutation (daily-note creation, banked proposals) is committed
 by its owning script, and uncommitted operator working-tree content is left untouched by a close.
 
 ## Implementation

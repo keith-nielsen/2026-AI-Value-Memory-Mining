@@ -73,8 +73,6 @@ lint_out=$(python3 "$HOME/bin/vault-lint.py" 2>&1); lint_rc=$?
 [ $lint_rc -eq 0 ] && ok "lint clean (empty treasury)" || { no "lint (rc=$lint_rc)"; echo "$lint_out" | sed 's/^/        /'; }
 # refine-detect on empty sites
 python3 "$HOME/bin/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
-# kanban renders
-python3 "$HOME/bin/vault-kanban-render.py" >/dev/null && [ -f "$VAULT/10-Logbook/kanban.md" ] && ok "kanban render" || no "kanban"
 
 hdr "close-daily lifecycle"
 mk_day(){ cat > "$VAULT/10-Logbook/Daily/$1.md" <<EOF

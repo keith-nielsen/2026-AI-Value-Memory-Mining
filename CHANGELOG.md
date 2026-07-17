@@ -12,6 +12,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Removed
+- **Effort projections retired** (`retire-effort-projections`, ADR-0028): `kanban-render-script`
+  (`~/bin/vault-kanban-render.py`, `10-Logbook/kanban.md`) and `dig-rollover-script`
+  (`~/bin/vault-rollover.py`, daily `## Carry-over`) leave the fleet — 17 scripts → 15. Neither had a
+  consumer: the board was rendered 4 times in 32 days and read 0 (not Obsidian-Kanban format, no
+  plugins installed); the carry-over wrote 12 unchanging links a day until it read as noise. The vault
+  does not project effort state — that lens is delegated to the harness.
+
+### Changed
+- **Cadence retracted from the framework** (ADR-0028): no script declares `runtime: cron` or a
+  `schedule:`; `cron`/`schedule` leave `note-frontmatter-schema.md`; `docs/USING-THIS-TEMPLATE.md`
+  Step 5 no longer instructs installing a crontab. The vault is a **self-priming pump, not a driven
+  one** — `render` deploys code and never installed schedules, so the declared cadence was a
+  decoration nothing honoured. Scripts run bare, on demand, by an actor who chose to run them.
+- `maintenance` spec: MODIFIED *Script Inventory* (+ a scenario recording that a retirement must
+  delete its deploy target explicitly — `reconcile` iterates notes, so an orphaned `~/bin` artifact is
+  invisible to drift detection), *One Mutation One Commit*, *Daily Close Lifecycle*, *Shared Fleet
+  Plumbing* — re-exemplified with surviving fleet members; no rule weakened.
+- `access-control` spec: MODIFIED *OS/Harness-Enforced Agent Write Scope* — `10-Logbook/kanban.md`
+  drops from the structured-tool deny enumeration (the whole of `10-Logbook/` remains denied).
+
 ## [0.1.23] - 2026-07-14
 
 ### Added

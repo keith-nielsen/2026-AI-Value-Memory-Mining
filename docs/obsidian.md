@@ -88,7 +88,7 @@ existing pillar values; (3) paste from `99-Operations/schemas/note-frontmatter-s
 
 ## Running the maintenance scripts from Obsidian (optional)
 
-The deterministic scripts (`lint`, `kanban-render`, `reconcile`, `orphans`, …) normally
+The deterministic scripts (`lint`, `reconcile`, `orphans`, …) normally
 run from the CLI or cron. To trigger them from inside Obsidian, use the community
 **Shell Commands** plugin — with one wrinkle if Obsidian is a **Flatpak**:
 
@@ -102,10 +102,10 @@ flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian
 Then define commands like:
 
 ```
-flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 ~/bin/vault-kanban-render.py'
+flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 ~/bin/vault-lint.py'
 ```
 
-Bind them to hotkeys. Good candidates: `kanban-render`, `lint`, `reconcile`, `orphans`.
+Bind them to hotkeys. Good candidates: `lint`, `reconcile`, `orphans`.
 All are **gate-safe** — none bypass the human approval step, and the commit-gate hook
 (INV-11) still fires on any commit they make.
 

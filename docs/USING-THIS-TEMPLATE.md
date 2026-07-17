@@ -190,25 +190,28 @@ Adoption is **two-stage by design**:
 
 ---
 
-## Step 5: Set Up Crons (Optional)
+## Step 5: There Are No Crons
 
-Three scripts run on a schedule. Each must see the full vault configuration, so
-**source `config.env` first** — it exports `VAULT_ROOT` plus the vocab variables
-(`PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, …) that the scripts read. Setting only
-`VAULT_ROOT` will make `vault-refine-detect.py` fail with a missing-variable error.
+**The vault installs no schedules and runs nothing on a tick.** It is a *self-priming pump, not a
+driven one* (ADR-0028): every script resolves the vault root itself and runs bare, on demand, from
+any directory, with no pre-sourced environment — invoked by an actor who decided to invoke it.
 
-Add them to your crontab (`crontab -e`), pointing at your vault's `config.env`:
+This is deliberate. An earlier version of this template declared `cron` schedules in script
+frontmatter and documented crontab lines here. Nothing ever read those declarations: `render`
+deploys code and marks it executable, it does not install schedules. The result was a cadence that
+existed only on paper — and the artifacts built to assume it (a board, a daily carry-over list) went
+unread and stale. A cadence a framework cannot install is a decoration, not a configuration.
 
-```cron
-# daily note at 00:01
-1 0 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-daily-note.py
+Run what you need, when you need it:
 
-# roll-over carry-over links at 00:02
-2 0 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-rollover.py
-
-# refine detector at 06:00
-0 6 * * * . /path/to/my-vault/99-Operations/config.env && python3 ~/bin/vault-refine-detect.py
+```bash
+python3 ~/bin/vault-daily-note.py      # when you sit down to capture
+python3 ~/bin/vault-refine-detect.py   # when you are about to refine
+python3 ~/bin/vault-render.py reconcile  # when a script note changed
 ```
+
+If you want a cadence, own it deliberately — in your own crontab, your harness, or your habit. The
+framework will not assume one on your behalf.
 
 Make sure `VAULT_ROOT` inside `config.env` is set to the absolute path of your vault
 (Step 2). Sourcing `config.env` then provides everything each script needs.
@@ -279,7 +282,6 @@ Then run any operation:
 | Create today's daily note | `python3 ~/bin/vault-daily-note.py` |
 | Lint the vault | `python3 ~/bin/vault-lint.py` |
 | Find orphaned Treasury notes | `python3 ~/bin/vault-orphans.py` |
-| Render kanban board | `python3 ~/bin/vault-kanban-render.py` |
 | Slag an effort | Set frontmatter, then `vault-slag.sh <slug>` |
 | Dump a husk | `vault-dump.sh <slug>` |
 | Re-prospect Tailings | `python3 ~/bin/vault-reprospect.py` |
