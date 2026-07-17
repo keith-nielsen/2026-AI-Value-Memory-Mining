@@ -12,6 +12,61 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.26] - 2026-07-17
+
+### Changed
+- **The ≥3-token naming floor is now enforced, not merely documented** (`enforce-naming-token-floor`,
+  ADR-0030, completing **ADR-0015**): `vault_naming.py` gains `--check-strict FILENAME` (exemption-aware:
+  `is_exempt` → `validate_name` → `slug_pattern` → `has_min_hyphen_tokens`); the commit gate calls it on
+  the basename; the refine executor pre-flights the floor **before any write**; the linter's staged
+  `elif` is switched on and the floor extends to Treasury stems and effort folder slugs. `--check STEM`
+  keeps its contract, so no existing caller moves implicitly. `min_hyphen_tokens: 3` and `slug_pattern`
+  are **unchanged** — this adds no rule, it switches on ADR-0015's.
+
+  ADR-0015 deferred enforcement in June "gated on full conformance" and named it *"a separate later
+  change"* — **which was never written**. Until now the whole pending item was one ADR sentence and three
+  commented-out lines; **`has_min_hyphen_tokens` had no production caller at all**, so the rule was
+  enforced nowhere. The precondition is met: **118 live `.md`, 15 exempt, 103 subject, 0 failing**. Every
+  family conformed by hand exactly as ADR-0015 predicted, and nobody flipped the switch, because the
+  thing that would have noticed was a comment.
+
+  **Live constraint:** newly *created* content names must carry ≥3 kebab tokens. No existing artifact is
+  affected — 0 offenders, and the gate is `--diff-filter=AR` regardless.
+
+### Fixed
+- **Refine executor could be stranded half-applied** (ADR-0030, found by two *pre-existing* tests failing
+  once the gate went live): the executor writes `40-Treasury/<stem>.md` and *then* commits, so a sub-3
+  stem passing pre-flight would be written and then blocked at commit. Its pre-flight now rejects the
+  floor violation at the boundary, keeping *"reject at the boundary, no Treasury write"* true.
+
+## [0.1.25] - 2026-07-17
+
+### Added
+- **`PILLARS` tokens are validated as kebab slugs** (`enforce-pillar-slug-tokens`, ADR-0029): the linter
+  validates the vocabulary at the point it resolves, before the frontmatter loop, using the existing
+  `is_valid_slug()`. A malformed vocabulary exits immediately rather than cascading into a per-note
+  pile-up. The ≥3-token floor is deliberately **not** applied — it governs `.md` stems, not name
+  fragments, so `mental` stays valid.
+
+### Changed
+- **Pillar naming rule stated and demonstrated** (ADR-0029): each pillar is **one** lowercase kebab slug;
+  whitespace separates. A multi-word pillar is one hyphenated token (`mental-health`), never two words.
+  `config.defaults.env`, `config.env.example`, and `docs/USING-THIS-TEMPLATE.md` now show the
+  two-words-vs-one-token contrast explicitly, label the example default as **six** pillars, and tell
+  adopters to **pin `PILLARS` in their private `config.env`** — unpinned, they inherit the framework's
+  *example* default and a public-repo edit would silently re-pillar their vault. **The pillar set did not
+  change** (value verified byte-identical).
+
+  Origin: an agent read the whitespace-delimited value during session bootstrap and reported six pillars
+  as five, welding `mental` and `health` into one. `vocab()` was never wrong — the format let a *reader*
+  invent a boundary the format forbids, and the prohibition lived in a comment enforced by nothing. The
+  `;`-delimiter fix was rejected: a pillar is interpolated into `<pillar>-domain-index.md`, so literal
+  spaces would need a slug transform in every consumer plus a permanent display/slug identity split.
+  Demarcation comes from making the **token** self-delimiting instead.
+
+  **Sacrifice:** literal spaces in pillar names are permanently unavailable. Display forms alias at the
+  link — `[[mental-health-domain-index|Mental Health]]`, the pattern `home-master-index.md` already uses.
+
 ## [0.1.24] - 2026-07-17
 
 ### Removed
