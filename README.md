@@ -113,7 +113,8 @@ Render them in Obsidian or any Mermaid-capable viewer.
 │   ├── 99-Operations/           #   Layer 0: 13 literate meta-scripts + schemas + config
 │   └── CLAUDE.md                #   agent conventions for vault operations
 │
-├── tools/                       # Repo maintenance tools (template-parity.py: mirror completeness)
+├── tools/                       # Repo maintenance tools (template-parity.py: mirror completeness;
+│                                #   ship-release.py: guarded tag→Release driver; pr-state.py: per-layer PR reporter)
 │
 ├── docs/                        # Project documentation
 │   ├── diagrams.md              #   7 Mermaid system diagrams
