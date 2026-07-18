@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.30] - 2026-07-18
+
 ### Added
 - **GitHub ceremony tools** (`add-ship-ceremony-tools`): two repo-owned, stdlib-only tools that move
   the documented F10/F21 GitHub hazards out of agent recall and into guard clauses at the point of

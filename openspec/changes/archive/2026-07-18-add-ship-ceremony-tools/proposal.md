@@ -167,9 +167,12 @@ Change surfaces (each declared in the PR scope block):
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff by re-running the Gate-1 transcript and
-      diffing (recorded in tasks.md §4 before merge)
-- [ ] Consequences explicitly accepted (two repo-owned stdlib ceremony tools to maintain; the
+- [x] Blast radius re-checked against the final diff by re-running the Gate-1 transcript and
+      diffing (transcript recorded in tasks.md §4.1: sweep 1 moved 0 → 6 hits, all inside the
+      three declared doc surfaces; sweep 2's file set unchanged)
+- [x] Consequences explicitly accepted (two repo-owned stdlib ceremony tools to maintain; the
       ship ceremony's documented procedure moves from prose into a guarded driver whose refusals
       operators will now encounter; **zero external runtime dependencies**)
-- [ ] Human sign-off recorded: pending
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-18** (operator reviewed the
+      proposal and replied `Approved`; recorded by Claude Code per the standing Gate-4 ritual —
+      the human decision is the operator's reply, the agent only transcribes it)

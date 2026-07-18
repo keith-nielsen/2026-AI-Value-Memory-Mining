@@ -90,7 +90,7 @@ AGENTS.md
       declares and edits (README/CONTRIBUTING/AGENTS); sweep 2's file set is unchanged (5 files —
       the two declared doc edits, the three not-edited hits still not edited). Nothing outside
       the declared blast radius references the tools.
-- [ ] 4.2 Gate-4 human sign-off (operator reviews proposal.md, replies Approved; recorded in
+- [x] 4.2 Gate-4 human sign-off — **Approved, Keith Nielsen, 2026-07-18** (recorded in
       proposal.md)
 - [ ] 4.3 Merge; archive (batch-archive-in-merge-order relative to `add-telemetry-segment` if it
       ever activates — it is DEFERRED and stays in place)
