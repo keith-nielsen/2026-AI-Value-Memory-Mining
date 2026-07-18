@@ -143,8 +143,11 @@ Gate-3 checkbox (task 4b), `AGENTS.md` notes (task 5) — additive text, no exis
 ## 7. Verification (produce transcripts for each — this change's own rule)
 
 - [ ] `openspec validate --strict` — paste exit status.
-- [ ] Re-run the task-0 enumeration command — paste output; diff against task 0; every hit must be
-  in the disposition list.
+- [ ] Re-run the task-0 enumeration command — paste output. Expected differences from task 0
+  (anything else is a miss): (a) hits inside `openspec/changes/require-transcript-verification/`
+  and `openspec/adr/0031-*` — this change's own files quoting the phrases; (b) the
+  `constitution.md` Gate-1/Gate-4 lines and template lines reworded/shifted by tasks 1, 3, 4.
+  Every remaining hit must map to the task-0 disposition list.
 - [ ] `grep -rn '[0-9][0-9] ADRs' README.md docs/ AGENTS.md CONTRIBUTING.md` — paste output; every
   occurrence must read `31 ADRs`.
 - [ ] `ls openspec/adr/ | wc -l` vs the README claim — paste both.
