@@ -246,3 +246,97 @@ $ grep -n 'ADRs' README.md
 ### Not run (requires a PR that does not exist yet)
 
 - `gh pr checks <N> | cut -f2 | sort | uniq -c` — deferred; final task-7 checkbox left unticked.
+
+### Ship-prep transcripts
+
+Run after the coordinator accepted the apply and directed archiving (2026-07-18).
+
+#### `openspec archive require-transcript-verification --yes`
+
+```transcript
+$ openspec archive require-transcript-verification --yes
+Proposal warnings in proposal.md (non-blocking):
+  ⚠ Why section should not exceed 1000 characters
+Task status: 13/14 tasks
+Warning: 1 incomplete task(s) found. Continuing due to --yes flag.
+
+Specs to update:
+  agent-integration: update
+Applying changes to openspec/specs/agent-integration/spec.md:
+  + 1 added
+Totals: + 1, ~ 0, - 0, → 0
+Specs updated successfully.
+Change 'require-transcript-verification' archived as '2026-07-18-require-transcript-verification'.
+```
+
+The 13/14 warning is the final task-7 checkbox (CI-on-a-PR), left unticked deliberately since no PR
+exists yet — `--yes` was used to proceed past it per the coordinator's instruction, not a missed task.
+
+#### Post-archive `git status --short`
+
+```transcript
+$ git status --short
+ D openspec/changes/require-transcript-verification/proposal.md
+ D openspec/changes/require-transcript-verification/specs/agent-integration/spec.md
+ D openspec/changes/require-transcript-verification/tasks.md
+ M openspec/specs/agent-integration/spec.md
+?? openspec/changes/archive/2026-07-18-require-transcript-verification/
+```
+
+#### Spec grep for the new requirement
+
+```transcript
+$ grep -n "Verification Deliverables Are Transcripts" openspec/specs/agent-integration/spec.md
+102:### Requirement: Verification Deliverables Are Transcripts
+```
+
+#### `openspec validate --all --strict` (repo-wide validate has no bare invocation; `--all` covers every spec + live change)
+
+```transcript
+$ openspec validate --all --strict
+- Validating...
+✓ spec/access-control
+✓ change/add-telemetry-segment
+✓ spec/agent-integration
+✓ spec/maintenance
+✓ spec/naming-rules
+✓ spec/value-pipeline
+✓ spec/vault-structure
+Totals: 7 passed, 0 failed (7 items)
+EXIT_STATUS=0
+```
+
+(Bare `openspec validate --strict` was tried first and errored with "Nothing to validate," suggesting
+`--all`/`--changes`/`--specs`/`<item-name>` — `--all --strict` was run instead, as the closest repo-wide
+equivalent.)
+
+#### README archived-changes grep
+
+```transcript
+$ grep -n 'archived changes' README.md
+249:| [`openspec/changes/`](openspec/changes/) | 14 archived changes, 1 live (deferred), override template |
+```
+
+#### `agent-integration` spec Requirement count, before/after
+
+```transcript
+$ git show HEAD:openspec/specs/agent-integration/spec.md | grep -c 'Requirement:'
+3
+$ grep -c 'Requirement:' openspec/specs/agent-integration/spec.md
+4
+```
+
+4 = 3 + 1, confirming exactly the one new Requirement ("Verification Deliverables Are Transcripts") landed.
+
+#### `git status --short` after staging the ship-prep paths
+
+```transcript
+$ git add openspec/changes/require-transcript-verification openspec/changes/archive/2026-07-18-require-transcript-verification openspec/specs/agent-integration/spec.md README.md CHANGELOG.md
+$ git status --short
+M  CHANGELOG.md
+M  README.md
+R  openspec/changes/require-transcript-verification/proposal.md -> openspec/changes/archive/2026-07-18-require-transcript-verification/proposal.md
+R  openspec/changes/require-transcript-verification/specs/agent-integration/spec.md -> openspec/changes/archive/2026-07-18-require-transcript-verification/specs/agent-integration/spec.md
+R  openspec/changes/require-transcript-verification/tasks.md -> openspec/changes/archive/2026-07-18-require-transcript-verification/tasks.md
+M  openspec/specs/agent-integration/spec.md
+```

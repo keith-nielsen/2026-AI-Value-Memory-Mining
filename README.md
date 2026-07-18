@@ -246,7 +246,7 @@ the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 | [`openspec/constitution.md`](openspec/constitution.md) | Constitutional protection, Informed-Upheaval Protocol |
 | [`openspec/adr/`](openspec/adr/) | 31 ADRs: framework choice → transcript verification |
 | [`openspec/specs/`](openspec/specs/) | 6 capability specs with `protects:` tags |
-| [`openspec/changes/`](openspec/changes/) | 13 archived changes, 1 live (deferred), override template |
+| [`openspec/changes/`](openspec/changes/) | 14 archived changes, 1 live (deferred), override template |
 
 ---
 
