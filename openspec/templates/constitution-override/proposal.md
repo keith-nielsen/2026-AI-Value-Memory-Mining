@@ -45,6 +45,14 @@
 
 **Blast radius — every artifact referencing this principle:**
 
+**Enumeration transcript (mandatory — the checklist below is derived from it, and Gate 4
+re-runs it):**
+
+```transcript
+$ <search command(s) sweeping openspec/ vault-template/ docs/ .github/ README.md AGENTS.md CONTRIBUTING.md>
+<full, untruncated output — never head/tail-truncated>
+```
+
 - [ ] `openspec/specs/<cap>/spec.md` — <what changes>
 - [ ] `openspec/constitution.md` — principle text
 - [ ] `vault-template/99-Operations/scripts/<script>.md` — <what changes>
@@ -87,6 +95,8 @@
 **All regression tests green:** ☐  
 **CI green on this PR:** ☐  
 
+**Verification transcripts attached for every named test (tally/diff/exit status — no prose verdicts):** ☐
+
 ---
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
@@ -95,6 +105,8 @@
      CI will reject a merge if SIGN-OFF is missing. -->
 
 **Second review confirms blast radius was fully addressed:** ☐  
+**Gate-1 transcript re-run; output diffed clean against the proposal:** ☐
+
 **Consequences explicitly accepted:**
 
 > <State what is being sacrificed. What does this system no longer have that it had before?
