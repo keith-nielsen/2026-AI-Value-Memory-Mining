@@ -51,6 +51,12 @@ def serve(path, default=None):
     raise SystemExit(1)
 
 if args[:2] == ["release", "view"]:
+    # live gh exposes isLatest on `release list` only; `view --json` rejects it —
+    # the stub mirrors that so the field split stays covered (caught on the first
+    # real ship, which the original permissive stub had waved through)
+    if "--json" in args and "isLatest" in args[args.index("--json") + 1]:
+        sys.stderr.write('Unknown JSON field: "isLatest"\\n')
+        raise SystemExit(1)
     p = d / ("release-" + args[2] + ".json")
     if p.is_file():
         serve(p)
@@ -177,9 +183,8 @@ def test_ship_full_ceremony_walk(ceremony):
     assert "--notes-file" in next_cmd
 
     # The caller creates the release; the stub now knows it.
-    ceremony.stub("release-v0.1.31.json",
-                  {"tagName": "v0.1.31", "isDraft": False, "isLatest": True})
-    ceremony.stub("releases.json", [{"tagName": "v0.1.31"}])
+    ceremony.stub("release-v0.1.31.json", {"tagName": "v0.1.31", "isDraft": False})
+    ceremony.stub("releases.json", [{"tagName": "v0.1.31", "isLatest": True}])
 
     # Step 3: release verified, parity tally closes the ship.
     r = ceremony.run_tool(SHIP, "v0.1.31")
@@ -218,9 +223,8 @@ def test_ship_parity_tally_flags_release_gap(ceremony):
     for tag in ("v0.1.30", "v0.1.31"):
         ceremony.git("tag", "-a", tag, "-m", tag, target)
         ceremony.git("push", "-q", "origin", f"refs/tags/{tag}")
-    ceremony.stub("release-v0.1.31.json",
-                  {"tagName": "v0.1.31", "isDraft": False, "isLatest": True})
-    ceremony.stub("releases.json", [{"tagName": "v0.1.31"}])
+    ceremony.stub("release-v0.1.31.json", {"tagName": "v0.1.31", "isDraft": False})
+    ceremony.stub("releases.json", [{"tagName": "v0.1.31", "isLatest": True}])
     r = ceremony.run_tool(SHIP, "v0.1.31")
     assert r.returncode == EXIT_REFUSED
     assert "parity-miss [release-object]: tag v0.1.30 has no Release" in r.stdout

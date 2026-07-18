@@ -27,6 +27,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `LAYERS-DISAGREE:` as a signal instead of confusion, and flags the deleted-base stacked-PR hazard.
   `maintenance` spec: +2 Requirements. Conforming amendment, no ADR (template-parity precedent).
 
+### Fixed
+- **`ship-release.py` reads `isLatest` from the only surface that carries it** (pre-tag fix, same
+  version): live `gh release view --json` rejects `isLatest` (it exists on `release list` only) —
+  found by dogfooding the driver on this very release, where it BLOCKED cleanly before any
+  mutation. The test stub now mirrors the live field split so the regression stays covered.
+
 ## [0.1.29] - 2026-07-18
 
 ### Changed

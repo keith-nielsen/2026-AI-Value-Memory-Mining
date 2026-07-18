@@ -120,8 +120,13 @@ def remote_version_tags(root):
 
 
 def gh_release(root, tag):
-    """Release JSON for the tag, or None when the release does not exist."""
-    r = _run(["gh", "release", "view", tag, "--json", "tagName,isDraft,isLatest"],
+    """Release JSON for the tag, or None when the release does not exist.
+
+    `isLatest` is deliberately NOT requested here: live gh exposes it on
+    `release list` only — `release view --json` rejects the field (found by
+    dogfooding the driver on its own first ship).
+    """
+    r = _run(["gh", "release", "view", tag, "--json", "tagName,isDraft"],
              cwd=str(root))
     if r.returncode == 0:
         return json.loads(r.stdout)
@@ -130,12 +135,13 @@ def gh_release(root, tag):
     _die_blocked(f"gh release view {tag} failed: {r.stderr.strip()}")
 
 
-def gh_release_tags(root):
-    r = _run(["gh", "release", "list", "--limit", "200", "--json", "tagName"],
-             cwd=str(root))
+def gh_release_list(root):
+    """[{tagName, isLatest}] for every release — the only surface carrying isLatest."""
+    r = _run(["gh", "release", "list", "--limit", "200",
+              "--json", "tagName,isLatest"], cwd=str(root))
     if r.returncode != 0:
         _die_blocked(f"gh release list failed: {r.stderr.strip()}")
-    return sorted({rel["tagName"] for rel in json.loads(r.stdout)})
+    return json.loads(r.stdout)
 
 
 def main(argv):
@@ -189,10 +195,12 @@ def main(argv):
     local = local_tag_commit(root, version)
     remote = remote_tag_commit(root, version)
     release = gh_release(root, version)
+    rel_list = gh_release_list(root) if release else []
+    latest_tag = next((x["tagName"] for x in rel_list if x.get("isLatest")), None)
     print(f"layer [local-tag]: {version} " + (f"at {local[:12]}" if local else "absent"))
     print(f"layer [remote-tag]: {version} " + (f"at {remote[:12]}" if remote else "absent"))
     print(f"layer [release-object]: {version} "
-          + (f"exists (draft={release['isDraft']}, latest={release['isLatest']})"
+          + (f"exists (draft={release['isDraft']}, latest={latest_tag == version})"
              if release else "absent"))
 
     # Stale-tag refusals name the true cause and both commits (F10 false-start 7: a guard
@@ -234,8 +242,8 @@ def main(argv):
     if release["isDraft"]:
         problems.append(f"release {version} is a DRAFT — publish it")
     all_tags = remote_version_tags(root)
-    released = gh_release_tags(root)
-    if not release["isLatest"] and all_tags and all_tags[-1] == version:
+    released = sorted({x["tagName"] for x in rel_list})
+    if latest_tag != version and all_tags and all_tags[-1] == version:
         problems.append(f"release {version} is the newest version tag but is not marked "
                         f"Latest — the Releases surface tracks Release objects, not tags")
     missing = [t for t in all_tags if t not in released]
