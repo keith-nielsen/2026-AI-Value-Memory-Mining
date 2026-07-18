@@ -69,3 +69,9 @@ the override ceremony, say so and this change will be re-cast.
 - Cost accepted: ceremony verbosity — proposals carry long transcripts. That is the point: the
   length is the evidence. A transcript can still be faked or go stale; the rule's claim is
   falsifiability (a reviewer can re-run and diff), not impossibility.
+
+## Sign-off
+
+Proposal approved by the operator (explicit "Approved", in-session, 2026-07-18) — authorizes
+the apply per tasks.md. Final Gate-4 re-check occurs at PR review; ADR-0031 flips
+Proposed → Accepted there.
