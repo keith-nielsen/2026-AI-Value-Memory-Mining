@@ -104,7 +104,11 @@ def main(argv):
     # Layer: check-level aggregation (what `gh pr checks` and the merge box read).
     checks = check_rollup(pr.get("statusCheckRollup"))
     good = [c for c in checks if c[1] in ("SUCCESS", "NEUTRAL", "SKIPPED")]
-    print(f"layer [check-aggregation]: {len(good)} of {len(checks)} checks successful")
+    pending = [c for c in checks if c[1] in
+               ("IN_PROGRESS", "QUEUED", "PENDING", "EXPECTED", "WAITING")]
+    check_bad = [c for c in checks if c not in good and c not in pending]
+    print(f"layer [check-aggregation]: {len(good)} of {len(checks)} checks successful"
+          + (f", {len(pending)} pending" if pending else ""))
     for name, verdict in checks:
         if (name, verdict) not in good:
             print(f"layer [check-aggregation]: {verdict}: {name}")
@@ -122,8 +126,9 @@ def main(argv):
         print(f"layer [workflow-run]: {run['name']} ({run['event']}): "
               f"{run.get('conclusion') or run.get('status')}")
     run_bad = [x for x in runs if x.get("conclusion") not in (None, "success", "skipped")]
-    check_bad = [c for c in checks if c not in good]
-    if runs and bool(run_bad) != bool(check_bad):
+    # While checks are still pending the layers are EXPECTED to be out of sync — a
+    # disagreement is a signal only between two settled aggregations.
+    if runs and not pending and bool(run_bad) != bool(check_bad):
         print(f"LAYERS-DISAGREE: workflow-run reports "
               f"{len(run_bad)} failing of {len(runs)} runs, check-aggregation reports "
               f"{len(check_bad)} failing of {len(checks)} checks — both can be correct "

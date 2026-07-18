@@ -274,6 +274,24 @@ def test_pr_state_flags_deleted_base_branch(ceremony):
     assert "HAZARD [branch]: base branch 'gone-parent-branch' is deleted" in r.stdout
 
 
+def test_pr_state_pending_checks_are_not_failures(ceremony):
+    pr = dict(PR_BASE)
+    pr["headRefOid"] = ceremony.head()
+    pr["statusCheckRollup"] = [
+        {"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"},
+        {"name": "fleet", "status": "IN_PROGRESS", "conclusion": None}]
+    ceremony.stub("pr-7.json", pr)
+    ceremony.stub("runs.json", [
+        {"name": "CI", "status": "completed", "conclusion": "success",
+         "event": "pull_request"}])
+    r = ceremony.run_tool(PRSTATE, "7")
+    assert r.returncode == EXIT_OK
+    assert "layer [check-aggregation]: 1 of 2 checks successful, 1 pending" in r.stdout
+    assert "IN_PROGRESS: fleet" in r.stdout
+    # settled-vs-pending is expected skew, not a layer disagreement
+    assert "LAYERS-DISAGREE" not in r.stdout
+
+
 def test_pr_state_names_disagreeing_layers(ceremony):
     pr = dict(PR_BASE)
     pr["headRefOid"] = ceremony.head()
