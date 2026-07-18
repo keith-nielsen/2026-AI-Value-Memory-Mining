@@ -10,7 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Fixed
+- **Refine executor catalog linking is now idempotent** (`fix-append-idempotent-catalog-link`):
+  `bank-execute` appended `- [[<stem>]]` to every `index_links` target unconditionally, so an
+  `append` to an already-catalogued note duplicated its Catalog bullet (and an empty `index_links`
+  defaulted to the absent `pending-catalog` index and hard-rejected) — there was no clean way to
+  append to an existing note. The bank-loop now links only if the index does not already carry the
+  bullet: `append` extends a note without polluting its index, a genuinely new index is still linked,
+  and `create` is unchanged. `maintenance` spec: +1 Requirement ("Catalog Linking Is Idempotent").
 
 ## [0.1.27] - 2026-07-18
 

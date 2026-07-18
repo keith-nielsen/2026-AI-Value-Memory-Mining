@@ -229,6 +229,42 @@ def test_bank_rejects_append_to_missing_target(fleet):
     assert "append target missing" in r.stdout
 
 
+def _bank_seed(fleet):
+    """Bank the default create note (linked once into the technology index)."""
+    make_proposal(fleet, "seed", **good_create())
+    fleet.setup_commit("queue create")
+    assert fleet.run("vault-refine-execute.py").returncode == EXIT_OK
+
+
+def test_bank_append_does_not_duplicate_existing_catalog_link(fleet):
+    _bank_seed(fleet)
+    idx = "40-Treasury/Catalog/technology-domain-index.md"
+    assert fleet.read(idx).count("[[good-durable-insight]]") == 1
+    # append to the already-catalogued note, naming the index it is already in
+    make_proposal(fleet, "errata", target_note="40-Treasury/good-durable-insight.md",
+                  mode="append", insight_md="## Errata\nCorrection.",
+                  provenance_md="appended later", index_links=[idx])
+    fleet.setup_commit("queue append")
+    r = fleet.run("vault-refine-execute.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "## Errata" in fleet.read("40-Treasury/good-durable-insight.md")  # content appended
+    # idempotent: the catalog bullet appears exactly once, not twice
+    assert fleet.read(idx).count("[[good-durable-insight]]") == 1
+
+
+def test_bank_append_still_links_a_genuinely_new_index(fleet):
+    _bank_seed(fleet)
+    new_idx = "40-Treasury/Catalog/second-home-index.md"
+    fleet.write(new_idx, "---\ntype: index\npillar: technology\n---\n# Second home\n")
+    make_proposal(fleet, "cross", target_note="40-Treasury/good-durable-insight.md",
+                  mode="append", insight_md="more", provenance_md="p", index_links=[new_idx])
+    fleet.setup_commit("queue append to a new index")
+    r = fleet.run("vault-refine-execute.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    # idempotency does not block a fresh index — the note is linked into it
+    assert "[[good-durable-insight]]" in fleet.read(new_idx)
+
+
 def test_bank_batch_isolation_one_bad_one_good(fleet):
     make_proposal(fleet, "a-good", **good_create(target="40-Treasury/batch-good-note.md"))
     make_proposal(fleet, "b-bad", **good_create(
