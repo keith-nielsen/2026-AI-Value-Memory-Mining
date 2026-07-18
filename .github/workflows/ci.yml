@@ -315,11 +315,22 @@ jobs:
           broken = []
           # check standard [text](path) links pointing to local files
           LINK_RE = re.compile(r'\[.*?\]\((?!http)([^)#]+)')
+          def strip_fenced(text):
+            # Link syntax inside fenced code blocks is data (quoted transcripts,
+            # examples), not a link — blank those lines, preserving line count.
+            out, in_fence = [], False
+            for ln in text.split("\n"):
+              if ln.lstrip().startswith("```") or ln.lstrip().startswith("~~~"):
+                in_fence = not in_fence
+                out.append("")
+                continue
+              out.append("" if in_fence else ln)
+            return "\n".join(out)
           for md in root.rglob("*.md"):
             if any(part.startswith('.') or part in ('source', 'node_modules')
                    for part in md.parts):
               continue
-            text = md.read_text()
+            text = strip_fenced(md.read_text())
             for m in LINK_RE.finditer(text):
               target = (md.parent / m.group(1)).resolve()
               if not target.exists():

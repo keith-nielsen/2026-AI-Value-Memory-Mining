@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.29] - 2026-07-18
+
+### Changed
+- **Ceremony enumeration and verification deliverables are now command transcripts**
+  (`require-transcript-verification`, ADR-0031): Gate 1's blast radius must be a pasted,
+  re-runnable command transcript with full untruncated output and per-hit disposition; Gate 3
+  results are evidenced by tally/diff/exit status — shell-printed verdict strings (`echo "ok"`)
+  no longer count; Gate 4's second review re-runs the transcript and diffs. The
+  `constitution-override` template gains a mandatory transcript block + two checkboxes;
+  `AGENTS.md` generalizes the rule to all governed work and adds the delivery-channel rule
+  (commands name actor + channel; long content travels as a file, never an interactive paste).
+  `agent-integration` spec: +1 Requirement ("Verification Deliverables Are Transcripts").
+
 ## [0.1.28] - 2026-07-18
 
 ### Fixed

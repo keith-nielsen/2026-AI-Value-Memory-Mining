@@ -169,6 +169,17 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   the LOCKSTEP scaffold (`99-Operations/scripts/` + `schemas/`) between `vault-template/` and the live
   vault and exits non-zero on any `DIFFERS`/`MISSING-*`. `reconcile` does NOT cover this axis (it is
   note → `~/bin`, not template → live).
+- **A checklist step that says *enumerate* or *verify* is satisfied only by a pasted,
+  re-runnable command transcript** — the command plus its full output, never a list or a
+  verdict composed from reasoning, and never `head`/`tail`-truncated (narrowing the output
+  is the same defect as narrowing the scope). Corollary: **never let the shell print a
+  literal verdict string** — `ok` / `clean` / `pass` inside an `echo` is unearned; print
+  evidence (a count with its denominator, a diff, an exit status) and read it (ADR-0031).
+- **A command handed to the operator names its execution path** — who runs it (actor) and
+  what channel it travels through (terminal paste, editor, file apply). Long or multi-line
+  content is delivered as a file the operator applies, never a long interactive paste — the
+  interactive prompt reflows and corrupts long pastes (ADR-0031; failure F14 in the live
+  vault's determinism-failure-modes record).
 
 ## Things never to do
 

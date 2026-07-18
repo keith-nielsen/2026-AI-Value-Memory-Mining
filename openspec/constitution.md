@@ -152,7 +152,12 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 - Name the principle ID(s) being overridden.
 - Restate the "what breaks" consequences **in the proposer's own words**.
 - Enumerate the full blast radius: every spec, script, template, diagram, and
-  vocabulary term that references the element.
+  vocabulary term that references the element — delivered as a **pasted,
+  re-runnable command transcript** (the exact search command(s) plus their full,
+  untruncated output), never a list composed from reasoning. Enumeration is
+  bounded by the corpus, not by what the proposer thought of; the command set
+  must sweep the whole repo (`openspec/ vault-template/ docs/ .github/ README.md
+  AGENTS.md CONTRIBUTING.md`).
 
 ### Gate 2 — PLAN (migration + regression)
 - A written migration plan covering every artifact in the blast radius.
@@ -163,9 +168,15 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 ### Gate 3 — EXECUTE + REGRESSION-TEST
 - Implement the change.
 - All named tests and CI pass green before Gate 4.
+- Every named test/lint result is evidenced by its command and output — a tally
+  with its denominator, a diff, or an exit status — never by a prose assertion
+  or a shell-printed verdict string (an `echo "ok"` proves nothing: the shell
+  knows only an exit code, not the answer to the question asked).
 
 ### Gate 4 — RE-CHECK + HUMAN SIGN-OFF
-- A second review confirming the blast radius was fully addressed.
+- A second review confirming the blast radius was fully addressed — by
+  re-running the Gate-1 transcript and diffing its output against the proposal,
+  not by re-reading the composed sections.
 - Consequences are explicitly accepted.
 - **Explicit human sign-off recorded** (not agent-delegatable).
 - An ADR captures context / options / choice / consequence / **sacrifice**.
