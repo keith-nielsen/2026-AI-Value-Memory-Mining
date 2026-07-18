@@ -23,22 +23,27 @@ edits to `vault-template/` or `openspec/specs/`.
 After a change is merged to `main`, the ship is **not complete** until a GitHub **Release object**
 exists for the new version. A git tag and a GitHub Release are different objects — pushing a tag does
 **not** create a Release, and the Releases page / profile badge track the newest *Release*, not the
-newest tag. Every `vX.Y.Z` tag gets a Release, created and verified as the final ship steps:
+newest tag. The ceremony is driven by the guarded state machine `tools/ship-release.py`:
 
 ```
-1. git tag -a vX.Y.Z -m "vX.Y.Z — <title>"
-2. git push origin main --follow-tags
-3. gh release create vX.Y.Z --verify-tag --latest \
-     -t "vX.Y.Z — <title>" -n "<notes from the tag / CHANGELOG>"
-4. gh release view vX.Y.Z            # PARITY CHECK — must resolve and be marked Latest
-5. Mirror any vault-template hook/guard change into the live vault (operator action)
+1. tools/ship-release.py vX.Y.Z      # proves merge-ancestor + CHANGELOG entry, refuses stale
+                                     # tags naming the true cause, cuts + verifies the local tag,
+                                     # then EMITS the next single outward command and exits 2
+2. Run exactly the emitted command (git push origin refs/tags/vX.Y.Z, later
+   gh release create vX.Y.Z --verify-tag --latest …) through the normal gated channel
+3. Re-run tools/ship-release.py vX.Y.Z — it verifies the mutation actually landed
+   (per layer: remote-tag, release-object) before emitting the next step
+4. Repeat until it prints the tag↔Release PARITY TALLY with its denominators and exits 0
+5. Mirror any vault-template hook/guard change into the live vault (operator action),
+   then prove it: tools/template-parity.py <VAULT_ROOT>
 ```
 
-Steps 2–3 are outward operations: the INV-14 outbound guard raises a hard stop, and the operator
-approves each deliberately after reviewing the overview summary + `proposal.md`. Because release
-creation and verification are part of the same ceremony that cuts the tag, a tag can never again
-accumulate without its Release (the drift that stranded the Releases page at v0.1.13 while tags ran to
-v0.1.22).
+The driver deliberately **never executes the outward commands itself** — `git push` and
+`gh release create` are ASK-gated by the INV-14 outbound guard, and the operator approves each
+deliberately after reviewing the overview summary + `proposal.md`. Because release creation and
+verification are steps the driver refuses to skip, a tag can never again accumulate without its
+Release (the drift that stranded the Releases page at v0.1.13 while tags ran to v0.1.22 — and the
+F10 record of seven false starts in one hand-driven ship is why the guards exist).
 
 ### Touching a constitutional element?
 

@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **GitHub ceremony tools** (`add-ship-ceremony-tools`): two repo-owned, stdlib-only tools that move
+  the documented F10/F21 GitHub hazards out of agent recall and into guard clauses at the point of
+  action (failure-modes fix program, item 3). `tools/ship-release.py` walks the tag→Release ceremony
+  as a guarded, re-entrant state machine — merge-ancestor proof before any tag exists, CHANGELOG-entry
+  proof, stale-tag refusals that name the true cause with both commits, per-layer post-mutation
+  verification, and a closing tag↔Release parity tally with denominators — and **never executes an
+  outward mutation itself**: it emits each `git push` / `gh release create` for a visible run through
+  the INV-14 ASK guard. `tools/pr-state.py` reports PR state with the answering layer named on every
+  line (pr-state-machine / branch / check-aggregation / workflow-run / event-payload), prints
+  `LAYERS-DISAGREE:` as a signal instead of confusion, and flags the deleted-base stacked-PR hazard.
+  `maintenance` spec: +2 Requirements. Conforming amendment, no ADR (template-parity precedent).
+
 ## [0.1.29] - 2026-07-18
 
 ### Changed

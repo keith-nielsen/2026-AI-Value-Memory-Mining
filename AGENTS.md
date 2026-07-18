@@ -160,9 +160,17 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   governing `proposal.md`**. The guard judges "vault or not" by the command's *effective target*
   (`cd`/`git -C`/`gh -R`), not the shell cwd — so a sibling-repo publish is *asked*, a vault-outward one
   is *denied*. Never route around the ASK "to be helpful."
-- **Every version tag ships with a GitHub Release.** A tag ≠ a Release; after merge, cut the tag, then
-  `gh release create <tag> --verify-tag --latest`, then verify with `gh release view <tag>` (see
-  CONTRIBUTING → "Shipping a version"). A tag without a Release is an incomplete ship.
+- **Every version tag ships with a GitHub Release — walk the ship with `tools/ship-release.py
+  vX.Y.Z`.** A tag ≠ a Release. The driver proves the merge-ancestor + CHANGELOG guards, cuts and
+  verifies the local tag, then emits each outward command (`git push`, `gh release create`) for you
+  to run through the INV-14 ASK — it never runs them itself — and re-verifies per layer on each
+  re-run until the tag↔Release parity tally is clean (see CONTRIBUTING → "Shipping a version").
+  Do not hand-compose the ceremony; the driver's refusals encode the F10 record.
+- **Confusing PR state? Run `tools/pr-state.py <PR#>` before acting.** GitHub answers through
+  layers (event payload · workflow run · check aggregation · REST · GraphQL · branch state) that
+  disagree while all being correct; the reporter names the layer on every line, prints
+  `LAYERS-DISAGREE:` when aggregations split, and flags the deleted-base/stacked-PR hazard. It is
+  also the mandatory re-read after any `gh`/GraphQL mutation — never trust a silent success (F21).
 - **After a post-merge mirror into the live vault, prove it.** A mirror is a manual `cp` with no
   built-in completeness check — an unfinished apply (file deployed but its INV-3 source note stale, or
   a file missed) looks identical to done. Run `tools/template-parity.py <VAULT_ROOT>`: it byte-compares
