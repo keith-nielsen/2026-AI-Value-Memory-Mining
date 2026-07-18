@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.28] - 2026-07-18
+
 ### Fixed
 - **Refine executor catalog linking is now idempotent** (`fix-append-idempotent-catalog-link`):
   `bank-execute` appended `- [[<stem>]]` to every `index_links` target unconditionally, so an
