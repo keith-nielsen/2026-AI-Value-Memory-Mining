@@ -52,7 +52,7 @@ becomes guarded single invocations plus the human gates.
 - **`tools/ship-release.py`** (new): the driver. Exit `0` ship complete · `1` refused · `2` next
   gated command emitted · `3` blocked.
 - **`tools/pr-state.py`** (new): the reporter. Exit `0` report delivered · `3` blocked.
-- **`tests/test_ceremony_tools.py`** (new): 11 subprocess-driven cases over a real work repo +
+- **`tests/test_ceremony_tools.py`** (new): 12 subprocess-driven cases over a real work repo +
   local bare origin (all git layers real, offline); only `gh` is stubbed, and only for reads —
   the tools never execute `gh` mutations.
 - **`CONTRIBUTING.md`:** the "Shipping a version" numbered ceremony is re-anchored on the driver
@@ -155,12 +155,13 @@ Change surfaces (each declared in the PR scope block):
 
 ## Gate 3 — EXECUTE + REGRESSION-TEST
 
-- `tests/test_ceremony_tools.py` — **11 passed** locally (transcript in tasks.md §3): the full
+- `tests/test_ceremony_tools.py` — **12 passed** locally (transcript in tasks.md §3): the full
   ceremony walk (guards → local tag → emitted push → verified remote tag → emitted release →
   parity `0` missing), unmerged-target refusal with no tag left behind, missing-CHANGELOG
   refusal, stale-local-tag refusal naming both commits (and NOT mis-reporting "not merged"),
   remote-tag-wrong-commit refusal, parity-gap detection; reporter layer coverage,
-  LAYERS-DISAGREE, deleted-base HAZARD, blocked-PR-not-found.
+  LAYERS-DISAGREE (settled layers only; pending is its own bucket), deleted-base HAZARD,
+  blocked-PR-not-found.
 - `openspec validate add-ship-ceremony-tools --strict` green (transcript in tasks.md §3).
 - Full local `pytest` green; CI green on the PR = Gate 3 complete.
 

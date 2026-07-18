@@ -20,7 +20,7 @@
 - [x] 2.2 `tools/pr-state.py` — per-layer reporter (pr-state-machine / branch /
       check-aggregation / workflow-run / event-payload advisory), LAYERS-DISAGREE signal,
       HAZARD lines for deleted base + stale head oid; exit 0/3
-- [x] 2.3 `tests/test_ceremony_tools.py` — 11 cases; real git against a local bare origin,
+- [x] 2.3 `tests/test_ceremony_tools.py` — 12 cases; real git against a local bare origin,
       stub `gh` serving reads from fixture files
 - [x] 2.4 Spec delta: `maintenance` +2 ADDED Requirements, 7 scenarios
 - [x] 2.5 CONTRIBUTING.md ship section re-anchored on the driver
@@ -34,8 +34,8 @@
 
 ```
 $ python3 -m pytest tests/test_ceremony_tools.py -q
-...........                                                              [100%]
-11 passed in 1.80s
+............                                                             [100%]
+12 passed in 1.87s
 ```
 
 - [x] 3.2 Change validates strict:
@@ -61,8 +61,8 @@ $ npx openspec validate --all --strict
 Totals: 8 passed, 0 failed (8 items)
 
 $ python3 -m pytest -q
-........................................................                 [100%]
-56 passed in 8.38s
+.........................................................                [100%]
+57 passed in 8.53s
 ```
 - [ ] 3.4 PR CI green (scope-review PASS on the declared block)
 
