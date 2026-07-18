@@ -97,7 +97,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
 │   ├── constitution.md          #   constitutional protection + Informed-Upheaval Protocol
-│   ├── adr/                     #   30 Architecture Decision Records (ADR-0001–0030)
+│   ├── adr/                     #   31 Architecture Decision Records (ADR-0001–0031)
 │   ├── specs/                   #   6 capability specs (vault-structure, value-pipeline, …)
 │   └── changes/                 #   change workflow: archive/, live/, templates/
 │

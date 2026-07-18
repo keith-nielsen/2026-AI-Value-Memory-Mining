@@ -340,3 +340,14 @@ R  openspec/changes/require-transcript-verification/specs/agent-integration/spec
 R  openspec/changes/require-transcript-verification/tasks.md -> openspec/changes/archive/2026-07-18-require-transcript-verification/tasks.md
 M  openspec/specs/agent-integration/spec.md
 ```
+
+### Post-archive correction (2026-07-18, caught by the adr-count guard on PR #33)
+
+The task-0/task-6 enumeration command for ADR counts — `grep -rn '[0-9][0-9] ADRs' …` — was
+too narrow: it missed `README.md:100`, which spells the count as `30 Architecture Decision
+Records (ADR-0001–0030)` in the directory-tree comment. The mechanical guard (which matches
+both spellings) failed the PR and the line is now corrected to 31/0031. Recorded per this
+change's own rule: the transcript was re-runnable and the reviewer-guard re-ran it with better
+coverage — the miss was in the *command's pattern*, which is exactly why the transcript (not
+the author's diligence) is the reviewable artifact. A future enumeration for counts should
+match both `N ADRs` and `N Architecture Decision Records`.
