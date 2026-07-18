@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0031 — Ceremony enumeration and verification deliverables are command transcripts
 
-**Status:** Proposed (2026-07-18)
+**Status:** Accepted (2026-07-18 — operator proposal sign-off in-session; final Gate-4 re-check at PR merge)
 **Change:** `require-transcript-verification`
 **Relates to:** ADR-0030 (mechanical over conventional enforcement), the
 `determinism-failure-modes-claude` record (F8, F9, F14, F17, F20) and its root-cause synthesis
