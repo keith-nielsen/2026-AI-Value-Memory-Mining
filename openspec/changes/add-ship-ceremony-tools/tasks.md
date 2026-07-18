@@ -64,11 +64,32 @@ $ python3 -m pytest -q
 .........................................................                [100%]
 57 passed in 8.53s
 ```
-- [ ] 3.4 PR CI green (scope-review PASS on the declared block)
+- [x] 3.4 PR #34 CI green — all checks pass incl. `Scope review (declared-scope gate, burn-in)`
+      (per-job transcript in the PR's checks tab; watched to completion, exit 0)
 
 ## 4. Ceremony
-- [ ] 4.1 Gate-4 re-check: re-run the Gate-1 sweep on the final branch and diff against the
-      proposal (transcript recorded here)
+- [x] 4.1 Gate-4 re-check: Gate-1 sweeps re-run on the final branch and diffed against the
+      proposal —
+
+```
+$ grep -rn "ship-release\|pr-state" openspec/ vault-template/ docs/ .github/ README.md AGENTS.md CONTRIBUTING.md --include='*' | grep -v "changes/add-ship-ceremony-tools/" | grep -c .
+6
+$ grep -rln "ship-release\|pr-state" openspec/ vault-template/ docs/ .github/ README.md AGENTS.md CONTRIBUTING.md | grep -v "changes/add-ship-ceremony-tools/"
+README.md
+CONTRIBUTING.md
+AGENTS.md
+$ grep -rln "gh release create" openspec/specs/ vault-template/ docs/ .github/ README.md AGENTS.md CONTRIBUTING.md
+openspec/specs/access-control/spec.md
+vault-template/99-Operations/scripts/outbound-publish-guard-script.md
+openspec/specs/maintenance/spec.md
+CONTRIBUTING.md
+AGENTS.md
+```
+
+      Diff vs Gate-1: sweep 1 moved 0 → 6 hits, all inside the three doc surfaces this change
+      declares and edits (README/CONTRIBUTING/AGENTS); sweep 2's file set is unchanged (5 files —
+      the two declared doc edits, the three not-edited hits still not edited). Nothing outside
+      the declared blast radius references the tools.
 - [ ] 4.2 Gate-4 human sign-off (operator reviews proposal.md, replies Approved; recorded in
       proposal.md)
 - [ ] 4.3 Merge; archive (batch-archive-in-merge-order relative to `add-telemetry-segment` if it
