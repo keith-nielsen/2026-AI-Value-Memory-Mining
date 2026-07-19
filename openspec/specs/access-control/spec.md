@@ -39,7 +39,7 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 | `20-Claims/` | RW | RW² | RW | Capture zone — agent may capture directly |
 | `20-Claims/_refine-proposals/` | R | W | R | Agent deposit point |
 | `20-Claims/_refine-approved/` | W | — | R | **The gate.** Agent cannot self-promote. |
-| `10-Logbook/` | RW | R | RW | Working area — framework generates nothing here (ADR-0032) |
+| `10-Logbook/` | RW | **RW**⁷ | RW | Working area — framework neither generates nor polices (ADR-0032, ADR-0033) |
 | `30-Sites/<assigned>` | RW | RW¹ | RW | Agent writes only to its assigned Site |
 | `30-Sites/<other>` | RW | — | RW | Agent cannot touch other Sites |
 | `40-Treasury/` | RW | R³ | gated-W⁴ | Crown jewels — INV-4 |
@@ -60,7 +60,8 @@ layer model.
 ³ Agent read of Treasury is restricted during cloud bootstrap; full read only under local/egress-controlled model.  
 ⁴ Script writes Treasury only when applying a human-approved proposal from `_refine-approved/`.  
 ⁵ Future agent access (Mint/Forge) to be scoped when those segments are designed.  
-⁶ Crucible uses an independent model/operator by design; main agent excluded (INV-8).
+⁶ Crucible uses an independent model/operator by design; main agent excluded (INV-8).  
+⁷ Agent write to `10-Logbook/` is permitted at both enforcement layers (ADR-0033): the framework owns no artifact there after ADR-0032 retired the daily cycle, and the silo is the write target for whatever external harness drives the effort cadence. INV-11 naming still applies at commit time — pre-action prevention is withdrawn, commit-time enforcement is not.
 
 #### Scenario: Agent cannot write Treasury directly
 - **WHEN** an agent process attempts to write any file under `40-Treasury/`
@@ -83,6 +84,13 @@ layer model.
   no INV-4/INV-5 zone is touched
 - **THEN** promotion of any resulting value into `40-Treasury/` still requires the human
   `_refine-approved/` gate
+
+#### Scenario: The Logbook is agent-writable at both layers
+- **WHEN** the Agent writes a file under `10-Logbook/` — via a harness file tool or via a shell command
+- **THEN** the write succeeds: no permission deny rule matches the path, and the OS sandbox does not
+  list the silo in `denyWrite`
+- **THEN** the `core.hooksPath` pre-commit gate still applies INV-11 naming to the staged filename —
+  withdrawing pre-action prevention does not withdraw commit-time enforcement
 
 ### Requirement: Bounded Write Scope (INV-4)
 
@@ -243,18 +251,25 @@ post-hoc commit-gate ("OS-level enforcement is deferred per §14.1" is hereby un
 - **Shell layer (OS sandbox):** every Agent shell command and all of its child processes — including
   arbitrary interpreters (`python3 -c`, `perl -e`, …) invisible to command-text inspection — run inside
   an OS-enforced sandbox (bubblewrap on Linux, Seatbelt on macOS) whose filesystem policy denies writes
-  to `40-Treasury/`, `99-Operations/`, `.claude/`, `96-Runbooks/`, `97-Molds/`, and `10-Logbook/`.
+  to `40-Treasury/`, `99-Operations/`, `.claude/`, `96-Runbooks/`, and `97-Molds/`.
   Out-of-vault writes are denied by default and re-allowed only for operator-listed paths.
 - **Structured-tool layer (harness permission rules):** the harness's file tools (Edit/Write and
   equivalents), which bypass the shell sandbox by design, are bound by declarative deny rules covering
   the same protected areas.
 
-**On `10-Logbook/`:** the silo remains denied at the shell layer. With the daily-close cycle retired
-(ADR-0032) there is no script-owned artifact within it and no agent-writable sidecar; the former
-tool-layer rule for `10-Logbook/Daily/*.md` and the disposition-sidecar carve-out are both removed
-because their subjects no longer exist. Whether `10-Logbook/` should become an agent-writable working
-area is a **widening of write scope** and a separate governed decision on the ADR-0025 model — it is
-deliberately NOT taken here.
+**On `10-Logbook/` (ADR-0033):** the silo is **not** in the denied set at either layer, and carries no
+tool-layer `Edit(...)` rule. This is deliberate and is the second recorded widening of agent write
+scope (after ADR-0025's `20-Claims/` capture permission). The justification is that the framework owns
+**no artifact** there: ADR-0032 retired the daily note, its close cycle and the disposition sidecar,
+leaving a silo the framework neither generates into nor reads from. A deny rule requires a subject; a
+narrower tool-layer rule would assert an ownership that no longer exists. **A widening is only ever
+made by a governed change** — a protected area is never opened as a side effect of another change, and
+never by editing a deployed `.claude/settings.json` alone.
+
+**Re-establishing protection is a deliberate act.** Should a future governed artifact live under
+`10-Logbook/`, the four-layer shape that previously protected it (tool-layer deny · kernel deny ·
+exact-form command exclusion · one disjoint typed slot) MUST be re-established explicitly by its own
+change. It does not return by default.
 
 **Script drive path:** the Agent MAY drive an owning script (the F13 "drive, never reproduce" rule) via
 an operator-maintained exclusion list of **exact rendered-script invocations**; an excluded command
@@ -273,7 +288,8 @@ reduced-trust and must be declared, not assumed equivalent.
 
 #### Scenario: Shell write to a protected area is denied at the kernel
 - **WHEN** an Agent shell command — directly, via redirection, or via any child process or interpreter —
-  attempts to create, modify, or delete a file under a denied area (e.g. `40-Treasury/`, `10-Logbook/`)
+  attempts to create, modify, or delete a file under a denied area (e.g. `40-Treasury/`,
+  `99-Operations/`, `.claude/`)
 - **THEN** the operating-system sandbox refuses the write before it occurs; no commit-gate or agent
   cooperation is involved
 
@@ -281,10 +297,17 @@ reduced-trust and must be declared, not assumed equivalent.
 - **WHEN** the Agent invokes a harness file tool against a script-owned or protected artifact
   (e.g. `99-Operations/scripts/<script>.md`, `97-Molds/<mold>.md`, `40-Treasury/<note>.md`)
 - **THEN** the harness permission layer denies the call pre-action
-- **AND** no carve-out exists inside `10-Logbook/`: the disposition sidecar was retired with the
-  daily-close cycle (ADR-0032), so the silo has no agent-writable path at either layer
+- **AND** the same call against a path under `10-Logbook/` succeeds — the silo carries no deny rule
+  at either layer (ADR-0033)
 
 #### Scenario: Driving a script is permitted only by exact invocation
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
   `~/bin/vault-refine-execute.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
+
+#### Scenario: Opening a protected area requires a governed change
+- **WHEN** an area is removed from the denied set at either enforcement layer
+- **THEN** the removal is carried by its own governed change with an ADR stating what protection is
+  withdrawn and what is accepted in exchange — a deployed vault's `.claude/settings.json` edit alone
+  does NOT constitute the decision, because instance config is SEED and does not propagate to forks
+

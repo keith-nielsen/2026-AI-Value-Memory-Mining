@@ -169,9 +169,18 @@ JSON** and their `deny` / `denyWrite` / `excludedCommands` arrays enumerated, ra
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff
-- [ ] Consequences explicitly accepted (ADR-0033 "Consequence / sacrifice"): agents may write anything
-      into `10-Logbook/` unsupervised and unvalidated by this framework — the first Layer-2 area it
-      declines to police at all; the F13 vector loses its structural block on this path; re-protection
-      requires a deliberate future change following `sidecar-typed-slot-pattern.md`
-- [ ] Human sign-off recorded: **Approved — Keith Nielsen, <date>**
+- [x] Blast radius re-checked — the Gate-1 sweep above **is** the re-check: its first draft was
+      composed and wrong (6 files vs 16), and executing it falsified two claims in ADR-0033, both
+      corrected. Recorded as **F23** in the vault failure catalog rather than smoothed over.
+- [x] Consequences explicitly accepted (ADR-0033 "Consequence / sacrifice"): agents may write into
+      `10-Logbook/` without pre-action prevention and without content validation — the first Layer-2
+      area whose *content* the framework declines to govern; the F13 vector loses its structural block
+      on this path (mitigated only by its target artifact no longer existing); re-protection requires
+      a deliberate future change following `sidecar-typed-slot-pattern.md`. **Surviving rails,
+      verified not assumed:** INV-11 naming (commit-gate + `vault-lint.py`) and INV-14 publication
+      default-deny.
+- [x] Naming decision recorded: **option (a)** — INV-11 floor kept, no Logbook carve-out; required no
+      change, since naming lives outside `settings.json` (operator, 2026-07-19)
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-19** (operator reviewed the
+      proposal and ADR-0033 and replied `Approved`; recorded by Claude Code per the standing Gate-4
+      ritual — the human decision is the operator's reply, the agent only transcribes it)

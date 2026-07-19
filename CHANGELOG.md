@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.32] - 2026-07-19
+
 ### Changed
 - **`10-Logbook/` is now agent-writable at both enforcement layers** (`open-logbook-write-scope`,
   **ADR-0033**): `./10-Logbook` leaves `sandbox.filesystem.denyWrite`, and no tool-layer `Edit(...)`
