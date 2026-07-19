@@ -29,6 +29,17 @@ area moves; CI green.
 - [ ] 3.1 `pytest` green
 - [ ] 3.2 `validate-scripts.sh` green
 - [ ] 3.3 Confirm no other area left either denied set — parse both settings files and enumerate
+- [x] 3.4 **Naming decision recorded: option (a)** — INV-11 stays vault-wide, no Logbook carve-out
+      (operator, 2026-07-19). **No change required**: naming lives in `vault_naming.py --check-strict`
+      + the commit-gate, not in `settings.json`. Verified against the operator's expected patterns —
+      `2026-07-19.md` exempt; `2026-07-19-whatever.md` and `effort-audit-trail.md` pass;
+      `hermes-log.md`, `log.md`, `notes.md`, `Hermes_Log.md` all `INVALID … fewer than 3
+      hyphen-tokens (INV-11 floor)`. **Note:** the first run of this check used `--check` and returned
+      `rc=0` for every name including `log.md` — a mode structurally unable to fail (F20 shape);
+      `--check-strict` is the mode that carries the floor (ADR-0030)
+- [x] 3.5 Enforcement limits documented in ADR-0033 after reading the gate: commit-time only, `*.md`
+      only (**non-Markdown in `10-Logbook/` is unchecked**), `--diff-filter=AR` only, bypassable via
+      `--no-verify` / an unconfigured `core.hooksPath`
 
 ## 4. Live vault
 

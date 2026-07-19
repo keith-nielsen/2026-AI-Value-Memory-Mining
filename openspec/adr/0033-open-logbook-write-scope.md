@@ -92,10 +92,13 @@ What is withdrawn is **pre-action write prevention**, not the commit-time and fo
     "40-Treasury/Catalog"]` applying the INV-11 kebab/token rules to every `.md` stem (honouring the
     `YYYY-MM-DD.md` exemption ADR-0032 retained). A junk filename in the Logbook still fails the
     linter and still blocks a commit.
-  - **Publication is still denied.** `publish-manifest.json` lists `10-Logbook/**` under
-    `never_publish_examples`, so INV-14's path-level boundary continues to exclude the silo from any
-    public remote. **Opening write scope does not open publication** — the two are independent rails
-    and only one moves here.
+  - **Publication is still denied — by default-deny, not by a list.** `push-guard-script` reads only
+    `publish-manifest.json`'s **`public_allow`**, and `10-Logbook/` is absent from it, so the silo is
+    excluded from any public remote. (`never_publish_examples`, which also names `10-Logbook/**`, is
+    **illustrative only** — no code reads it; citing it as the mechanism would credit the wrong rail
+    for a real protection, the F22 error one level down.) **Opening write scope does not open
+    publication:** the two are independent, and only one moves here. The fail-safe direction is the
+    right one — a new path stays private until explicitly allowed.
   What is genuinely withdrawn is **pre-action write prevention** and **content validation**: no
   frontmatter schema governs Logbook files (the `daily` type retired with ADR-0032), so a
   well-*named* but semantically spurious file is not detected until a human looks. That is the honest
@@ -108,6 +111,28 @@ What is withdrawn is **pre-action write prevention**, not the commit-time and fo
   here, the block must be **re-established deliberately**, and the four-layer shape for doing so is
   recorded in the Site's `sidecar-typed-slot-pattern.md`. This ADR is the reason that note was written
   before the scripts were deleted.
+- **Naming stays enforced vault-wide; no Logbook carve-out (operator, 2026-07-19).** Asked whether
+  INV-11 should be relaxed here to match "not policed", the operator chose to **keep the floor**:
+  *"entries into the logbook should respect kebab-case-token so that they don't fuck up the Obsidian
+  db with obscure non-intuitive names … ultimately the harness can do what it likes, but restricting
+  it to 3token-kebab-case is a minimum at least."* The expected shape is `yyyy-mm-dd-whatever.md`,
+  which clears the floor on the date's three tokens alone, leaving the suffix unconstrained. **This
+  required no change** — `settings.json` governs write permission; `vault_naming.py --check-strict`
+  and the commit-gate govern names, and neither was touched.
+  **Honest bound on that enforcement, verified by reading the gate:** it fires at **commit** time on
+  **newly added or renamed `*.md` only** (`--diff-filter=AR`), in a context with `core.hooksPath`
+  configured, and is bypassable with `--no-verify`. **Non-Markdown files in `10-Logbook/` are not
+  name-checked at all** — a JSON/JSONL audit trail would pass unexamined. The floor is real but is a
+  commit-time Markdown floor, not a write-time guarantee; an external harness committing from its own
+  environment is outside it entirely.
+- **Follow-up this change deliberately does not perform: the Phase-1a probe sheet is now stale.**
+  `30-Sites/protocol-harness-framework/proposed-install/phase-1a-acceptance-probes.md` asserts the
+  opposite of the new reality in four rows — **P2** (`python3 -c open('10-Logbook/…')` → *kernel
+  deny*), **T1** (`Write` → `Daily/*.md` → *deny*), **T5** (sidecar *allow*; the sidecar retired with
+  ADR-0032), and **T2/P6** (reference `kanban.md`, retired by ADR-0028). Nothing executes that sheet
+  today, so nothing breaks — but **program item 8 (the ADR-0022 Stage-B strict flip) re-runs it**, and
+  a future session would read correct behaviour as four failures. Updating it belongs to item 8's
+  scope; it is named here so the trap is defused by record rather than discovered under load.
 - **Reversal is one line in two files** (the template and each deployed vault's
   `.claude/settings.json`), with no migration and no data to unwind.
 - **Blast radius is genuinely one silo.** The change touches a single array entry. The reason it
