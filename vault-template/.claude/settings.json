@@ -16,8 +16,7 @@
         "./99-Operations",
         "./.claude",
         "./96-Runbooks",
-        "./97-Molds",
-        "./10-Logbook"
+        "./97-Molds"
       ]
     },
     "excludedCommands": [

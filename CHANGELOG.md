@@ -12,6 +12,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.32] - 2026-07-19
+
+### Changed
+- **`10-Logbook/` is now agent-writable at both enforcement layers** (`open-logbook-write-scope`,
+  **ADR-0033**): `./10-Logbook` leaves `sandbox.filesystem.denyWrite`, and no tool-layer `Edit(...)`
+  rule replaces the one ADR-0032 removed. This is the **second deliberate widening of agent write
+  scope** in the project's history, after ADR-0025 opened `20-Claims/` — recorded as a governed
+  decision precisely because a withdrawn safety rail must never be inferable from a config diff.
+  **Why:** after ADR-0032 the framework owns no artifact in the silo, and the rail was demonstrably
+  what emptied it — agents were denied at both layers, leaving a human in Obsidian as the only
+  possible author, and exactly **one** `daily:` commit exists in the project's history as a result.
+  The silo becomes the working area for whatever external harness drives the effort cadence.
+  **What survives, confirmed by the Gate-1 sweep rather than assumed:** INV-11 naming is still
+  enforced twice (the commit-gate *and* `vault-lint.py`, which walks `10-Logbook/` directly), and
+  `publish-manifest.json` still lists `10-Logbook/**` under `never_publish_examples` — **opening write
+  scope does not open publication**. What is withdrawn is pre-action write prevention and content
+  validation; no frontmatter schema governs the silo. `access-control` spec: 2 Requirements modified,
+  +2 scenarios. All other protected areas unchanged.
+
 ## [0.1.31] - 2026-07-19
 
 ### Removed
