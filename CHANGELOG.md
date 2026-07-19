@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.31] - 2026-07-19
+
 ### Removed
 - **The daily note and its close cycle** (`retire-daily-close-cycle`, **ADR-0032**): the
   `daily-note` / `daily-close` script pair and their deploy targets, the `Daily Close Lifecycle`
