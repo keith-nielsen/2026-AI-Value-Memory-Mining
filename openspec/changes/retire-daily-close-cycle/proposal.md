@@ -2,10 +2,11 @@
 # Constitution Override: retire-daily-close-cycle
 
 **Change type:** `constitution-override`
-**Principle(s) affected:** Touches three `protects:`-tagged specs — `maintenance`
+**Principle(s) affected:** Touches four `protects:`-tagged specs — `maintenance`
 (`protects: [INV-2, INV-3, INV-6]`), `access-control`
-(`protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`), and `vault-structure`
-(`protects: [CONST-02, CONST-04, CONST-05, INV-1, INV-12]`). **No Tier-0/Tier-1 element is overridden
+(`protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`), `vault-structure`
+(`protects: [CONST-02, CONST-04, CONST-05, INV-1, INV-12]`), and `naming-rules`
+(`protects: [INV-11]`). **No Tier-0/Tier-1 element is overridden
 or weakened**, but see the **CONST-04 rationale interaction** flagged below — it is surfaced for
 explicit operator decision per constitution §5, not resolved unilaterally.
 **Tier:** 1-adjacent (retires a fleet pair, a whole Requirement, a note type, and a vocabulary;
@@ -49,6 +50,8 @@ Recorded in `30-Sites/vmm-strategy-roadmap/`.
 - **`access-control` spec:** MODIFY `OS/Harness-Enforced Agent Write Scope` (drop the
   `10-Logbook/Daily/*.md` tool rule and the sidecar carve-out; re-exemplify the drive path with a
   surviving script) and the config-key scenario (drop `DISPOSITIONS`).
+- **`naming-rules` spec:** MODIFY `Token-Minimum Naming` — re-exemplify the silo-section-descriptor
+  scenario on `effort-mold-blank`; retain the date-stem exemption with restated rationale.
 - **`vault-structure` spec:** MODIFY the folder tree (`Daily/`, `daily-mold-blank.md`), the note-type
   table (`daily` row), the `closed` field paragraph, the runbook example, and — **pending operator
   decision** — the CONST-04 ordering rationale and its Scenario.
@@ -129,6 +132,25 @@ why this change is correctly sized:
 
 - **`openspec/specs/vault-structure/spec.md`** — a third protected spec, not previously in scope.
 - **`.github/scripts/validate-scripts.sh`** — a live CI section that will fail on removal.
+
+**Correction — the sweep above was itself incomplete (recorded, not quietly patched).** Its pattern
+omitted the retired *mold*, so a fourth protected spec did not appear. Re-run with the mold included:
+
+```
+$ grep -rln "daily-mold-blank" openspec/specs/ vault-template/ docs/ .github/ README.md AGENTS.md
+openspec/specs/naming-rules/spec.md
+```
+
+`openspec/specs/naming-rules/spec.md` (`protects: [INV-11]`) uses **`daily-mold-blank` as the worked
+example** for the `silo-section-descriptor` convention (L129) — an artifact this change deletes. It
+is added to the delta set and re-exemplified on `effort-mold-blank` (ADR-0028's re-exemplify rule).
+The same spec's date-stem exemption is **retained and its rationale restated**: pre-existing dailies
+stay under the commit gate and `10-Logbook/` remains a manual working area, so the exemption must
+survive the cycle that originally motivated it. **Lesson for Gate 4: a blast-radius sweep is only as
+wide as its pattern — enumerate the artifacts being deleted, then search for each by name.**
+
+Total: **20 files, four protected specs** (`maintenance`, `access-control`, `vault-structure`,
+`naming-rules`).
 
 **Functional-coupling probe — does the pipeline depend on the daily?**
 
