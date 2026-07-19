@@ -12,6 +12,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Changed
+- **The two operator-only fleet paths now fail legibly instead of with a bare traceback**
+  (`fix-operator-only-path-diagnostics`, conforming amendment, **no ADR**). `vault-render.py render`
+  and `vault_naming.py` (emit mode) write *only* into areas the Area Access Matrix withholds from the
+  agent — all 13 `deploy_target`s (`~/bin/` out-of-vault, `99-Operations/hooks/`, `.claude/hooks/`) and
+  `99-Operations/schemas/naming-rules.json` respectively. Both now catch `OSError` with
+  `errno == EROFS`, print a message naming the path, stating the denial is **by design**, and directing
+  the reader to run the step as the operator, then exit **4** (a new code reserved for "denied by
+  design", distinguishable from a genuine fault at exit 1). **Any other `OSError` re-raises unchanged**
+  — a dedicated test guards this with a real `EACCES`, because widening the catch would report a full
+  disk or a permission fault as a governance decision. `reconcile` and `--check`/`--check-strict` exit
+  above the amended blocks and are untouched, so drift detection and **the commit gate keep working**.
+  **Why:** the live-vault exclusion inventory (P17) confirmed both denials are correct and deliberate —
+  the operator chose to add *no* `excludedCommands` entries, keeping the trusted surface minimal — but a
+  bare traceback carries no signal that a failure is intentional, so the reader debugs a deploy fault
+  that does not exist. This gets strictly worse after the Stage-B strict flip, which removes the burn-in
+  fallback. A self-explaining failure is the only documentation channel guaranteed to be open at the
+  moment of confusion.
+  **Deployment note:** the fix ships *inside the script that deploys it*, so it cannot self-deploy —
+  the **operator** must run `render` after this mirrors to a live vault.
+
 ## [0.1.32] - 2026-07-19
 
 ### Changed

@@ -54,7 +54,10 @@ guaranteed to be open exactly when someone is confused.
 - **`vault-template/99-Operations/scripts/naming-rules-script.md`:** identical treatment for the
   emit-mode write. `--check` / `--check-strict` exit *above* this block and are unaffected — **the
   commit gate keeps working**.
-- **`tests/test_fleet.py`:** +2 cases (EROFS → exit 4 + message; non-EROFS `OSError` still raises).
+- **`tests/test_fleet.py`:** **+4 cases** — EROFS → exit 4 + message + no traceback (render *and*
+  naming); `--check-strict` still gates commits while the schema path is unwritable; and a **real
+  `EACCES`** proving a non-EROFS `OSError` still propagates. Planned as +2; see the method note in
+  `tasks.md` §3 for why the split was necessary and why the original test plan was wrong.
 - **`CHANGELOG.md`:** `[Unreleased]` entry.
 
 **Out of scope:** the Stage-B strict flip itself; any `excludedCommands` edit (branch 3 is *no entry* —
@@ -106,9 +109,14 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
 
 ## Gate 3 — EXECUTE + REGRESSION-TEST
 
-- Implementation in this PR. Locally verified so far: both notes still carry **exactly one** code fence
-  and both blocks `ast.parse` clean. Fleet tests + `openspec validate --all --strict` to be recorded
-  here when run.
+- Implementation in this PR. **Locally verified, 2026-07-20:**
+  - `openspec validate --all --strict` → **8 passed, 0 failed**
+  - both notes still carry **exactly one** code fence (B5) and both blocks `ast.parse` clean
+  - `pytest tests/` → **56 passed** (4 new cases included)
+- **Executed, not composed:** the four new cases were run and their output read; the original test plan
+  in `tasks.md` §3.1 was found wrong during execution (`chmod` yields `EACCES`, not `EROFS`, so the
+  planned test would have passed for the wrong reason) and the correction is recorded there rather than
+  quietly re-specified.
 - CI green on the PR = Gate 3 complete (recorded here when checks finish).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF

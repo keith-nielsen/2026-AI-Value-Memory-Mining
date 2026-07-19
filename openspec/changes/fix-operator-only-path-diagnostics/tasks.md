@@ -15,12 +15,26 @@
 - [ ] 2.5 Confirm `reconcile` and `--check`/`--check-strict` paths are untouched by inspection of the
       final diff (they exit above the amended blocks)
 
-## 3. Tests
-- [ ] 3.1 `tests/test_fleet.py` — EROFS on a `deploy_target` yields exit 4 and a message containing
-      "OPERATOR-ONLY"; simulate by rendering into a read-only directory rather than by monkeypatching,
-      so the test exercises the real syscall path
-- [ ] 3.2 `tests/test_fleet.py` — a non-EROFS `OSError` still propagates (guards against the swallow)
-- [ ] 3.3 Full fleet suite green
+## 3. Tests — **+4 cases** (planned as 2; the split below proved necessary)
+- [x] 3.1 `test_render_operator_only_path_explains_itself` — exit 4, message, **no traceback**
+- [x] 3.2 `test_naming_emit_operator_only_path_explains_itself` — same for emit mode
+- [x] 3.3 `test_naming_check_modes_unaffected_by_the_erofs_branch` — `--check-strict` still passes a
+      good name and rejects a 2-token one **while the schema path is unwritable**; the commit gate is
+      the property most likely to be broken by a careless edit here
+- [x] 3.4 `test_non_erofs_oserror_is_not_swallowed` — **real `chmod 0444` → `EACCES`**, asserts the
+      exception propagates and is *not* relabelled as operator-only
+- [x] 3.5 Full suite green — **56 passed**, 2026-07-20
+
+**Method note (planned vs. actual).** Task 3.1 originally said "render into a read-only directory rather
+than monkeypatching, so the test exercises the real syscall path." **That plan was wrong and was
+corrected during execution:** `chmod` produces `EACCES` (13), not `EROFS` (30) — a different errno that
+this feature must deliberately *not* catch. A chmod-based EROFS test would therefore have exercised the
+re-raise branch while appearing to test the operator-only branch, and passed for the wrong reason. Real
+`EROFS` requires a read-only *mount*, unprivileged-unavailable in CI. Resolution: the denied errno is
+injected via a `sitecustomize` shim in the child process (3.1–3.3) — everything else stays real, the
+actual deployed script in a real subprocess running its own except-branch — and the errno that *can* be
+produced for real is used to test the branch that must *not* fire (3.4). Recorded rather than silently
+re-specified.
 
 ## 4. Ceremony
 - [ ] 4.1 `CHANGELOG.md` `[Unreleased]` entry
