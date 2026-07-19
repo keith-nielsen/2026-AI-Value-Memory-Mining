@@ -27,9 +27,12 @@ script is drift by definition.
 
 1. `[gate]` Changed notes reached `99-Operations/scripts/` through the governed path (OpenSpec
    ceremony → merge → operator `cp`) — never ad-hoc edits.
-2. `[script]` `~/bin/vault-render.py render` — deploys all notes; `chmod +x` applied. Targets
-   under `.claude/` and `99-Operations/hooks/` are agent-write-denied areas, so this step is
-   **operator-run**.
+2. `[script]` `~/bin/vault-render.py render` — deploys all notes; `chmod +x` applied. **Wholly
+   operator-run: *every* target is agent-denied, not merely those under `.claude/` and
+   `99-Operations/hooks/`.** `~/bin/` is out-of-vault and default-denied, so a sandboxed agent
+   fails on the **first** note and deploys nothing (verified end-to-end against the live
+   read-only mounts, P17). An agent attempt prints `BLOCKED: cannot write …`, names the
+   operator-only reason, and exits **4** — not a traceback, and not a broken deploy.
 3. `[script]` `~/bin/vault-render.py reconcile` — expect `ok:` for every note, exit 0.
 4. `[human]` On `DRIFT:` output: diff the target against the note, decide which side is truth,
    route a real change through the ceremony if the *note* must change — then re-run `render`.

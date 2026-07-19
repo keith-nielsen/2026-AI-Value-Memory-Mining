@@ -14,8 +14,10 @@ import textwrap
 
 import pytest
 
-# Fleet exit-code contract (vault_lib): 0 ok/no-op · 1 violation · 2 needs-input · 3 gate-blocked.
+# Fleet exit-code contract (vault_lib): 0 ok/no-op · 1 violation · 2 needs-input · 3 gate-blocked
+# · 4 operator-only (write refused by the sandbox on a path the Area Access Matrix denies the agent).
 EXIT_OK, EXIT_VIOLATION, EXIT_NEEDS_INPUT, EXIT_BLOCKED = 0, 1, 2, 3
+EXIT_OPERATOR_ONLY = 4
 
 def make_proposal(fleet, name, **fields):
     fleet.write(f"20-Claims/_refine-approved/{name}.json", json.dumps(fields, indent=2))
@@ -225,6 +227,102 @@ def test_render_fence_lint_flags_double_fence(fleet):
     assert r.returncode == EXIT_VIOLATION
     assert "VIOLATION" in r.stdout
     assert "ore-detect-script.md" in r.stdout
+
+
+# --------------------------------------------------------------------------------------
+# operator-only paths fail legibly (P17 / fix-operator-only-path-diagnostics)
+# --------------------------------------------------------------------------------------
+
+def _erofs_shim(fleet, prefix):
+    """Make `Path.write_text` raise EROFS for paths under `prefix`, in the CHILD process.
+
+    A real `EROFS` needs a read-only *mount*, which is unprivileged-unavailable in CI, and
+    `chmod` yields `EACCES` — a different errno that this feature must deliberately NOT
+    catch (see the re-raise test below, which uses the real syscall). So the denied-errno
+    is injected here while everything else stays real: the actual deployed script, in a
+    real subprocess, running its own except-branch. Returns an env for `subprocess.run`.
+    """
+    shim = fleet.home / "_shim"
+    shim.mkdir(exist_ok=True)
+    (shim / "sitecustomize.py").write_text(textwrap.dedent(f"""
+        import errno, pathlib
+        _PREFIX = {str(prefix)!r}
+        _orig = pathlib.Path.write_text
+        def _write_text(self, *a, **k):
+            if str(self).startswith(_PREFIX):
+                raise OSError(errno.EROFS, "Read-only file system", str(self))
+            return _orig(self, *a, **k)
+        pathlib.Path.write_text = _write_text
+    """))
+    env = fleet.env()
+    env["PYTHONPATH"] = str(shim)
+    return env
+
+
+def test_render_operator_only_path_explains_itself(fleet):
+    # CONTROL FIRST: without the shim the same command must SUCCEED. Without this, an
+    # exit-4 could come from anything and the test would pass for the wrong reason —
+    # the defect that made P5 inert. The control is what makes the denial mean denial.
+    control = fleet.run("vault-render.py", "render")
+    assert control.returncode == EXIT_OK, control.stdout + control.stderr
+
+    # every deploy_target of render lives in an area the matrix denies the agent
+    env = _erofs_shim(fleet, fleet.home / "bin")
+    r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault-render.py"), "render"],
+                       cwd=str(fleet.vault), env=env, capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    assert r.returncode == EXIT_OPERATOR_ONLY, out
+    assert "OPERATOR-ONLY" in out
+    assert "not a broken deploy" in out
+    assert "reconcile" in out                    # points at the still-available read-only mode
+    assert "Traceback" not in out                # the whole point: no bare traceback
+
+
+def test_naming_emit_operator_only_path_explains_itself(fleet):
+    control = fleet.run("vault_naming.py")            # control: succeeds unshimmed
+    assert control.returncode == EXIT_OK, control.stdout + control.stderr
+
+    env = _erofs_shim(fleet, fleet.vault / "99-Operations" / "schemas")
+    r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault_naming.py")],
+                       cwd=str(fleet.vault), env=env, capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    assert r.returncode == EXIT_OPERATOR_ONLY, out
+    assert "OPERATOR-ONLY" in out
+    assert "Traceback" not in out
+
+
+def test_naming_check_modes_unaffected_by_the_erofs_branch(fleet):
+    # --check-strict exits ABOVE the amended write, so the commit gate keeps working even
+    # when the schema path is unwritable — the property most likely to be broken by a
+    # careless edit to this feature
+    env = _erofs_shim(fleet, fleet.vault / "99-Operations" / "schemas")
+    exe = str(fleet.home / "bin" / "vault_naming.py")
+    ok = subprocess.run([sys.executable, exe, "--check-strict", "a-conforming-name.md"],
+                        cwd=str(fleet.vault), env=env, capture_output=True, text=True)
+    bad = subprocess.run([sys.executable, exe, "--check-strict", "two-tokens.md"],
+                         cwd=str(fleet.vault), env=env, capture_output=True, text=True)
+    assert ok.returncode == EXIT_OK, ok.stdout + ok.stderr
+    assert bad.returncode == EXIT_VIOLATION, bad.stdout + bad.stderr
+
+
+def test_non_erofs_oserror_is_not_swallowed(fleet):
+    """A REAL syscall failure with a different errno must propagate, not be relabelled.
+
+    `chmod 0444` on a deploy target yields `EACCES` (13), not `EROFS` (30). If the except
+    branch ever widens to bare `OSError`, a full disk or a permission fault would be
+    reported to the operator as a governance decision — a worse bug than the one the
+    feature fixes. No simulation here: the errno is genuine.
+    """
+    victim = fleet.home / "bin" / "vault-lint.py"
+    victim.chmod(0o444)
+    try:
+        r = fleet.run("vault-render.py", "render")
+        out = r.stdout + r.stderr
+        assert r.returncode != EXIT_OPERATOR_ONLY, out
+        assert "OPERATOR-ONLY" not in out
+        assert "PermissionError" in out or "Errno 13" in out
+    finally:
+        victim.chmod(0o755)
 
 
 # --------------------------------------------------------------------------------------

@@ -52,11 +52,17 @@ Contract (importable module + read-only CLI):
   say(tag, msg)               uniform "TAG: msg" output line.
 Fleet exit-code contract (drivers key on codes, not prose):
   0 EXIT_OK · 1 EXIT_VIOLATION · 2 EXIT_NEEDS_INPUT · 3 EXIT_BLOCKED
+  4 EXIT_OPERATOR_ONLY — a write refused (EROFS) on a path the Area Access Matrix
+    withholds from the agent. Distinct from 1 so a driver can tell "denied by design,
+    re-run as the operator" from a genuine fault. Raised directly by render/naming,
+    not through this module: both amend code paths that cannot import it (ADR-0023's
+    bootstrap exception; naming's lazy import).
 CLI: no args -> read-only self-check (resolved root + vocabulary summary), exits 0/3.
 """
 import os, re, sys, pathlib, subprocess
 
 EXIT_OK, EXIT_VIOLATION, EXIT_NEEDS_INPUT, EXIT_BLOCKED = 0, 1, 2, 3
+EXIT_OPERATOR_ONLY = 4
 _OPS = "99-Operations"
 _CONFIGS = ("config.defaults.env", "config.env")   # read in this order; later wins
 _KV = re.compile(r"^(?:export\s+)?([A-Z][A-Z0-9_]*)=(.*)$")

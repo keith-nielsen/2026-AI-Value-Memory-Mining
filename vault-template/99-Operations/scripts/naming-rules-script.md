@@ -29,7 +29,7 @@ content rules because an external tool or universal convention depends on the ex
 """vault_naming — single source of truth for vault name/slug rules (INV-11).
 Run with no args to (re)write naming-rules.json; --check NAME validates one
 path component and exits 1 on violation."""
-import re, json, unicodedata, pathlib, sys, fnmatch
+import re, json, errno, unicodedata, pathlib, sys, fnmatch
 
 # --- declarative rules (the SSOT data; mirrored to naming-rules.json) ---
 RULES = {
@@ -134,7 +134,20 @@ if __name__ == "__main__":
         sys.exit(0)
     from vault_lib import find_vault_root  # lazy: --check + module import stay dependency-free
     out = find_vault_root() / "99-Operations" / "schemas" / "naming-rules.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(RULES, indent=2))
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(RULES, indent=2))
+    except OSError as exc:
+        if exc.errno != errno.EROFS:
+            raise
+        # Denied by design, not broken. Regenerating a governing schema under
+        # 99-Operations/ is INV-5 territory (matrix: A:-). Only THIS mode writes -
+        # --check and --check-strict exit above, so the commit gate is unaffected.
+        print("BLOCKED: cannot write %s" % out)
+        print("  schema regeneration is an OPERATOR-ONLY path - the agent is denied by design.")
+        print("  This is not a broken script or a bad sandbox config.")
+        print("  Run `vault_naming.py` with no args as the operator.")
+        print("  `--check` / `--check-strict` are read-only and remain available.")
+        raise SystemExit(4)
     print("naming-rules.json written -> %s" % out)
 ```
