@@ -260,6 +260,12 @@ def _erofs_shim(fleet, prefix):
 
 
 def test_render_operator_only_path_explains_itself(fleet):
+    # CONTROL FIRST: without the shim the same command must SUCCEED. Without this, an
+    # exit-4 could come from anything and the test would pass for the wrong reason —
+    # the defect that made P5 inert. The control is what makes the denial mean denial.
+    control = fleet.run("vault-render.py", "render")
+    assert control.returncode == EXIT_OK, control.stdout + control.stderr
+
     # every deploy_target of render lives in an area the matrix denies the agent
     env = _erofs_shim(fleet, fleet.home / "bin")
     r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault-render.py"), "render"],
@@ -273,6 +279,9 @@ def test_render_operator_only_path_explains_itself(fleet):
 
 
 def test_naming_emit_operator_only_path_explains_itself(fleet):
+    control = fleet.run("vault_naming.py")            # control: succeeds unshimmed
+    assert control.returncode == EXIT_OK, control.stdout + control.stderr
+
     env = _erofs_shim(fleet, fleet.vault / "99-Operations" / "schemas")
     r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault_naming.py")],
                        cwd=str(fleet.vault), env=env, capture_output=True, text=True)

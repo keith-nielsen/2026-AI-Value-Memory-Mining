@@ -84,8 +84,16 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
 - [x] `openspec/specs/maintenance/spec.md` — ADDED Requirement (spec delta in this change)
 - [x] `vault-template/99-Operations/scripts/render-reconcile-script.md` — EROFS branch + Rationale
 - [x] `vault-template/99-Operations/scripts/naming-rules-script.md` — EROFS branch + Rationale
-- [x] `tests/test_fleet.py` — +2 behaviour cases
+- [x] `tests/test_fleet.py` — +4 behaviour cases (each with an unshimmed control)
 - [x] `CHANGELOG.md` — `[Unreleased]` entry
+- [x] **`vault-template/99-Operations/scripts/vault-lib-script.md`** — the canonical fleet exit-code
+      contract + `EXIT_OPERATOR_ONLY = 4`. **Surface found late, by audit, not by the original blast
+      radius:** the contract documented `0/1/2/3` and states *"drivers key on codes, not prose"*, so
+      introducing a `4` in two scripts without amending it was real drift
+- [x] **`vault-template/96-Runbooks/render-reconcile-runbook.md`** — step 2 already said "operator-run"
+      (correct, and *not* rewritten), but named only `.claude/` and `99-Operations/hooks/`. P17 showed
+      **every** target is denied — `~/bin/` is out-of-vault and fails *first* — so the runbook
+      understated the scope. Corrected, and the new message + exit 4 documented
 - [ ] `openspec/adr/` + README ADR count — **no change** (conforming amendment, no ADR)
 - [ ] `.claude/settings.json` / `excludedCommands` — **no change, deliberately** (branch 3)
 - [ ] Live vault — **no change in this PR**; the amended notes mirror post-merge, then the **operator**
@@ -117,6 +125,21 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
   in `tasks.md` §3.1 was found wrong during execution (`chmod` yields `EACCES`, not `EROFS`, so the
   planned test would have passed for the wrong reason) and the correction is recorded there rather than
   quietly re-specified.
+- **END-TO-END AGAINST A REAL `EROFS`, 2026-07-20 — the evidence the test suite cannot provide.**
+  The suite *injects* the errno; a real `EROFS` needs a read-only mount. The live vault has one, so both
+  amended code blocks were extracted and run against the live read-only bind mounts as the sandboxed
+  agent:
+  - `render` → `BLOCKED: cannot write /home/administrator/bin/vault-refine-execute.py` + the
+    operator-only lines, **exit 4, no traceback**
+  - `vault_naming.py` (emit) → equivalent message on
+    `99-Operations/schemas/naming-rules.json`, **exit 4**
+  - **Regression, same real conditions:** `--check-strict` still exits **0** on a conforming name and
+    **1** on `two-tokens.md` (commit gate intact); `reconcile` still exits **0** with `ok:` for all 13.
+- **Mutation-tested.** With the shim's prefix broken so it cannot fire, both operator-only tests
+  **FAIL** (`assert 0 == 4`). The tests can express failure; they are not vacuous.
+- **Exit-code collision audit:** `4` is used nowhere else in `vault-template/`, `tools/`, `.github/`,
+  or `tests/`. The one CI caller (`validate-scripts.sh:43`) treats any non-zero as failure, so a `4`
+  there surfaces correctly rather than being swallowed.
 - CI green on the PR = Gate 3 complete (recorded here when checks finish).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
