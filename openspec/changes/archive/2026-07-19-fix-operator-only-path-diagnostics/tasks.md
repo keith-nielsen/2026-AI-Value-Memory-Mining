@@ -52,8 +52,20 @@ re-specified.
       `+1 added, ~0, -0`, requirement present at `openspec/specs/maintenance/spec.md`. **Note:** the
       tool names archive dirs from **UTC**, so this reads `2026-07-19-…` while the CHANGELOG heading
       reads `2026-07-20` — a timezone skew, not a disagreement about when the work happened
-- [ ] 4.6 Merge PR #39
-- [ ] 4.7 `tools/ship-release.py v0.1.33` — re-invoke after each emitted outward command
+- [x] 4.6 **Scope-review FAILED on the archive commit — correctly.** Archiving created 4 surfaces that
+      did not exist when the declaration was written: the three files under
+      `openspec/changes/archive/2026-07-19-…/` and the canonical `openspec/specs/maintenance/spec.md`.
+      Declaration widened to match what archiving actually produces; **the diff was not changed to fit
+      the declaration.** Two hazards hit in the process, both already catalogued:
+      - **F21 (GraphQL vs REST):** `gh pr edit --body-file` **failed, exit 1**, behind the
+        Projects-classic GraphQL deprecation, and the body was **unchanged**. Caught only because the
+        edit was re-read instead of trusted. `gh api … -X PATCH -F body=@…` (REST) succeeded; body
+        re-read to confirm.
+      - **F21 (event-payload snapshot):** the gate reads the PR body from the payload snapshotted at
+        the triggering event, so a *rerun* replays the stale body. A **new commit** is required to mint
+        a fresh event — this one. Same re-mint as `be4383a` on `add-ship-ceremony-tools`.
+- [ ] 4.7 Merge PR #39
+- [ ] 4.8 `tools/ship-release.py v0.1.33` — re-invoke after each emitted outward command
 
 ## 5. Deployment (ORDERING HAZARD — read before shipping)
 - [ ] 5.1 Mirror both amended notes into the live vault
