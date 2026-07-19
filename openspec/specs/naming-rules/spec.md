@@ -105,17 +105,18 @@ The JSON MUST contain: `slug_pattern`, `forbidden_chars`, `reserved_names`, `min
 
 ### Requirement: Token-Minimum Naming (≥3, silo-section-descriptor)
 
-Every `.md` filename stem SHALL carry **at least three hyphen-separated tokens** — three is the
-**floor, not the ceiling**. Authors SHALL use **more than three wherever the additional tokens supply
-human-meaningful specificity**, because the namespace grows contention-prone as broad topics narrow
-and digs reveal sub-sectors needing distinction; richer, more specific names pre-empt the overloading
-that would otherwise collide later.
+Every `.md` stem SHALL carry **at least three hyphen-separated tokens** — a floor, not a ceiling.
+**Use more tokens where they add human-meaningful specificity**, because the namespace grows
+contention-prone as broad topics narrow and digs reveal sub-sectors needing distinction; richer,
+more specific names pre-empt the overloading that would otherwise collide later.
 
 - **System-artifact families** (molds, operational scripts, Catalog indexes, schemas) SHALL use the
   **`silo-section-descriptor`** form, silo (subject) first — e.g. molds `<note-type>-mold-blank`.
 - **Content stems** (Claims, Sites, Treasury notes) SHALL be ≥3-token topic slugs; longer is correct
   where it adds specificity (e.g. `swappable-stages-over-coresident-models`).
-- **Dailies** (`YYYY-MM-DD`) are exempt (date-named).
+- **Date-stemmed notes** (`YYYY-MM-DD`) are exempt (date-named). The exemption is retained after
+  ADR-0032 retired the framework's daily cycle: pre-existing dailies remain under the commit gate,
+  and `10-Logbook/` stays a manual working area where a date-stemmed note may still be authored.
 
 This requirement is a **convention** at this stage: it governs new and renamed names through authoring
 and review. Existing sub-three-token names are **grandfathered**; each family is brought into
@@ -126,19 +127,20 @@ on names not yet renamed).
 
 #### Scenario: A new system-artifact name is silo-section-descriptor, ≥3 tokens
 - **WHEN** a mold, script, Catalog index, or schema artifact is named or renamed
-- **THEN** its stem is silo-first and carries at least three hyphen-separated tokens (e.g. `daily-mold-blank`)
+- **THEN** its stem is silo-first and carries at least three hyphen-separated tokens (e.g. `effort-mold-blank`)
 
 #### Scenario: More tokens where specificity warrants
 - **WHEN** a content topic narrows, or a dig reveals a sub-sector needing distinction
 - **THEN** the stem carries more than three tokens to stay unambiguous (e.g. `swappable-stages-over-coresident-models`) rather than overloading a shorter name
 
 #### Scenario: Dailies are exempt
-- **WHEN** a daily note is named `YYYY-MM-DD`
-- **THEN** the token-minimum does not apply
+- **WHEN** a note is named `YYYY-MM-DD`
+- **THEN** the token-minimum does not apply — regardless of whether the framework generated it
+  (the exemption outlives the retired daily cycle; ADR-0032)
 
 #### Scenario: Existing sub-three-token names are grandfathered at the convention stage
 - **WHEN** this change is in effect and a pre-existing two-token name (e.g. `obsidian-usage`) is present
-- **THEN** it is not rejected — the floor applies to new/renamed names by convention, and mechanical enforcement is deferred to a later change
+- **THEN** it is not renamed by this requirement; each family conforms through its own change
 
 ### Requirement: Special-File Exemptions (INV-11)
 
@@ -224,4 +226,3 @@ rename pass.
 - **THEN** the executor's whole-proposal pre-flight records a floor violation
 - **THEN** it exits `EXIT_VIOLATION` and **no** file is written under `40-Treasury/`
 - **THEN** the executor is never left half-applied by a gate rejection at commit time
-

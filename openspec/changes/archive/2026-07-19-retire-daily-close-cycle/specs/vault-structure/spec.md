@@ -1,39 +1,17 @@
----
-capability: vault-structure
-protects: [CONST-02, CONST-04, CONST-05, INV-1, INV-12]
----
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Spec: vault-structure
+<!--
+  `Folder Structure` is REMOVED-then-ADDED because its scenario "Daily logs sort above the capture
+  inbox" must lose its daily framing under the operator's CONST-04 decision (option ii: keep the
+  ordering, drop the daily-based rationale). The archiver's MODIFIED path cannot express a scenario
+  rename. Every other scenario is restated verbatim; only "Molds are self-identifying folder-notes"
+  changes, and only its count (four molds → three).
+  `Frontmatter Schemas` is a plain MODIFIED — no scenario is removed or renamed there.
+-->
+## REMOVED Requirements
 
-## Purpose
+### Requirement: Folder Structure
 
-Define the physical and conceptual structure of the vault: the folder layout, the
-three-layer model, frontmatter schemas, and note templates. This spec is the
-authority for where things live and what shape they take on disk.
-## Requirements
-### Requirement: Three-Layer Model
-
-The vault SHALL be organized into three named layers with distinct stability and access profiles.
-
-- **Layer 0 — Operations** (`99-Operations/`): the mine's machinery. Human-write-only.
-- **Layer 1 — Treasury** (`40-Treasury/`): refined + polished bullion. Never discarded by automation.
-- **Layer 2 — Workings** (`10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`): temporal capture, active effort, and disposal.
-
-Additional areas outside the layer model: `00-Docs/` (onboarding, deletable),
-`50-Mint/` + `60-Forge/` (future production, deferred), `80-Crucible/` (future
-validation, deferred), `97-Molds/` (infrastructure), and `98-Warehouse/` — the
-**reference stockroom**: retained source/reference material the operation draws on
-repeatedly (binaries *and* digitized references), shelved by media type. It is *not*
-mined value (not Treasury), *not* a working dig (not a Site), and *not* operations
-machinery — it is low-traffic stock kept out of the way.
-
-#### Scenario: Layer 0 is sealed from automation
-- **WHEN** any automated process attempts to write `99-Operations/`
-- **THEN** the write is blocked (INV-5); only human writes are permitted
-
-#### Scenario: Treasury is sealed from direct agent writes
-- **WHEN** an agent process attempts to write directly to `40-Treasury/`
-- **THEN** the write is blocked (INV-4); only the refine executor script may write Treasury, and only when processing an approved proposal
+## ADDED Requirements
 
 ### Requirement: Folder Structure
 
@@ -109,16 +87,7 @@ CONST-04, and conforms to the numbering scheme — it does not override it.
 - **WHEN** a Warehouse shelf folder (e.g. `Books`, `Pictures`) is created or listed
 - **THEN** it must only satisfy the universal path-component rule (cross-platform-safe characters, no reserved device names); the kebab-case / ≥3-token convention does not apply to it, because that convention is scoped to `.md` stems and to `30-Sites/`/`70-Tailings/` effort folders and `40-Treasury/` stems
 
-### Requirement: Format Invariant
-
-All content files SHALL be Markdown (`.md`) with YAML frontmatter, UTF-8 encoded (INV-1).
-No proprietary formats. No binary content files outside `98-Warehouse/`.
-
-#### Scenario: Mold templates are valid frontmatter Markdown
-- **WHEN** all four `97-Molds/` files are parsed
-- **THEN** each parses as valid YAML-frontmatter Markdown with no errors (A0.4)
-
----
+## MODIFIED Requirements
 
 ### Requirement: Frontmatter Schemas
 
@@ -146,23 +115,3 @@ historical artifacts and are not re-validated against this table.
 #### Scenario: A runbook validates against the runbook schema
 - **WHEN** `runbook-lint` runs on a `96-Runbooks/*.md` file
 - **THEN** it exits 0 only if the required frontmatter keys and body sections are all present, and exits 1 otherwise
-
-### Requirement: Pillar Configuration
-
-The canonical set of pillars SHALL be defined in `99-Operations/config.env` as the
-`PILLARS` variable. Pillars are the major, durable life-domains the vault is organized around.
-The default set (`mental health financial social technology calling`) is an example;
-every adopter is expected to replace it with their own durable life-domains.
-
-`calling` is the deliberate catch-all pillar for personal pursuits that don't fit
-the universal pillars — physical practices, devotions, games, craft disciplines.
-
-A candidate earns pillar standing only if it is distinct (non-overlapping domain),
-top-level (life-domain, not a sub-interest), and durable (years, not a phase).
-
-The build creates one `Catalog/` index per pillar plus a Home index. The linter
-validates every note's `pillars` field against the configured set.
-
-#### Scenario: index count matches pillar count
-- **WHEN** Phase 1 build completes
-- **THEN** `count(PILLARS) + 1` Catalog index files exist (one per pillar + `pillar: home`)

@@ -45,7 +45,7 @@ Auto-refine fires for `silver` and `gold` (configurable in `99-Operations/config
 ```
 vault-root/
 ├── 00-Docs/         ← you are here (deletable)
-├── 10-Logbook/      ← daily notes
+├── 10-Logbook/      ← working area (reserved; the framework generates nothing here)
 ├── 20-Claims/       ← raw captures + refine pipeline queue/approved
 ├── 30-Sites/        ← active workings (dig → ore)
 ├── 40-Treasury/     ← refined bullion + Catalog indexes (Layer 1)
@@ -117,21 +117,13 @@ git config core.hooksPath 99-Operations/hooks      # activate commit gate
 For ongoing operations, source `config.env` once per shell session
 (`. 99-Operations/config.env`) so every script sees the configuration it needs.
 
-### 3. Create your first daily note
-
-```bash
-python3 ~/bin/vault-daily-note.py
-```
-
-Or set the cron (see `99-Operations/scripts/daily-note-script.md` for the schedule).
-
-### 4. Stake your first Claim
+### 3. Stake your first Claim
 
 Drop a raw note in `20-Claims/` — a quote, a link, an observation.
 When ready to investigate, create a Site folder in `30-Sites/<slug>/` with an
 `<slug>.md` from the mold (`97-Molds/effort-mold-blank.md`).
 
-### 5. Check for drift (ongoing)
+### 4. Check for drift (ongoing)
 
 ```bash
 python3 ~/bin/vault-render.py reconcile
@@ -167,7 +159,7 @@ python3 ~/bin/vault-cleanup.py    # remove example data
 | INV-11 | All names conform to the naming ruleset (kebab slugs for Treasury/Sites) |
 | INV-12 | Pillars are metadata, never folders under `40-Treasury/` |
 
-Full invariant list: `openspec/project.md` (in the template repo) or the build PRD.
+Full invariant list: `CLAUDE.md` at the vault root.
 
 ---
 

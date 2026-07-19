@@ -73,8 +73,7 @@ so promote it.
 4. **Remove the original claim** from `20-Claims/`. Its content now lives in the Site;
    git history preserves the original, so you don't need a tombstone (a tombstone is
    just another fragment to wander into).
-5. Repoint any `[[claim]]` wikilinks (e.g. in the daily note) to
-   `[[30-Sites/<slug>/<slug>|<slug>]]`, and log the promotion in today's daily.
+5. Repoint any `[[claim]]` wikilinks to `[[30-Sites/<slug>/<slug>|<slug>]]`.
 6. Commit as one structured change (the commit-gate hook validates every name).
 
 **Where's my work? (on resume)** — `30-Sites/` is the index: each folder is a live effort.
@@ -217,15 +216,16 @@ pillar is warranted — that's healthy evolution.
 
 ## The Logbook
 
-`10-Logbook/Daily/` holds your daily notes, created at midnight by the daily-note
-cron. Use them for Intentions (what you plan to extract today), Log (what actually
-happened), Decisions (choices made during the day), and Captured (raw material for
-Claims).
+`10-Logbook/` is a **working area the framework does not generate into** (ADR-0032). It is
+reserved for the effort audit trail written by whatever harness drives your cadence; you may
+also use it manually. The framework itself engages downstream of capture — it refines
+accumulated ore into banked value.
 
-The vault projects no effort state (ADR-0028). There is no board and no daily carry-over
-list: both existed, neither was read, and a projection you must remember to render *and*
-remember to open decays into a stale artifact that answers wrongly rather than admitting it
-cannot. Effort tracking is a distinct lens and lives outside the vault.
+The vault projects no effort state (ADR-0028) and generates no dated note (ADR-0032). A board,
+a carry-over list, and a daily note all existed; none were read, and the daily's record was
+reconstructed *from git* the one time it lapsed — git was already the real log. A projection you
+must remember to render *and* remember to open decays into a stale artifact that answers wrongly
+rather than admitting it cannot. Effort tracking is a distinct lens and lives outside the vault.
 
 ---
 
@@ -234,8 +234,8 @@ cannot. Effort tracking is a distinct lens and lives outside the vault.
 Three execution classes keep the system honest:
 
 - **`[script]`**: Deterministic, no reasoning, no network, no LLM calls. Provably
-  correct for the task it performs (INV-6). These are the workhorses: daily note,
-  lint, refine detect, refine execute, dump, slag. Each is **run on demand** — the vault
+  correct for the task it performs (INV-6). These are the workhorses: lint, refine
+  detect, refine execute, dump, slag. Each is **run on demand** — the vault
   has no scheduler and installs none (ADR-0028).
 
 - **`[agent]`**: Proposes only. Never writes to Treasury or Operations. The human gate

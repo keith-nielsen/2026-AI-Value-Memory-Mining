@@ -222,13 +222,12 @@ any directory, with no pre-sourced environment — invoked by an actor who decid
 This is deliberate. An earlier version of this template declared `cron` schedules in script
 frontmatter and documented crontab lines here. Nothing ever read those declarations: `render`
 deploys code and marks it executable, it does not install schedules. The result was a cadence that
-existed only on paper — and the artifacts built to assume it (a board, a daily carry-over list) went
-unread and stale. A cadence a framework cannot install is a decoration, not a configuration.
+existed only on paper — and the artifacts built to assume it (a board, a carry-over list, and the
+daily note itself) went unread and stale. A cadence a framework cannot install is a decoration, not a configuration.
 
 Run what you need, when you need it:
 
 ```bash
-python3 ~/bin/vault-daily-note.py      # when you sit down to capture
 python3 ~/bin/vault-refine-detect.py   # when you are about to refine
 python3 ~/bin/vault-render.py reconcile  # when a script note changed
 ```
@@ -247,7 +246,7 @@ Open the vault folder in Obsidian. You'll find:
 
 - `00-Docs/README.md` — orientation and getting-started guide (deletable after setup)
 - `40-Treasury/Catalog/home-master-index.md` — master index linking to your pillar indexes
-- `97-Molds/` — note templates (daily, effort, knowledge, index)
+- `97-Molds/` — note templates (effort, knowledge, index)
 - `99-Operations/` — all scripts and config (human-write-only)
 
 For the recommended plugins, settings (incl. the default-new-note-location that keeps
@@ -302,7 +301,6 @@ Then run any operation:
 
 | Task | Command |
 |------|---------|
-| Create today's daily note | `python3 ~/bin/vault-daily-note.py` |
 | Lint the vault | `python3 ~/bin/vault-lint.py` |
 | Find orphaned Treasury notes | `python3 ~/bin/vault-orphans.py` |
 | Slag an effort | Set frontmatter, then `vault-slag.sh <slug>` |

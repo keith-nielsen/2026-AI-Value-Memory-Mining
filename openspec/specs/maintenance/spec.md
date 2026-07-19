@@ -72,23 +72,17 @@ Uncommitted operator working-tree content is never captured by a script commit.
 
 Commit message format: `<verb>: <subject>` (e.g., `bank: trustless-provenance-sealing`).
 
-#### Scenario: A created daily note is committed by its creator
-- **WHEN** the daily-note creator creates today's note
-- **THEN** it produces exactly one commit (`daily: opened <date>`) containing only that note
-- **WHEN** the note already exists
-- **THEN** no commit is produced
-
 #### Scenario: A banked proposal is one atomic commit
 - **WHEN** the refine executor applies an approved proposal
 - **THEN** it produces exactly one commit (`bank: <stem>`) containing the knowledge note, the
   appended Catalog index links, and the consumed proposal's deletion (when the proposal was
   tracked) — and nothing else
 
-#### Scenario: A close seals with a scoped commit, never a sweep
-- **WHEN** `vault-close-day.py` seals a day while unrelated uncommitted changes exist elsewhere
-  in the working tree
-- **THEN** the close commit contains exactly the sealed daily note (plus the consumed worklist
-  sidecar when git tracked it), and the unrelated changes remain uncommitted and untouched
+#### Scenario: A mover seals with a scoped commit, never a sweep
+- **WHEN** `vault-slag.sh <slug>` moves an effort while unrelated uncommitted changes exist
+  elsewhere in the working tree
+- **THEN** the commit contains exactly the moved effort, and the unrelated changes remain
+  uncommitted and untouched
 
 ### Requirement: Script Inventory
 
@@ -100,10 +94,14 @@ carry-over list of outstanding efforts: the vault exists to distil insight, and 
 outstanding effort is a distinct lens delegated outside it. A projection with no consumer is not a
 neutral cost — it decays into a stale artifact that answers wrongly rather than admitting it cannot.
 
+The vault likewise generates **no dated note format**. Capture has a home in `20-Claims/`; the
+framework engages downstream of capture, refining accumulated ore into banked value (ADR-0032). A
+dated log that only a human could author, and that git already records, is a lossy duplicate of the
+commit history rather than a second source.
+
 | Script note | Deploy target | Runtime | Purpose |
 |---|---|---|---|
 | `render-reconcile-script.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
-| `daily-note-script.md` | `~/bin/vault-daily-note.py` | manual | Create today's daily note from Mold; idempotent; commits the created note (`daily: opened <date>`) |
 | `knowledge-lint-script.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
 | `treasury-orphan-script.md` | `~/bin/vault-orphans.py` | manual / weekly | Report Treasury notes not linked from any Catalog index |
 | `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
@@ -111,7 +109,6 @@ neutral cost — it decays into a stale artifact that answers wrongly rather tha
 | `spoil-dump-script.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
 | `site-slag-script.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
 | `tailings-reprospect-script.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
-| `daily-close-script.md` | `~/bin/vault-close-day.py` | manual | Disposition every item of a daily, write the `## Close` manifest, set `closed:`; emits the `unknown/other` worklist; seals with a scoped commit (daily + consumed sidecar), never a sweep |
 | `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
 | `vault-lib-script.md` | `~/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
@@ -134,10 +131,6 @@ public-export/mirror tool.
 Sibling scripts import the shared modules (`vault_naming`, `vault_lib`) from `~/bin` via
 `sys.path.insert(0, str(pathlib.Path.home() / "bin"))`; the underscore module names mark
 importable libraries (the `vault_naming` precedent).
-
-#### Scenario: Daily note creator is idempotent
-- **WHEN** the daily-note creator runs twice on the same day
-- **THEN** the note is created on the first run and `exists` is printed on the second; no duplicate is created
 
 #### Scenario: Retiring a script removes its deploy target in lockstep
 - **WHEN** a script note is removed from the inventory
@@ -175,54 +168,23 @@ duplicate it.
 
 ---
 
-### Requirement: Daily Close Lifecycle
-
-A daily note SHALL pass a deterministic `daily-close` ritual that assigns every item exactly
-one disposition from the controlled `DISPOSITIONS` vocabulary
-(`claim site crucible banked slagged spoiled realized recorded passover`) and records the
-result in an appended `## Close` manifest, then sets the `closed:` frontmatter to the close
-date. The ritual MUST preserve **append-only** (no item above `## Close` is edited or
-removed), **total-disposition** (no untagged item), and **strict-order close** (day N+1 may
-not be closed while day N is open). Capture MUST always have a home — the next day's stub is
-created unconditionally, and its creation is never gated. The deterministic engine
-`vault-close-day.py` (`[script]`, INV-6, no LLM) classifies by rule and **emits an
-`unknown/other` worklist** for an agent or human to resolve; it never calls a model itself.
-
-#### Scenario: A closed day is fully dispositioned
-- **WHEN** `vault-close-day.py` finalizes a day
-- **THEN** the `## Close` manifest accounts for every item, `closed:` is set to the close date, and `close-lint` exits 0
-
-#### Scenario: An open prior day is surfaced without gating capture
-- **WHEN** the daily-note creator creates today's stub and the previous day is not `closed`
-- **THEN** the stub is still created (capture is never gated) and carries a `⚠ BLOCKED: close <prev>`
-  banner
-
-#### Scenario: An empty day auto-closes
-- **WHEN** `vault-close-day.py` runs on a day with no items
-- **THEN** total-disposition is trivially satisfied and the day is marked `closed` without manual input
-
-#### Scenario: close-lint flags an out-of-vocabulary disposition
-- **WHEN** `vault-close-day.py --check` runs on a sealed day whose `## Close` manifest carries a
-  disposition word not in the `DISPOSITIONS` vocabulary (e.g. a typo)
-- **THEN** it prints `FAIL: disposition not in vocab: <word>` and exits `1`
-
 ### Requirement: Shared Fleet Plumbing and Exit-Code Contract (vault_lib)
 
 Fleet scripts SHALL resolve the vault root, controlled vocabularies, frontmatter access, and
 scoped commits through the shared `vault_lib` module rather than improvising each. The fleet
 exit-code contract is: `0` ok · `1` violation · `2` needs-input (a worklist was emitted) ·
 `3` gate-blocked. A script whose run is refused by an operational gate (missing precondition,
-strict-order guard) SHALL exit `3` and print a `BLOCKED:` line — never `0`.
+source/destination guard) SHALL exit `3` and print a `BLOCKED:` line — never `0`.
 
-Adoption: the full Python fleet is adopted — the drive-path set (`daily-close`, `daily-note`,
-`bank-execute`) plus `knowledge-lint`, `treasury-orphan`, `tailings-reprospect`, `ore-detect`, and
-the `naming-rules` mirror-writer (whose `vault_lib` import is **lazy**, inside `__main__` only, so
-`--check` and module import stay dependency-free for the hooks). The shell pair (`site-slag`,
-`spoil-dump`) conforms via an inline bash copy of the root-resolution contract (bash cannot import
-the Python module), INV-11 slug validation through `vault_naming.py --check`, source/destination
-gates (`BLOCKED`, exit 3), and pathspec-scoped commits of exactly the moved effort — never `add -A`.
-**Bootstrap exception:** `render-reconcile-script` deploys `vault_lib.py` itself and therefore SHALL
-NOT import it; it carries an inline copy of the root-resolution contract instead.
+Adoption: the full Python fleet is adopted — `bank-execute` plus `knowledge-lint`,
+`treasury-orphan`, `tailings-reprospect`, `ore-detect`, and the `naming-rules` mirror-writer (whose
+`vault_lib` import is **lazy**, inside `__main__` only, so `--check` and module import stay
+dependency-free for the hooks). The shell pair (`site-slag`, `spoil-dump`) conforms via an inline
+bash copy of the root-resolution contract (bash cannot import the Python module), INV-11 slug
+validation through `vault_naming.py --check`, source/destination gates (`BLOCKED`, exit 3), and
+pathspec-scoped commits of exactly the moved effort — never `add -A`. **Bootstrap exception:**
+`render-reconcile-script` deploys `vault_lib.py` itself and therefore SHALL NOT import it; it carries
+an inline copy of the root-resolution contract instead.
 
 **The bare-drive guarantee extends through governance hooks:** a git hook fired by a drive-path
 commit (the `core.hooksPath` commit-gate, and any future hook on that path) SHALL NOT require a
@@ -232,21 +194,16 @@ caller's environment.
 
 #### Scenario: A drive-path script runs bare with no pre-sourced environment
 - **WHEN** a rendered drive-path script is invoked by its bare exact form (e.g.
-  `~/bin/vault-daily-note.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
+  `~/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
 - **THEN** it resolves the vault root via the config marker walk and completes normally
 - **WHEN** the same invocation happens with no `VAULT_ROOT` and cwd outside any vault
 - **THEN** it prints a `BLOCKED:` line and exits `3`
 
 #### Scenario: A gate refusal is machine-distinguishable from success
-- **WHEN** `vault-close-day.py` runs for a day whose earlier day is still open (strict-order guard)
+- **WHEN** `vault-slag.sh <slug>` runs for an effort whose source directory does not exist
 - **THEN** it prints a `BLOCKED:` line and exits `3`
-- **WHEN** `vault-close-day.py` runs for a day that is already closed
-- **THEN** it exits `0`
-
-#### Scenario: The closed test is YAML-typed
-- **WHEN** a prior daily note carries `closed: false` (or no `closed:` value)
-- **THEN** the daily-note creator treats the day as **open** and applies the `⚠ BLOCKED` banner, via
-  `vault_lib.is_closed` — a bare `closed:` key is not truthiness
+- **WHEN** the same mover runs for a valid effort
+- **THEN** it completes and exits `0`
 
 #### Scenario: The shared library self-check is read-only
 - **WHEN** `vault_lib.py` is executed bare inside a vault
@@ -742,4 +699,3 @@ Collapsing them into one oracle is the documented failure mode; the reporter kee
 - **WHEN** the PR's base branch no longer exists on origin
 - **THEN** the reporter prints a `HAZARD [branch]:` line stating the retarget-before-merge rule
   for stacked PRs
-

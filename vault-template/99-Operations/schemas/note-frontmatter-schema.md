@@ -56,16 +56,6 @@ slag_reason: string        # required when status == slagged
 
 ---
 
-## `daily` — `10-Logbook/Daily/YYYY-MM-DD.md`
-
-```yaml
-type: daily
-date: YYYY-MM-DD
-closed: YYYY-MM-DD          # set by daily-close; absent/blank = open (legacy or in-progress)
-```
-
----
-
 ## `meta-script` — `99-Operations/scripts/*.md`
 
 ```yaml

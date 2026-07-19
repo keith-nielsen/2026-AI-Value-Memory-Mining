@@ -10,7 +10,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-<!-- New entries are added here as changes land. -->
+### Removed
+- **The daily note and its close cycle** (`retire-daily-close-cycle`, **ADR-0032**): the
+  `daily-note` / `daily-close` script pair and their deploy targets, the `Daily Close Lifecycle`
+  Requirement, `vault_lib.is_closed()`, the `DISPOSITIONS` vocabulary, `daily-mold-blank.md`,
+  `daily-close-runbook.md`, the `daily` note type, and four dead `.claude/settings.json` references.
+  ADR-0028 retired the cadence but kept the daily; an audit found the surface in the kanban's
+  condition by a wider margin — **12 dailies in 32 days then 0 in 13** (a span covering 70 commits,
+  v0.1.24→v0.1.30 and five ADRs), the last two empty, **zero inbound content citations**, and
+  `2026-06-29.md` stating it was *"reconstructed from git"*: git was already the real log. Nothing
+  automated could ever fill it — the harness denied agents the path at both the tool and kernel
+  layers, leaving one `daily:` commit in the project's entire history. The framework is a refinery
+  with a defined intake, not an end-to-end operating system; `10-Logbook/` is retained as a working
+  area. **Fleet 15 → 13 scripts; molds 4 → 3.** Existing dailies and their `## Close` manifests are
+  untouched provenance. The retired cycle's one durable asset — the typed-slot enforcement pattern,
+  the project's only working instance of control-flow inversion — was extracted to the
+  `determinism-failure-modes-claude` Site before deletion.
+  Specs: `maintenance` (1 removed, 3 modified), `access-control` (1 modified), `vault-structure`
+  (2 modified — CONST-04's ordering **retained**, its daily-based rationale restated as a
+  reservation). **Not done here:** `./10-Logbook` remains in the sandbox `denyWrite` list; opening it
+  is a write-scope widening and its own governed decision.
+
+### Added
+- **Standalone-vault lint** (F15): a CI job failing the build if `vault-template/` references a
+  framework-repo-only *path* (`openspec/`, `tools/ship-release|pr-state|template-parity`, or an
+  absolute `Documents/repo/` path). Naming the origin repo in prose stays legal; depending on its
+  paths does not. Caught and fixed three live leaks on introduction — two in
+  `session-bootstrap-loader.md`, one in `00-Docs/README.md`.
 
 ## [0.1.30] - 2026-07-18
 
