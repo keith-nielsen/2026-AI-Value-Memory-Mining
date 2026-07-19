@@ -144,7 +144,12 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff
+- [x] Blast radius re-checked against the final diff, 2026-07-20 — **9 files, all declared, nothing
+      undeclared**: `CHANGELOG.md`, `tests/test_fleet.py`, the three amended script notes
+      (`render-reconcile`, `naming-rules`, `vault-lib`), `96-Runbooks/render-reconcile-runbook.md`, and
+      the change record itself (`proposal.md`, `tasks.md`, `specs/maintenance/spec.md`). Two of those
+      surfaces (`vault-lib`, the runbook) were **absent from the first blast radius and found by
+      audit** — recorded as such rather than folded in silently
 - [ ] Consequences explicitly accepted (a new exit code **4**; two scripts gain a non-default failure
       path; **zero external runtime dependencies**; the live fix requires an **operator-run `render`**)
 - [ ] Human sign-off recorded: **pending** — awaiting operator `Approved`

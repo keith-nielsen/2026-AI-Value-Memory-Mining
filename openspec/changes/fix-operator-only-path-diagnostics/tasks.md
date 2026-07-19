@@ -12,8 +12,13 @@
 - [x] 2.2 `naming-rules-script.md` — `import errno`; same treatment for the emit-mode write
 - [x] 2.3 Verify each note still carries **exactly one** code fence (B5) — confirmed, 1 each
 - [x] 2.4 Verify both code blocks parse — confirmed, `ast.parse` clean
-- [ ] 2.5 Confirm `reconcile` and `--check`/`--check-strict` paths are untouched by inspection of the
-      final diff (they exit above the amended blocks)
+- [x] 2.5 Confirm `reconcile` and `--check`/`--check-strict` are untouched — **done better than
+      planned: not by inspection but by execution under a REAL `EROFS`** (live read-only mounts).
+      `--check-strict` → 0 on a conforming name, 1 on `two-tokens.md`; `reconcile` → 0, `ok:` ×13
+- [x] 2.6 `vault-lib-script.md` — exit-code contract + `EXIT_OPERATOR_ONLY = 4` (**surface found by
+      audit, absent from the original blast radius**)
+- [x] 2.7 `96-Runbooks/render-reconcile-runbook.md` — step 2 already said "operator-run" and was **not**
+      rewritten; corrected only its understatement of scope (`~/bin/` denied and fails first)
 
 ## 3. Tests — **+4 cases** (planned as 2; the split below proved necessary)
 - [x] 3.1 `test_render_operator_only_path_explains_itself` — exit 4, message, **no traceback**
@@ -37,7 +42,7 @@ produced for real is used to test the branch that must *not* fire (3.4). Recorde
 re-specified.
 
 ## 4. Ceremony
-- [ ] 4.1 `CHANGELOG.md` `[Unreleased]` entry
+- [x] 4.1 `CHANGELOG.md` `[Unreleased]` entry
 - [ ] 4.2 PR with a ```scope block
 - [ ] 4.3 CI green = Gate 3
 - [ ] 4.4 Gate-4 re-check + operator `Approved`
