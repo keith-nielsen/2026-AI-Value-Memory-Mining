@@ -42,11 +42,18 @@ produced for real is used to test the branch that must *not* fire (3.4). Recorde
 re-specified.
 
 ## 4. Ceremony
-- [x] 4.1 `CHANGELOG.md` `[Unreleased]` entry
-- [ ] 4.2 PR with a ```scope block
-- [ ] 4.3 CI green = Gate 3
-- [ ] 4.4 Gate-4 re-check + operator `Approved`
-- [ ] 4.5 Archive
+- [x] 4.1 `CHANGELOG.md` entry — **version heading `[0.1.33]` stamped in THIS PR**, not deferred
+      (the v0.1.31 lesson: deferring it cost an extra PR, #37)
+- [x] 4.2 PR **#39** with a ```scope block — scope-review gate **passed** on the PR-event run
+- [x] 4.3 CI green = Gate 3 — **28/28**, `mergeStateStatus=CLEAN`; independent tally 27 pass · 1 skipping
+      (the skip is `Scope review` on the *push*-event run, which only applies to `pull_request`)
+- [x] 4.4 Gate-4 re-check + operator **`Approved` — Keith Nielsen, 2026-07-20**
+- [x] 4.5 Archive — normal path (pure `ADDED`, no `--skip-specs` needed); `maintenance` spec
+      `+1 added, ~0, -0`, requirement present at `openspec/specs/maintenance/spec.md`. **Note:** the
+      tool names archive dirs from **UTC**, so this reads `2026-07-19-…` while the CHANGELOG heading
+      reads `2026-07-20` — a timezone skew, not a disagreement about when the work happened
+- [ ] 4.6 Merge PR #39
+- [ ] 4.7 `tools/ship-release.py v0.1.33` — re-invoke after each emitted outward command
 
 ## 5. Deployment (ORDERING HAZARD — read before shipping)
 - [ ] 5.1 Mirror both amended notes into the live vault

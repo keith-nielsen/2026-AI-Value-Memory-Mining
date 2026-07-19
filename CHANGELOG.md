@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.33] - 2026-07-20
+
 ### Changed
 - **The two operator-only fleet paths now fail legibly instead of with a bare traceback**
   (`fix-operator-only-path-diagnostics`, conforming amendment, **no ADR**). `vault-render.py render`

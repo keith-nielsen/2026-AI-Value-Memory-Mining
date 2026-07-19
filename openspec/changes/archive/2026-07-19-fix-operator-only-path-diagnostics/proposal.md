@@ -140,7 +140,15 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
 - **Exit-code collision audit:** `4` is used nowhere else in `vault-template/`, `tools/`, `.github/`,
   or `tests/`. The one CI caller (`validate-scripts.sh:43`) treats any non-zero as failure, so a `4`
   there surfaces correctly rather than being swallowed.
-- CI green on the PR = Gate 3 complete (recorded here when checks finish).
+- **CI green on PR #39 = Gate 3 COMPLETE, 2026-07-20.** `28 of 28 checks successful`,
+  `mergeStateStatus=CLEAN`. Independent tally (denominator shown, per the F20 corrective):
+  **27 pass · 1 skipping** — the skip is `Scope review` on the *push*-event run, which only applies to
+  `pull_request` events; on the PR run it **passed**. `Scope review`, `Fleet behaviour tests`
+  (3.12 + 3.13) and `Validate scripts` (3.12 + 3.13) all pass.
+- **The last modelled claim is now observed.** `Validate scripts` is the job that invokes `render` and
+  `vault_naming.py`; its pass on both interpreters converts the earlier *inference* about
+  `validate-scripts.sh` tolerating exit **4** into evidence. Nothing in this change now rests on
+  modelling.
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
@@ -150,6 +158,8 @@ harness-created dot-directories under `30-Sites/` (recorded in P17, unfixed).
       the change record itself (`proposal.md`, `tasks.md`, `specs/maintenance/spec.md`). Two of those
       surfaces (`vault-lib`, the runbook) were **absent from the first blast radius and found by
       audit** — recorded as such rather than folded in silently
-- [ ] Consequences explicitly accepted (a new exit code **4**; two scripts gain a non-default failure
+- [x] Consequences explicitly accepted (a new exit code **4**; two scripts gain a non-default failure
       path; **zero external runtime dependencies**; the live fix requires an **operator-run `render`**)
-- [ ] Human sign-off recorded: **pending** — awaiting operator `Approved`
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-20** (operator reviewed the proposal
+      and replied `Approved`; recorded by Claude Code per the standing Gate-4 ritual — the human
+      decision is the operator's reply, the agent only transcribes it)
