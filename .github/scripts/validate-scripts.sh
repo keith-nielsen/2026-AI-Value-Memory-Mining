@@ -65,43 +65,12 @@ git init -q -b main; git config user.name ci; git config user.email ci@ci; git c
 git add -A; git commit -qm init --no-verify
 # reconcile zero drift
 python3 "$HOME/bin/vault-render.py" reconcile >/dev/null && ok "reconcile zero drift" || no "reconcile drift"
-# daily-note idempotent
-python3 "$HOME/bin/vault-daily-note.py" | grep -q created && \
-python3 "$HOME/bin/vault-daily-note.py" | grep -q exists && ok "daily-note idempotent" || no "daily-note"
 # linter passes on empty treasury
 lint_out=$(python3 "$HOME/bin/vault-lint.py" 2>&1); lint_rc=$?
 [ $lint_rc -eq 0 ] && ok "lint clean (empty treasury)" || { no "lint (rc=$lint_rc)"; echo "$lint_out" | sed 's/^/        /'; }
 # refine-detect on empty sites
 python3 "$HOME/bin/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
 
-hdr "close-daily lifecycle"
-mk_day(){ cat > "$VAULT/10-Logbook/Daily/$1.md" <<EOF
----
-type: daily
-date: $1
-closed:
----
-# $1
-
-## Log
-Work happened.
-
-## Captured
-- Idea: something worth a claim later.
-EOF
-}
-mk_day 2020-01-01; mk_day 2020-01-02
-git add -A; git commit -qm "smoke days" --no-verify
-# strict-order gate: cannot close 01-02 while 01-01 is open
-# (capture-then-grep: the script exits non-zero by design, which pipefail would propagate)
-gate_out=$(python3 "$HOME/bin/vault-close-day.py" 2020-01-02 2>&1 || true)
-echo "$gate_out" | grep -q BLOCKED && ok "close strict-order gate" || no "close gate"
-# close in order; deterministic items seal with no unknown/other
-python3 "$HOME/bin/vault-close-day.py" 2020-01-01 >/dev/null 2>&1
-python3 "$HOME/bin/vault-close-day.py" 2020-01-02 >/dev/null 2>&1
-D1="$VAULT/10-Logbook/Daily/2020-01-01.md"
-if grep -qE '^closed: 2[0-9]{3}-' "$D1" && grep -q '## Close' "$D1"; then ok "close-daily seals + manifest"; else no "close-daily seal"; fi
-python3 "$HOME/bin/vault-close-day.py" --check 2020-01-01 2>&1 | grep -q "close-lint OK" && ok "close-lint --check" || no "close-lint"
 
 hdr "INV-11 executor boundary (A3.3 executor side)"
 # A non-conforming target_note must be rejected with no Treasury write.

@@ -15,8 +15,7 @@ vault and otherwise walks up from the working directory to a `99-Operations/` co
 contract (exact excluded invocations, no env prefix) requires exactly this. `vocab()` resolves a
 controlled vocabulary with the same precedence the shell sourcing order establishes: process
 environment > `config.env` (instance) > `config.defaults.env` (framework) > declared code default —
-one SSOT chain instead of three homes. `is_closed()` is the fleet's single, YAML-typed answer to
-"is this day closed" (`closed: false` or absent is open). `commit_paths()` is the INV-2 shape —
+one SSOT chain instead of three homes. `commit_paths()` is the INV-2 shape —
 scoped `git add` plus a **pathspec-scoped commit** of exactly the named paths, never a sweep:
 unrelated staged content is left staged, not committed (the F3/F4/F5 accident class, closed
 structurally), and an unchanged result is a **clean no-op** — message, no commit, exit 0 — per the
@@ -44,7 +43,6 @@ Contract (importable module + read-only CLI):
                               precedence: process env > config.env > config.defaults.env
                               > default; SystemExit(3) if required (default=None) and absent.
   fm(path) -> dict            YAML frontmatter metadata — the fleet's single parser.
-  is_closed(path) -> bool     YAML-typed: `closed: false` or absent is NOT closed.
   commit_paths(vault, paths, message)
                               scoped `git add` + pathspec-scoped commit of exactly the named
                               paths (INV-2); never sweeps — unrelated staged content stays
@@ -124,10 +122,6 @@ def fm(path):
     return frontmatter.load(path).metadata
 
 
-def is_closed(path):
-    return bool(fm(path).get("closed"))
-
-
 def commit_paths(vault, paths, message):
     rels = []
     for p in paths:
@@ -157,7 +151,7 @@ if __name__ == "__main__":
     root = find_vault_root()
     say("ok", f"vault root: {root}")
     for key in ("PILLARS", "GRADES", "EFFORT_STATUSES", "KNOWLEDGE_STAGES",
-                "REFINE_GATE_GRADES", "DISPOSITIONS"):
+                "REFINE_GATE_GRADES", "SPOIL_STATUSES"):
         vals = vocab(key, default=[], vault=root)
         say("ok" if vals else "WARN", f"{key} = {' '.join(vals) or '(unset)'}")
     raise SystemExit(EXIT_OK)

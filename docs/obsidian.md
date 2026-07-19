@@ -30,7 +30,6 @@ All built in — no community plugins required for the core workflow.
 | Plugin | Why |
 |--------|-----|
 | **Templates** | Instantiate the `97-Molds/` molds (effort / knowledge / index) |
-| **Daily Notes** | Create/open today's daily note from `97-Molds/daily-mold-blank.md` |
 | **Bookmarks** | Pin `40-Treasury/Catalog/home-master-index.md` as your front door |
 | **Outline**, **Backlinks** | Navigation; Backlinks surfaces what links to a note |
 
@@ -46,7 +45,6 @@ Properties (the frontmatter UI) is built in and always on.
 | Files & Links → **Default location for new notes** | **`20-Claims`** | New / dangling-link notes land in the *inbox*, never the vault root. Prevents stray fragments. |
 | Editor → **Properties in document** | Visible | See/edit frontmatter inline |
 | Templates → **Template folder location** | `97-Molds` | Where the molds live |
-| Daily Notes → **Template** / **New file location** / **Format** | `97-Molds/daily-mold-blank.md` / `10-Logbook/Daily` / `YYYY-MM-DD` | Match the `vault-daily-note.py` output exactly |
 
 > ### ⚠️ Turn OFF "Automatically update internal links"
 >
@@ -72,11 +70,12 @@ is outside the Value Mining structure and becomes clutter.
 - **Effort / knowledge / index notes:** Templates plugin → "Insert template" → pick the
   mold. The full, correct frontmatter schema drops in and `{{date}}` is filled. You
   never hand-build frontmatter. (See also [Adding Properties](#adding-properties-to-a-new-note).)
-- **Daily notes:** Daily Notes plugin, configured as above. Produces the same file
-  `vault-daily-note.py` / cron would — interchangeable and idempotent.
+**On daily notes.** The framework retired its own daily note and close cycle (ADR-0032) and
+ships no daily mold. `10-Logbook/` is a working area: if you want a dated journal there, enable
+the **Daily Notes** plugin with your own template — the naming rules still exempt `YYYY-MM-DD.md`
+stems, so the commit-gate will accept them. Nothing in the pipeline reads it.
 
-Only the daily note is scripted. The effort/knowledge/index molds were always meant for
-human instantiation in Obsidian.
+The effort/knowledge/index molds were always meant for human instantiation in Obsidian.
 
 ### Adding Properties to a new note
 

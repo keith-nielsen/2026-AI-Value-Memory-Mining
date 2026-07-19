@@ -19,7 +19,7 @@ gates + verification, not loading the whole rulebook.
 
 ## Preconditions
 
-- Operating in the live vault (`$VAULT_ROOT`) or the repo (`value-memory-mining`).
+- Operating in the live vault (`$VAULT_ROOT`).
 - The harness auto-loads `CLAUDE.md` / `AGENTS.md` and the memory `MEMORY.md` index — this runbook is
   their single source of truth; the SessionStart hook surfaces it automatically.
 
@@ -29,9 +29,9 @@ gates + verification, not loading the whole rulebook.
    `PATH`). Re-source per shell (it does not persist). Kills the `VAULT_ROOT` wall.
 2. `[gate]` **Engage the operating card** — acknowledge these four, don't merely possess them:
    - **Governance-first** — before any structural / naming / spec / mold / script change, *read*
-     `openspec/constitution.md` + the relevant `protects:`-tagged spec; honor the §5 AI hard-stop;
-     governed changes run the OpenSpec ceremony (propose → apply → human Gate-4 → archive → tag →
-     mirror), never ad-hoc.
+     the invariants in `CLAUDE.md` and the governing schema in `99-Operations/schemas/`; a
+     deployed vault carries no governance corpus of its own — framework changes are made upstream
+     and deployed down, never improvised in the vault.
    - **Re-read before acting** — apply an established rule from its artifact (spec / memory / runbook),
      never from recollection.
    - **Autonomy bans** — no autonomous writes to `40-Treasury/` or `99-Operations/` (INV-4/5).
@@ -41,7 +41,7 @@ gates + verification, not loading the whole rulebook.
 3. `[agent]` **Know the just-in-time pointers** (read only when a task touches them):
    - Built-but-unexercised ops + their docs → the `llm-context-reboot` Site load-list.
    - Deferred / not-built — do **not** attempt or assume available: Crucible, Mint, Forge, Hermes, n8n.
-   - Other runbooks: `daily-close-runbook`, `provenance-seal-runbook`.
+   - Other runbooks: `provenance-seal-runbook`.
    - Durable rules: the auto-loaded memories (`MEMORY.md`).
 4. `[script]` **Verify** — `: "${VAULT_ROOT:?}"` (env set); optionally `vault-render.py reconcile`
    (zero drift).

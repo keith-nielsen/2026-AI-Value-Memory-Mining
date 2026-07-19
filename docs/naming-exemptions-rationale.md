@@ -38,7 +38,7 @@ depends on it. `is_exempt(filename)` (in `vault_naming.py`) is the gate; it matc
 ### 4. Tool-mandated — pipeline (date format)
 | Glob | Depends on |
 |---|---|
-| `YYYY-MM-DD.md` (`[0-9]{4}-[0-9]{2}-[0-9]{2}.md`) | Daily-notes plugin + `vault-close-day.py` requires the ISO date stem (dailies exempt per ADR-0015) |
+| `YYYY-MM-DD.md` (`[0-9]{4}-[0-9]{2}-[0-9]{2}.md`) | Obsidian Daily-notes plugin uses the ISO date stem; **retained** after ADR-0032 retired the framework's own daily cycle, because pre-existing dailies stay under the commit gate and `10-Logbook/` remains a manual working area (dailies exempt per ADR-0015) |
 
 ### 5. Industry convention (human + platform expectation)
 | File | Depends on |

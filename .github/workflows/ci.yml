@@ -340,6 +340,45 @@ jobs:
           sys.exit(1 if broken else 0)
           EOF
 
+  standalone-vault-lint:
+    name: Standalone-vault lint (F15)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check vault-template references no framework-repo-only path
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re, sys
+          # A deployed vault must stand alone (F15): it ships without openspec/, without
+          # tools/, and without any path into the framework repo. Naming the origin repo in
+          # prose is fine -- DEPENDING on its paths is not. Patterns are path-shaped.
+          FORBIDDEN = [
+            (r"openspec/",                 "openspec/ corpus is repo-only; a deployed vault has none"),
+            (r"tools/(ship-release|pr-state|template-parity)", "tools/ is repo-only ceremony machinery"),
+            (r"Documents/repo/",           "absolute framework-repo path"),
+            (r"~/Documents/repo",          "absolute framework-repo path"),
+          ]
+          root = pathlib.Path("vault-template")
+          hits = []
+          for f in root.rglob("*"):
+            if not f.is_file() or ".obsidian" in f.parts:
+              continue
+            try:
+              text = f.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+              continue
+            for lineno, line in enumerate(text.splitlines(), 1):
+              for pat, why in FORBIDDEN:
+                if re.search(pat, line):
+                  hits.append(f"{f}:{lineno}: {why}\n    {line.strip()[:110]}")
+          for h in hits:
+            print(h, file=sys.stderr)
+          print(f"standalone-vault lint: {len(hits)} violation(s) across "
+                f"{sum(1 for _ in root.rglob('*') if _.is_file())} template files")
+          sys.exit(1 if hits else 0)
+          EOF
+
   validate-scripts:
     name: Validate scripts (py ${{ matrix.python }})
     runs-on: ubuntu-latest

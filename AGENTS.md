@@ -89,12 +89,13 @@ the `vault-template/99-Operations/hooks/pre-commit` hook are the real boundaries
 `os-enforced-agent-write-scope` (ADR-0022), **pre-action enforcement in the agent harness**:
 an OS sandbox denies shell writes (any child process, any interpreter) to
 `40-Treasury/ 99-Operations/ .claude/ 96-Runbooks/ 97-Molds/ 10-Logbook/`, and permission deny
-rules block structured-tool writes to the same scope plus script-owned Logbook artifacts
-(`Daily/*.md`). The disposition sidecar (`Daily/*.resolutions.json`) is the one
-agent-writable close artifact — written via the Write tool only, never via shell.
+rules block structured-tool writes to the same scope. Since ADR-0032 retired the daily-close
+cycle there is no script-owned artifact and no agent-writable sidecar inside `10-Logbook/`; the
+silo stays kernel-denied, and whether it becomes an agent working area is a separate governed
+decision (a write-scope widening on the ADR-0025 model) — not an assumption to make.
 
 **Drive contract:** to run a `[script]` step, invoke the rendered script by its **bare exact
-invocation** (e.g. `~/bin/vault-daily-note.py`) — that form is sandbox-excluded so the script can
+invocation** (e.g. `~/bin/vault-refine-execute.py`) — that form is sandbox-excluded so the script can
 write what it owns. An interpreter-prefixed (`python3 ~/bin/…`), chained, or relative invocation runs
 *sandboxed* and its protected writes fail closed. The sandbox is a fence you operate inside, not a
 gate you acknowledge; a kernel denial means *surface it to the operator*, never route around it.
@@ -127,7 +128,6 @@ High-value, error-prone, repeatable procedures are codified as **spec-as-code ru
 harness-agnostic source of truth. **To perform one, open and follow the runbook; do not improvise:**
 
 - `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a SessionStart hook surfaces it). Run it first each session.
-- `daily-close-runbook` — close a daily note (full disposition sweep) before advancing to the next day.
 - `provenance-seal-runbook` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
 
 This file (and `CLAUDE.md`, Claude Code skills, etc.) are **adapters** — they point at the
@@ -138,8 +138,9 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 
 - `grep -rl PATTERN .` emits paths **without** the `./` prefix — an exclusion anchored `^\./…`
   silently fails to match. Use `grep -v 'openspec/changes/'` (no `^./`).
-- `vault-close-day.py` **auto-commits**; a prior `git add` can let its commit sweep in unrelated
-  staged changes. Stage/commit deliberately around it.
+- Committing fleet scripts (`vault-refine-execute.py`, `vault-slag.sh`, `vault-dump.sh`)
+  **auto-commit**; their commits are pathspec-scoped, but stage/commit deliberately around them
+  rather than relying on that.
 - Vault scripts need `VAULT_ROOT` exported (the pre-commit hook fails loudly without it).
 - The operator's SSH signing key is theirs — **never sign/stamp/tag as them** (`provenance-seal-runbook`
   steps 3–4 and 6 are human `[gate]`s).
