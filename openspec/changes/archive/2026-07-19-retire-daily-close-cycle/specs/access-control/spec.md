@@ -44,15 +44,27 @@ reduced-trust and must be declared, not assumed equivalent.
 - **THEN** the operating-system sandbox refuses the write before it occurs; no commit-gate or agent
   cooperation is involved
 
-#### Scenario: Structured-tool write to a protected area is denied
-- **WHEN** the Agent invokes a harness file tool against any protected area (e.g.
-  `40-Treasury/<note>.md`, `99-Operations/<file>`, `97-Molds/<mold>.md`)
+#### Scenario: Structured-tool write to a script-owned artifact is denied
+- **WHEN** the Agent invokes a harness file tool against a script-owned or protected artifact
+  (e.g. `99-Operations/scripts/<script>.md`, `97-Molds/<mold>.md`, `40-Treasury/<note>.md`)
 - **THEN** the harness permission layer denies the call pre-action
+- **AND** no carve-out exists inside `10-Logbook/`: the disposition sidecar was retired with the
+  daily-close cycle (ADR-0032), so the silo has no agent-writable path at either layer
 
 #### Scenario: Driving a script is permitted only by exact invocation
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
   `~/bin/vault-refine-execute.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
+
+### Requirement: Secrets Prohibition (INV-7)
+
+No credentials, API keys, tokens, or passwords SHALL appear in any vault file.
+Scripts read secrets from the environment (`os.environ`), not from vault files.
+Structural configuration is split into a **public defaults** file and a **private instance**:
+`99-Operations/config.defaults.env` (tracked, framework defaults — vocabularies, guard defaults) is
+sourced first; `99-Operations/config.env` (gitignored, personal/machine overrides — absolute
+`VAULT_ROOT`, `PATH`, any customized `PILLARS`) is sourced last and never published. Neither contains
+credentials.
 
 #### Scenario: No secrets in config; private instance is gitignored
 - **WHEN** `config.defaults.env` and `config.env` are inspected

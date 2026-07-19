@@ -211,6 +211,44 @@ agent does not choose:
 - **Rollback:** revert the single PR; restore the two deploy targets by re-rendering from the restored
   notes.
 
+## Archive mechanism — a named, deliberate override (operator-approved 2026-07-19)
+
+**This change is archived with `openspec archive --skip-specs`; the four spec files are applied by
+hand in the same commit.** That is a deliberate override of the archiver's automatic path, recorded
+here rather than performed quietly.
+
+**Why the tool cannot do it.** OpenSpec 1.6.0 has no way to express an *intentional scenario
+removal*. Its `MODIFIED` path calls `findMissingCurrentScenarios`, which is strictly **name**-matched
+(`specs-apply.js:298`) and aborts if any current scenario is absent from the incoming block.
+`REMOVED` + `ADDED` of the same Requirement name would work in the applier (order is
+RENAMED→REMOVED→MODIFIED→ADDED) but is rejected by the **validator**: *"Requirement present in both
+ADDED and REMOVED"*. Renaming the Requirements is the third exit and is refused here because
+`Script Inventory` is cited by ADR-0020, ADR-0028, ADR-0032 and `CHANGELOG.md` — renaming orphans
+historical references.
+
+**The four scenarios removed, each because its subject ceases to exist:**
+
+| Scenario | Requirement | Subject deleted |
+|---|---|---|
+| `A created daily note is committed by its creator` | One Mutation, One Commit (INV-2) | `vault-daily-note.py` |
+| `A close seals with a scoped commit, never a sweep` | One Mutation, One Commit (INV-2) | `vault-close-day.py` |
+| `Daily note creator is idempotent` | Script Inventory | `vault-daily-note.py` |
+| `The closed test is YAML-typed` | Shared Fleet Plumbing (vault_lib) | `vault_lib.is_closed()` |
+
+All four are inherently daily-named; retaining them would leave the spec asserting the behaviour of
+scripts that no longer exist — the exact dishonesty ADR-0028 set out to end ("the spec afterwards
+describes the system that exists").
+
+**The guard is sound and is not being disparaged.** It caught a real defect in this very change: the
+first `vault-structure` delta silently dropped **five** scenarios that were never meant to be
+touched. The override is scoped to the four rows above and to nothing else.
+
+**Compensating verification** (the guard's purpose is met by other means):
+- The hand-applied spec edits land in the same commit and are fully visible in the diff.
+- `openspec validate --all --strict` must pass on the **result**.
+- A post-apply scenario census is pasted in Gate 3: every Requirement's scenario set before and
+  after, so that any drop beyond the four declared rows is visible as a number, not a claim.
+
 ## Gate 3 — EXECUTE + REGRESSION-TEST
 
 *(To be completed on the branch — transcripts pasted here per ADR-0031.)*
@@ -224,10 +262,20 @@ agent does not choose:
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff by re-running the Gate-1 sweeps and diffing
-- [ ] **CONST-04 rationale decision recorded** (option i / ii / iii above) — operator's choice
-- [ ] Consequences explicitly accepted (see ADR-0032 "Consequence / sacrifice": the vault loses its
-      dated capture surface and total-disposition at day granularity; RC-1a loses its reference
-      implementation, extracted first to `sidecar-typed-slot-pattern.md`; `10-Logbook/` becomes an
-      empty reserved silo; fleet 15 → 13)
-- [ ] Human sign-off recorded: **Approved — Keith Nielsen, <date>**
+- [x] Blast radius re-checked — and the re-check **found a gap in the Gate-1 sweep itself**: the
+      original pattern omitted `daily-mold-blank`, hiding `openspec/specs/naming-rules/spec.md`
+      (`protects: [INV-11]`), which used that mold as its worked example. Corrected in Gate 1 above
+      rather than silently patched; the delta set grew from three protected specs to **four**.
+- [x] **CONST-04 rationale decision recorded: option (ii)** — keep the ordering, drop the
+      daily-based rationale. `10-Logbook/` is restated as "highest-touch by design / reserved",
+      **explicitly a reservation rather than an observation**, so the spec does not assert a
+      justification that is not yet true (operator, 2026-07-19).
+- [x] Consequences explicitly accepted (ADR-0032 "Consequence / sacrifice"): the vault loses its
+      dated capture surface and total-disposition at day granularity — a real safety net, given up
+      because it was stretched under an empty stage; RC-1a loses its only working reference
+      implementation, **extracted first** to
+      `30-Sites/determinism-failure-modes-claude/sidecar-typed-slot-pattern.md`; `10-Logbook/`
+      becomes an empty reserved silo; fleet 15 → 13, molds 4 → 3.
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-19** (operator reviewed the
+      proposal and ADR-0032 and replied `Approved`; recorded by Claude Code per the standing Gate-4
+      ritual — the human decision is the operator's reply, the agent only transcribes it)

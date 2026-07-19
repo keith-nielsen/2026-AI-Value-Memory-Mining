@@ -31,6 +31,11 @@ on names not yet renamed).
 - **WHEN** a content topic narrows, or a dig reveals a sub-sector needing distinction
 - **THEN** the stem carries more than three tokens to stay unambiguous (e.g. `swappable-stages-over-coresident-models`) rather than overloading a shorter name
 
-#### Scenario: Date-stemmed notes are exempt
+#### Scenario: Dailies are exempt
 - **WHEN** a note is named `YYYY-MM-DD`
 - **THEN** the token-minimum does not apply — regardless of whether the framework generated it
+  (the exemption outlives the retired daily cycle; ADR-0032)
+
+#### Scenario: Existing sub-three-token names are grandfathered at the convention stage
+- **WHEN** this change is in effect and a pre-existing two-token name (e.g. `obsidian-usage`) is present
+- **THEN** it is not renamed by this requirement; each family conforms through its own change

@@ -422,8 +422,8 @@ jobs:
 
       - name: Run fleet behaviour suite
         # renders the fleet into a throwaway HOME + vault and drives the deployed scripts
-        # as subprocesses — close lifecycle + gates, refine pre-flight + batch isolation,
-        # scoped commits, render fence lint, env-free root resolution, shell-pair gates.
+        # as subprocesses — refine pre-flight + batch isolation, scoped commits (incl. the
+        # no-sweep guarantee), render fence lint, env-free root resolution, shell-pair gates.
         run: pytest tests/ -v
 
   scope-review:

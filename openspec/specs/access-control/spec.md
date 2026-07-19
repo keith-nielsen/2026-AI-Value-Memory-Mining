@@ -39,7 +39,7 @@ Each vault area SHALL grant the access shown below; any actor exceeding its cell
 | `20-Claims/` | RW | RW² | RW | Capture zone — agent may capture directly |
 | `20-Claims/_refine-proposals/` | R | W | R | Agent deposit point |
 | `20-Claims/_refine-approved/` | W | — | R | **The gate.** Agent cannot self-promote. |
-| `10-Logbook/` | RW | R | RW | Daily logs + reviews |
+| `10-Logbook/` | RW | R | RW | Working area — framework generates nothing here (ADR-0032) |
 | `30-Sites/<assigned>` | RW | RW¹ | RW | Agent writes only to its assigned Site |
 | `30-Sites/<other>` | RW | — | RW | Agent cannot touch other Sites |
 | `40-Treasury/` | RW | R³ | gated-W⁴ | Crown jewels — INV-4 |
@@ -126,7 +126,7 @@ credentials.
 
 #### Scenario: No secrets in config; private instance is gitignored
 - **WHEN** `config.defaults.env` and `config.env` are inspected
-- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `DISPOSITIONS`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`, `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
+- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`, `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
 - **THEN** the live `config.env` is gitignored (private instance); only `config.defaults.env` + `config.env.example` are tracked/publishable
 
 ### Requirement: Crucible Independence (INV-8)
@@ -247,10 +247,14 @@ post-hoc commit-gate ("OS-level enforcement is deferred per §14.1" is hereby un
   Out-of-vault writes are denied by default and re-allowed only for operator-listed paths.
 - **Structured-tool layer (harness permission rules):** the harness's file tools (Edit/Write and
   equivalents), which bypass the shell sandbox by design, are bound by declarative deny rules covering
-  the same protected areas plus the script-owned Logbook artifacts (`10-Logbook/Daily/*.md`). The sole
-  agent-writable close artifact — the disposition sidecar `10-Logbook/Daily/*.resolutions.json` —
-  remains writable by **pattern disjointness** (deny rules carry no carve-outs) and SHALL be written
-  via the structured Write tool only, never via shell.
+  the same protected areas.
+
+**On `10-Logbook/`:** the silo remains denied at the shell layer. With the daily-close cycle retired
+(ADR-0032) there is no script-owned artifact within it and no agent-writable sidecar; the former
+tool-layer rule for `10-Logbook/Daily/*.md` and the disposition-sidecar carve-out are both removed
+because their subjects no longer exist. Whether `10-Logbook/` should become an agent-writable working
+area is a **widening of write scope** and a separate governed decision on the ADR-0025 model — it is
+deliberately NOT taken here.
 
 **Script drive path:** the Agent MAY drive an owning script (the F13 "drive, never reproduce" rule) via
 an operator-maintained exclusion list of **exact rendered-script invocations**; an excluded command
@@ -274,14 +278,13 @@ reduced-trust and must be declared, not assumed equivalent.
   cooperation is involved
 
 #### Scenario: Structured-tool write to a script-owned artifact is denied
-- **WHEN** the Agent invokes a harness file tool against `10-Logbook/Daily/<date>.md` or any protected
-  area
+- **WHEN** the Agent invokes a harness file tool against a script-owned or protected artifact
+  (e.g. `99-Operations/scripts/<script>.md`, `97-Molds/<mold>.md`, `40-Treasury/<note>.md`)
 - **THEN** the harness permission layer denies the call pre-action
-- **AND** a Write-tool call targeting `10-Logbook/Daily/<date>.resolutions.json` is permitted (the
-  disposition sidecar is the one agent-owned close artifact)
+- **AND** no carve-out exists inside `10-Logbook/`: the disposition sidecar was retired with the
+  daily-close cycle (ADR-0032), so the silo has no agent-writable path at either layer
 
 #### Scenario: Driving a script is permitted only by exact invocation
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
-  `~/bin/vault-daily-note.py`)
+  `~/bin/vault-refine-execute.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
-

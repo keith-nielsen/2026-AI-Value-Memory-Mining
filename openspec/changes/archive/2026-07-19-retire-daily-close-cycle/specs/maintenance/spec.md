@@ -1,9 +1,24 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Three Requirements below are REMOVED-then-ADDED rather than MODIFIED. That is deliberate and
+  is the tool-sanctioned shape: the archiver's MODIFIED path refuses any block that does not
+  restate every current scenario (it cannot express an intentional scenario removal), and each
+  of these must genuinely lose a scenario whose subject ceases to exist — "A created daily note
+  is committed by its creator", "A close seals with a scoped commit, never a sweep", "Daily note
+  creator is idempotent", "The closed test is YAML-typed". Apply order is REMOVED → ADDED, so the
+  name is free when re-added.
+-->
 ## REMOVED Requirements
 
 ### Requirement: Daily Close Lifecycle
 
-## MODIFIED Requirements
+### Requirement: One Mutation, One Commit (INV-2)
+
+### Requirement: Script Inventory
+
+### Requirement: Shared Fleet Plumbing and Exit-Code Contract (vault_lib)
+
+## ADDED Requirements
 
 ### Requirement: One Mutation, One Commit (INV-2)
 
@@ -23,10 +38,10 @@ Commit message format: `<verb>: <subject>` (e.g., `bank: trustless-provenance-se
   appended Catalog index links, and the consumed proposal's deletion (when the proposal was
   tracked) — and nothing else
 
-#### Scenario: A mover commits only the moved effort, never a sweep
-- **WHEN** `vault-slag.sh <slug>` moves an effort to `70-Tailings/` while unrelated uncommitted
-  changes exist elsewhere in the working tree
-- **THEN** the resulting commit contains exactly the moved effort, and the unrelated changes remain
+#### Scenario: A mover seals with a scoped commit, never a sweep
+- **WHEN** `vault-slag.sh <slug>` moves an effort while unrelated uncommitted changes exist
+  elsewhere in the working tree
+- **THEN** the commit contains exactly the moved effort, and the unrelated changes remain
   uncommitted and untouched
 
 ### Requirement: Script Inventory
@@ -97,7 +112,7 @@ Fleet scripts SHALL resolve the vault root, controlled vocabularies, frontmatter
 scoped commits through the shared `vault_lib` module rather than improvising each. The fleet
 exit-code contract is: `0` ok · `1` violation · `2` needs-input (a worklist was emitted) ·
 `3` gate-blocked. A script whose run is refused by an operational gate (missing precondition,
-strict-order guard) SHALL exit `3` and print a `BLOCKED:` line — never `0`.
+source/destination guard) SHALL exit `3` and print a `BLOCKED:` line — never `0`.
 
 Adoption: the full Python fleet is adopted — `bank-execute` plus `knowledge-lint`,
 `treasury-orphan`, `tailings-reprospect`, `ore-detect`, and the `naming-rules` mirror-writer (whose
