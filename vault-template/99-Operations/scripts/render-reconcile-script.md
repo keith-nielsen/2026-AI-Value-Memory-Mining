@@ -22,7 +22,7 @@ it marks a vault, else walk up from cwd to a `99-Operations/` config marker; ADR
 ```python
 #!/usr/bin/env python3
 """Render Layer-0 code blocks to host targets, or reconcile (detect drift)."""
-import os, re, sys, pathlib, frontmatter
+import errno, os, re, sys, pathlib, frontmatter
 
 
 # Bootstrap exception (ADR-0023): render deploys vault_lib itself, so it must not
@@ -56,8 +56,24 @@ for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
         continue
     src = blocks[0]
     if mode == "render":
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(src); target.chmod(0o755)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(src); target.chmod(0o755)
+        except OSError as exc:
+            if exc.errno != errno.EROFS:
+                raise
+            # Denied by design, not broken. EVERY deploy_target lives in an area the
+            # Area Access Matrix withholds from the agent (~/bin is out-of-vault;
+            # 99-Operations/ and .claude/ are A:-), so a sandboxed agent can render
+            # NOTHING. Without this branch the reader sees a bare traceback and debugs
+            # a deploy fault that does not exist. Inline rather than in vault_lib:
+            # ADR-0023's bootstrap exception forbids this script importing it.
+            print(f"BLOCKED: cannot write {target}")
+            print("  render is an OPERATOR-ONLY path - the agent is denied by design.")
+            print("  This is not a broken deploy, a missing dep, or a bad sandbox config.")
+            print("  Run `vault-render.py render` as the operator.")
+            print("  `vault-render.py reconcile` is read-only and remains available.")
+            raise SystemExit(4)
         print(f"rendered {note.name} -> {target}")
     else:
         deployed = target.read_text() if target.exists() else ""
