@@ -172,11 +172,13 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   disagree while all being correct; the reporter names the layer on every line, prints
   `LAYERS-DISAGREE:` when aggregations split, and flags the deleted-base/stacked-PR hazard. It is
   also the mandatory re-read after any `gh`/GraphQL mutation — never trust a silent success (F21).
-- **After a post-merge mirror into the live vault, prove it.** A mirror is a manual `cp` with no
-  built-in completeness check — an unfinished apply (file deployed but its INV-3 source note stale, or
-  a file missed) looks identical to done. Run `tools/template-parity.py <VAULT_ROOT>`: it byte-compares
-  the LOCKSTEP scaffold (`99-Operations/scripts/` + `schemas/`) between `vault-template/` and the live
-  vault and exits non-zero on any `DIFFERS`/`MISSING-*`. `reconcile` does NOT cover this axis (it is
+- **Post-merge mirror into the live vault: run `tools/template-mirror.py <VAULT_ROOT>`, never a
+  hand-composed `cp`.** A hand-typed multi-arg `cp` handed to the operator can wrap in their
+  terminal and degrade into a different, destructive command with no error (F26 — it overwrote a
+  repo file this way). The driver copies the LOCKSTEP scaffold (`99-Operations/scripts/` +
+  `schemas/`) repo → live, one direction only, never deletes, and ends by re-deriving and printing
+  the same parity tally `tools/template-parity.py <VAULT_ROOT>` prints on its own (run that alone
+  any time you only need to *check*, not fix). `reconcile` does NOT cover this axis (it is
   note → `~/bin`, not template → live).
 - **A checklist step that says *enumerate* or *verify* is satisfied only by a pasted,
   re-runnable command transcript** — the command plus its full output, never a list or a
