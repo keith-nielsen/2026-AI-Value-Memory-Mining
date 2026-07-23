@@ -10,6 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **`tools/template-mirror.py` — a guarded repo→live mirror driver** (`add-template-mirror-driver`,
+  conforming amendment, **no ADR**). The write-capable counterpart to `template-parity.py`: where
+  parity DETECTS drift between the repo's `vault-template/` LOCKSTEP scaffold and a deployed vault,
+  the driver FIXES it in the one direction governance allows — repo → live, one way, never the
+  reverse, never a delete. It reuses the existing `template-sync-manifest.json` unmodified, computes
+  its own diff (never an enumeration typed from memory), copies `MISSING-IN-LIVE`, overwrites
+  `DIFFERS`, and REPORTS `MISSING-IN-TEMPLATE` without resolving it (a human decides). It ends by
+  re-deriving parity and printing the same denominator'd tally, never a bare success word, and never
+  `git add`/commits (that stays the operator's INV-2 step). The shared tree-walk/compare/tally logic
+  is factored into `tools/template_sync.py`, which both tools import (one source of truth for "in
+  sync"; `template-parity.py`'s output is byte-identical to before). Stdlib-only, offline, no LLM
+  (INV-6). **Why:** CONTRIBUTING step 5 was prose — *"Mirror … (operator action)"* — with no vehicle,
+  the exact gap F26 fell through when a hand-composed multi-arg `cp` wrapped in the operator's terminal
+  and overwrote a repo file. A reviewed script invoked by one short line cannot wrap into a different,
+  destructive command. INV-4/5 are unchanged — the operator still runs the mirror; only *how* changes.
+
 <!-- New entries are added here as changes land. -->
 
 ## [0.1.33] - 2026-07-20
