@@ -36,7 +36,7 @@
 - [ ] 3.5 PR CI green (its own standalone-vault scope-review PASS on the declared block)
 
 ## 4. Ceremony
-- [ ] 4.1 Gate-4 human sign-off — **pending operator `Approved`** (record in proposal.md when given)
+- [x] 4.1 Gate-4 human sign-off — **Approved, Keith Nielsen, 2026-07-24** (recorded in proposal.md)
 - [ ] 4.2 Open PR (branch already pushed: `origin/build/add-template-mirror-driver`, `588b0f8` +
       the change-artifact commit)
 - [ ] 4.3 Merge; archive in merge order relative to `add-telemetry-segment` (both touch `maintenance`)

@@ -162,11 +162,15 @@ Python owned by this repo — no registry fetch, no install hooks, nothing new i
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff (all surfaces above declared; `git diff --stat
-      main..build/add-template-mirror-driver` = AGENTS/CONTRIBUTING/README + `tools/` + `tests/` +
-      this `openspec/changes/` dir — nothing undeclared)
-- [ ] Consequences explicitly accepted (two repo-owned stdlib files to maintain; `template-parity.py`
+- [x] Blast radius re-checked against the final diff (`git diff --name-only
+      main..build/add-template-mirror-driver` = 12 files, every one declared above: AGENTS.md,
+      CHANGELOG.md, CONTRIBUTING.md, README.md, the three `openspec/changes/add-template-mirror-driver/`
+      artifacts, `tests/test_template_mirror.py`, `tests/test_template_parity.py`,
+      `tools/template-mirror.py`, `tools/template-parity.py`, `tools/template_sync.py` — nothing
+      undeclared; `template-sync-manifest.json` and `vault-template/` untouched as promised)
+- [x] Consequences explicitly accepted (two repo-owned stdlib files to maintain; `template-parity.py`
       now depends on the shared `template_sync.py`; the manifest is unchanged and widens only by a
       deliberate future edit; **zero external runtime dependencies**; INV-4/5 unchanged)
-- [ ] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-24** _(pending the operator's
-      `Approved` reply; recorded by Claude Code per the standing Gate-4 ritual once given)_
+- [x] Human sign-off recorded: **Approved — Keith Nielsen, 2026-07-24** (operator reviewed the proposal
+      and replied `Approved`; recorded by Claude Code per the standing Gate-4 ritual — the human
+      decision is the operator's reply, the agent only transcribes it)
