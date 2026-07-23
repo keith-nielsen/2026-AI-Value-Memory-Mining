@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+<!-- New entries are added here as changes land. -->
+
+## [0.1.34] - 2026-07-24
+
 ### Added
 - **`tools/template-mirror.py` — a guarded repo→live mirror driver** (`add-template-mirror-driver`,
   conforming amendment, **no ADR**). The write-capable counterpart to `template-parity.py`: where
@@ -26,8 +30,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the exact gap F26 fell through when a hand-composed multi-arg `cp` wrapped in the operator's terminal
   and overwrote a repo file. A reviewed script invoked by one short line cannot wrap into a different,
   destructive command. INV-4/5 are unchanged — the operator still runs the mirror; only *how* changes.
-
-<!-- New entries are added here as changes land. -->
 
 ## [0.1.33] - 2026-07-20
 
