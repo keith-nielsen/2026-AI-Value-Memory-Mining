@@ -34,8 +34,7 @@ newest tag. The ceremony is driven by the guarded state machine `tools/ship-rele
 3. Re-run tools/ship-release.py vX.Y.Z — it verifies the mutation actually landed
    (per layer: remote-tag, release-object) before emitting the next step
 4. Repeat until it prints the tag↔Release PARITY TALLY with its denominators and exits 0
-5. Mirror any vault-template hook/guard change into the live vault (operator action),
-   then prove it: tools/template-parity.py <VAULT_ROOT>
+5. tools/template-mirror.py <VAULT_ROOT>   # mirror LOCKSTEP repo→live, then prove parity
 ```
 
 The driver deliberately **never executes the outward commands itself** — `git push` and

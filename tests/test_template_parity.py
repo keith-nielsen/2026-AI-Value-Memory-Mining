@@ -13,6 +13,7 @@ import pathlib
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 REAL_TOOL = REPO / "tools" / "template-parity.py"
+SHARED_LIB = REPO / "tools" / "template_sync.py"
 
 EXIT_OK, EXIT_DRIFT, EXIT_BLOCKED = 0, 1, 3
 
@@ -33,6 +34,7 @@ def _sandbox(tmp_path, template_files, live_files):
     repo = tmp_path / "repo"
     (repo / "tools").mkdir(parents=True)
     shutil.copy(REAL_TOOL, repo / "tools" / "template-parity.py")
+    shutil.copy(SHARED_LIB, repo / "tools" / "template_sync.py")  # sibling import at runtime
     (repo / "tools" / "template-sync-manifest.json").write_text(json.dumps(MANIFEST))
     template = repo / "vault-template"
     live = tmp_path / "live"
