@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **Two non-default GitHub rulesets on the repo, recorded by ADR-0034** (`record-github-rulesets`,
+  recording change, **no spec delta**). Server-side, empty-bypass (binds even admin): `v*` tags are
+  immutable (can't be moved/deleted/force-pushed; creation still allowed) and `main` requires a PR +
+  merge-commit-only (no direct push, no squash/rebase). The first guard in the stack that binds the
+  operator, not just the agent — closing the F10/RC-7 class server-side. Provisioned `active`
+  (`evaluate` dry-run is Enterprise-only); `required_status_checks` added via a follow-on once a live
+  PR confirms the exact check-context names. Repo-config only — no `vault-template/` delta.
+
 ## [0.1.34] - 2026-07-24
 
 ### Added

@@ -161,6 +161,13 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   governing `proposal.md`**. The guard judges "vault or not" by the command's *effective target*
   (`cd`/`git -C`/`gh -R`), not the shell cwd — so a sibling-repo publish is *asked*, a vault-outward one
   is *denied*. Never route around the ASK "to be helpful."
+- **This repo runs non-default GitHub rulesets (ADR-0034), enforced server-side.** `main` requires a
+  PR, **merge-commit only** (no direct push, no squash/rebase); **`v*` tags are immutable** (can't be
+  moved, deleted, or force-pushed once created — creation still works). If a `git push`/merge is
+  refused and it "should" work by default, **that is these rulesets, by design** — manage at Settings →
+  Rules. Break-glass is **human-originated only** (the operator toggles `enforcement=disabled`↔`active`
+  from their own terminal); **the agent never proposes, drafts, or emits a ruleset change — it surfaces
+  the block and stops** (extends INV-14's "never even propose").
 - **Every version tag ships with a GitHub Release — walk the ship with `tools/ship-release.py
   vX.Y.Z`.** A tag ≠ a Release. The driver proves the merge-ancestor + CHANGELOG guards, cuts and
   verifies the local tag, then emits each outward command (`git push`, `gh release create`) for you
