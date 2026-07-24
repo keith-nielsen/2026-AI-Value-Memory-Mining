@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0034 — Server-side branch & tag rulesets: the first guard that binds the operator, not just the agent
 
-**Status:** **Proposed** (Gate-4 pending — human-only sign-off)
+**Status:** **Accepted** (human sign-off: Keith Nielsen, 2026-07-24)
 **Date:** 2026-07-24
 **Change:** `record-github-rulesets` (recording change, **no spec delta**). Repository configuration
 only (two GitHub rulesets, provisioned by `gh api`). **No `vault-template/` delta, no `protects:`-tagged
