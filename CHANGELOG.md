@@ -21,6 +21,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`evaluate` dry-run is Enterprise-only); `required_status_checks` added via a follow-on once a live
   PR confirms the exact check-context names. Repo-config only — no `vault-template/` delta.
 
+### Changed
+- **Reference deployment adopted the strict write-scope sandbox (Stage-B), recorded by ADR-0035**
+  (`adopt-strict-write-scope-sandbox`, recording ADR, **no spec delta, no `vault-template/` change**).
+  The live instance's `.claude/settings.json` moves from burn-in to strict — `failIfUnavailable: true`
+  + `allowUnsandboxedCommands: false` — completing ADR-0022's two-stage rollout for this deployment and
+  closing the P15 residual (*the write-scope guarantee held only while the sandbox was on*). **Instance-
+  only:** `settings.json` is SEED (instance-owned); the template default stays in burn-in so forks
+  adopt strict only after their own clean burn-in (SE-3), per `docs/USING-THIS-TEMPLATE.md` Step 4c.
+  Evidence: P6/SE-4 (re-run 2026-07-27, EROFS + path-specific control), P16/SE-5, P15 substrate, and
+  SE-2 deps (`bwrap`/`socat`) verified present.
+
 ## [0.1.34] - 2026-07-24
 
 ### Added
