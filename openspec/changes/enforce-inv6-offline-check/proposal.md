@@ -218,8 +218,22 @@ $ python3 -m pytest tests/ -q
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-- [ ] Blast radius re-checked against the final diff
-- [ ] Gate-1 transcripts re-run and diffed clean
+- [x] **Blast radius re-checked against the final diff.** `git diff --name-only main..HEAD` = **9
+      files**, every one declared at Gate 1, nothing undeclared:
+      `.github/scripts/inv6-offline-dynamic.sh`, `.github/workflows/ci.yml`, `CHANGELOG.md`,
+      `README.md`, `openspec/adr/0037-enforce-inv6-offline-check.md`, the two
+      `openspec/changes/enforce-inv6-offline-check/` artifacts, `tests/test_inv6_offline.py`,
+      `tools/inv6-offline-check.py`.
+- [x] **"Explicitly NOT changed" promises verified mechanically, not by inspection.** A grep of the
+      final diff for `openspec/constitution.md`, `tools/template-sync-manifest.json`, `docs/`,
+      `SECURITY.md`, `vault-template/` and `openspec/specs/` returns **no matches** (the live spec is
+      edited by the archive step, not by this branch).
+- [x] **`vault-template/` is untouched — `git diff --stat main..HEAD -- vault-template/` is empty.**
+      This is the load-bearing check for the "no deploy step" claim: no fleet member was added, so
+      **no mirror and no operator `render` are owed**, unlike v0.1.35.
+- [x] **Gate-1 transcripts re-run and diffed clean** — the offline-assertion sweep still returns the
+      single docstring hit, and the fleet network-token sweep still returns 6 / 2 for the two INV-14
+      guards against 0 / 0 AST violations.
 
 **Consequences explicitly accepted:**
 
@@ -240,9 +254,18 @@ $ python3 -m pytest tests/ -q
 > CI gains two jobs and roughly a minute. A future fleet script that legitimately needs the network
 > would have to become an `[agent]` operation instead — which is what INV-6 already requires.
 
-- [ ] **ADR created:** `openspec/adr/0037-enforce-inv6-offline-check.md`
-- [ ] **Human sign-off recorded:** _pending_ — constitution §5, human-only.
+- [x] **ADR created:** `openspec/adr/0037-enforce-inv6-offline-check.md`
+- [x] **ADR captures** context / options / choice / consequence / **sacrifice**
+- [x] **Human sign-off recorded: Approved — Keith Nielsen, 2026-07-28.** The operator was presented
+      with the principle, its rationale and the "what breaks" consequences per constitution §5(a) —
+      that a pass means *no statically visible network call, and none on the paths the suite
+      exercises*, **not** that the fleet is offline; that the bash half is knowingly weaker than the
+      AST half; that the two INV-14 guards have no tests so coverage is thinnest where the verbs
+      live; and that `--map-current-user` portability on the runner is a Gate-2 item to be **proven
+      in CI**, not claimed here. The operator replied `Approved`. Recorded by Claude Code per the
+      standing Gate-4 ritual: **the human decision is the operator's reply, the agent only
+      transcribes it.**
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: **Keith Nielsen**
+Date: **2026-07-28**

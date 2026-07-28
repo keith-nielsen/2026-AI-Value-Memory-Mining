@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0037 — Give INV-6 a runner: static AST analysis plus a network-namespace behavioural check
 
-**Status:** **Proposed** (Gate-4 pending — human-only sign-off, constitution §5)
+**Status:** **Accepted** (human sign-off: Keith Nielsen, 2026-07-28)
 **Date:** 2026-07-28
 **Relates:** `maintenance` (INV-6) · change `enforce-inv6-offline-check` · **sibling of ADR-0036**
 (the other half of the same audit; INV-6 was the last Tier-0 invariant left unenforced) ·
