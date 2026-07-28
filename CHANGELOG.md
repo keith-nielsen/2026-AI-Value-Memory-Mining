@@ -32,6 +32,51 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Evidence: P6/SE-4 (re-run 2026-07-27, EROFS + path-specific control), P16/SE-5, P15 substrate, and
   SE-2 deps (`bwrap`/`socat`) verified present.
 
+## [0.1.35] - 2026-07-28
+
+### Added
+- **INV-7 acquires a mechanism — credential scanning at the commit boundary** (`enforce-inv7-secret-scan`,
+  `constitution-override` **conforming**, **ADR-0036**). A new Layer-0 literate meta-script,
+  `secret-scan-script.md` → `~/bin/vault_secrets.py` (fleet 13 → 14), is called by the existing commit
+  gate on staged **content**, and a new `secret-scan` CI job sweeps the repository's full object
+  database. **Why:** INV-7 — *"no secrets in any vault file"* — is Tier-0, sits in the Safety band, and
+  was enforced by **nothing**: no hook, no linter, no CI job, no test. A credential pasted into any note
+  committed cleanly. The spec meanwhile already *stated* the rule, and its sole scenario inspected the
+  contents of two config files — a Factor-A check standing in for a Factor-B property, in the corpus
+  that defines the invariant. Same defect class as ADR-0030's, one step worse: INV-11's floor at least
+  existed as dead code; INV-7 had no artifact at all.
+- **Two-tier detection, only one of which gates.** `HIGH` patterns are anchored vendor token formats
+  (`ghp_` + 36, `AKIA` + 16, …) with a near-zero false-positive rate. `ADVISORY` patterns
+  (`password = "…"`) are reported by the standalone tool and **never consulted by the hook** — a
+  deliberate application of the barium-lunch investigation's RC-E (*over-denial is camouflage*): this
+  corpus discusses credentials constantly, and a gate that fires on its own audit notes teaches its
+  operator to bypass it.
+- **Three properties that make the gate falsifiable rather than decorative.** Findings are **redacted**
+  to a four-character prefix and a length (a scanner that echoes what it found violates INV-7 while
+  enforcing it). The scanner **selftests before every scan** and refuses to report clean if its patterns
+  cannot be shown to fire — the exit-3 control-gate pattern, reused. And the historical scan walks
+  `cat-file --batch-all-objects`, so **unreachable** blobs from discarded commits and dropped rebases
+  are in scope, where `git rev-list` cannot see them and a committed-then-"removed" credential survives.
+- **Scoping asymmetries with the gate's INV-11 half, stated in the spec:** every file type (not just
+  `.md`), modified files too (`--diff-filter=ACM`, not `AR`), and **never grandfathered** — a
+  pre-existing non-conforming *name* is cosmetic debt, a pre-existing *credential* is an active
+  compromise.
+- `openspec/specs/access-control/spec.md` — **ADDED** Requirement *Secrets Prohibition Is Enforced at
+  the Boundary* (5 scenarios). The existing prohibition Requirement is left intact, per ADR-0030's
+  pattern. `tests/test_secret_scan.py` adds 13 cases weighted toward negative controls.
+
+### Notes
+- **Prophylactic, not remedial.** A Phase-0 sweep of both repositories' full object databases — 610 +
+  889 blobs plus 548 working-tree files — found **zero** matches at either tier, with the instrument
+  validated first against a control fixture carrying planted secrets in live, deleted, and unreachable
+  states. Nothing has leaked.
+- **Honest bound, carried in the spec so it cannot be dropped:** this detects *known formats*. A
+  shapeless password, a split or encoded secret, or a novel vendor prefix passes. **A clean scan is not
+  proof of absence** — custody discipline is the other half of INV-7 and is not delivered here.
+- **A deployed vault gains nothing until the operator runs `render`** (operator-only by design,
+  ADR-0022). The repo half is live at merge; the vault half is a deliberate human act.
+- **INV-6 is now the only live Tier-0 invariant with no mechanism at all.**
+
 ## [0.1.34] - 2026-07-24
 
 ### Added
