@@ -316,8 +316,27 @@ is the violation recorded as F29 in the live vault's failure-mode ledger.
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-**Second review confirms blast radius was fully addressed:** ☐
-**Gate-1 transcript re-run; output diffed clean against the proposal:** ☐
+- [x] **Blast radius re-checked against the final diff.** `git diff --name-only main..HEAD` = **12
+      files**, every one declared at Gate 1, nothing undeclared: `.github/workflows/ci.yml`,
+      `CHANGELOG.md`, `README.md`, `SECURITY.md`, `docs/obsidian.md`,
+      `openspec/adr/0036-enforce-inv7-secret-scan.md`, the three
+      `openspec/changes/enforce-inv7-secret-scan/` artifacts, `tests/test_secret_scan.py`,
+      `vault-template/99-Operations/scripts/commit-gate-script.md`,
+      `vault-template/99-Operations/scripts/secret-scan-script.md`.
+- [x] **"Explicitly NOT changed" promises verified mechanically, not by inspection.** A grep of the
+      final diff for `openspec/constitution.md`, `tools/template-sync-manifest.json`,
+      `docs/glossary.md`, `vault-template/97-Molds/`, and `openspec/specs/` returns **no matches**
+      (the live spec is edited by the archive step, not by this branch). The INV-11 half of the
+      commit gate is byte-unchanged: the only `--diff-filter` line in the diff is an **added prose
+      line** in the rationale; there is no `-` line touching the `AR` loop or the `--check-strict`
+      call.
+- [x] **Gate-1 transcript re-run and diffed clean** — the INV-7 sweep and the fleet-count sweep both
+      reproduce the counts recorded at Gate 1 (7 count-hits, 3 real / 4 regex false positives, each
+      dispositioned in the table above).
+- [x] **A defect was found by Gate 3 and is recorded rather than smoothed over** — the scanner
+      flagged its own selftest fixture and test module; fixtures are now built from parts, the
+      branch was rebuilt before any push, and a fresh-clone scan (what CI sees) returns `HIGH: 0`.
+      Recorded in Gate 3 above.
 
 **Consequences explicitly accepted:**
 
@@ -330,9 +349,14 @@ is the violation recorded as F29 in the live vault's failure-mode ledger.
 >
 > Forks inherit a gate that can block their commits. It is bypassable by the operator with
 > `--no-verify`, deliberately: this gate protects against accident, not against its own operator.
+>
+> **INV-6 remains with no mechanism at all** — this change closes one of the two unenforced
+> Tier-0 invariants, not both.
 
-**ADR created:** `openspec/adr/0036-enforce-inv7-secret-scan.md` ☐
-**ADR captures:** context / options / choice / consequence / **sacrifice** ☐
+- [x] **ADR created:** `openspec/adr/0036-enforce-inv7-secret-scan.md`
+- [x] **ADR captures** context / options / choice / consequence / **sacrifice**
+- [ ] **Human sign-off recorded:** _pending_ — constitution §5: the SIGN-OFF gate is human-only;
+      agents may draft CHECK and PLAN and may transcribe the operator's reply, never supply it.
 
 **SIGN-OFF** (human only — agents may not sign):
 Name: ___________________________
