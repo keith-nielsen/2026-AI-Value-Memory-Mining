@@ -230,6 +230,24 @@ ADVISORY (report-only, never gates): 2 match(es)
 The two remaining hits are ADVISORY-tier `hunter2000` fixtures. They are **the tier that never
 gates**, and their presence is the working demonstration of that separation.
 
+**Proof that the rebuild actually removed the literal from what CI will see.** A local `--history`
+scan is not the right instrument here: `--batch-all-objects` includes unreachable objects, so the
+discarded pre-rebuild commits remain visible in the author's own clone until `gc`. CI does a fresh
+`actions/checkout`, which fetches reachable history only. Simulated exactly that:
+
+```transcript
+$ git clone --no-local --branch feat/enforce-inv7-secret-scan <repo> ci-sim
+$ cd ci-sim && git cat-file --batch-all-objects --batch-check='%(objecttype)' | sort | uniq -c
+    889 blob
+    198 commit
+     31 tag
+   1111 tree
+$ python3 vault_secrets.py --history .
+HIGH (object database, incl. unreachable): 0 match(es)
+$ grep -qE "^HIGH .*: 0 match" ci.out ; echo rc=$?
+rc=0
+```
+
 ```transcript
 $ python3 -m pytest tests/ -q
 ........................................................................ [ 94%]
