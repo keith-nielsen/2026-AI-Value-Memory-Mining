@@ -379,6 +379,32 @@ jobs:
           sys.exit(1 if hits else 0)
           EOF
 
+  secret-scan:
+    name: Secret scan (INV-7)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # --history walks the whole object DB; a shallow clone hides it
+
+      - name: Extract the scanner from its literate note
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re
+          note = pathlib.Path("vault-template/99-Operations/scripts/secret-scan-script.md")
+          blocks = re.findall(r"^```python\n(.*?)^```", note.read_text(), re.S | re.M)
+          assert len(blocks) == 1, f"expected exactly 1 python fence, found {len(blocks)}"
+          pathlib.Path("/tmp/vault_secrets.py").write_text(blocks[0])
+          EOF
+
+      - name: Selftest the instrument (a scan that cannot fail proves nothing)
+        run: python3 /tmp/vault_secrets.py --selftest
+
+      - name: Scan the full object database, including unreachable blobs
+        run: |
+          python3 /tmp/vault_secrets.py --history . | tee /tmp/scan.out
+          grep -qE "^HIGH \(object database, incl\. unreachable\): 0 match" /tmp/scan.out
+
   validate-scripts:
     name: Validate scripts (py ${{ matrix.python }})
     runs-on: ubuntu-latest

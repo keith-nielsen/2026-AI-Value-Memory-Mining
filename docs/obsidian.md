@@ -5,7 +5,7 @@ title: "Obsidian Integration"
 # Obsidian Integration
 
 A Value Mining vault is plain Markdown + YAML frontmatter under git, so it works with
-**any** editor — all 13 scripts and the whole pipeline are editor-agnostic. But
+**any** editor — all 14 scripts and the whole pipeline are editor-agnostic. But
 [Obsidian](https://obsidian.md) is the recommended surface: it renders frontmatter as
 a Properties form, resolves `[[wikilinks]]`, and instantiates the molds. This guide
 covers the recommended setup and how Obsidian relates to the deterministic scripts.
@@ -144,5 +144,5 @@ All are **gate-safe** — none bypass the human approval step, and the commit-ga
   procedure.
 - **Stray-fragment lint** — flag root-level notes, claims carrying an effort `status`
   field (promotion-pending), and dangling wikilinks.
-- **`99-Operations` index index** — one browsable note listing the 13 scripts with
+- **`99-Operations` index index** — one browsable note listing the 14 scripts with
   one-line purposes.
