@@ -7,7 +7,7 @@ created: 2026-06-14
 updated: 2026-07-06
 ---
 ## Rationale
-Unbypassable commit-gate for INV-11. Fires on every commit — by human, script, agent,
+Unbypassable commit-gate for **INV-11 (names) and INV-7 (staged content)**. Fires on every commit — by human, script, agent,
 or external sync tool — and blocks on any added or renamed `.md` file whose name
 violates the naming ruleset: cross-platform safety, kebab-case, and the ≥3-token floor
 (`--check-strict`, ADR-0030 switching on the rule ADR-0015 deferred). Exemption-aware —
@@ -21,6 +21,15 @@ naming SSOT at `${HOME}/bin/vault_naming.py`, so it works on commits made by the
 bare-exact drive path, which by contract carries no pre-sourced environment
 (a vestigial `VAULT_ROOT` guard — set but never used — previously broke exactly
 that path; removed 2026-07-05, Phase-1a burn-in finding).
+
+**INV-7 half (added 2026-07-28).** The same hook then calls `${HOME}/bin/vault_secrets.py --staged`,
+which scans staged **content** — not names — for anchored credential formats. Three deliberate
+asymmetries with the naming half: it covers **every** file type (a secret in a `.json` or `.env`
+counts), it covers **modified** files too (`--diff-filter=ACM`, not `AR`), and it is **never
+grandfathered**. A pre-existing bad name is a cosmetic debt; a pre-existing live credential is an
+active compromise. Only the `HIGH` tier gates — see `secret-scan-script` for why the advisory tier
+is excluded from the gate (RC-E: over-denial is camouflage). The scanner runs its own selftest
+before every scan and refuses to report clean if its patterns cannot be shown to fire.
 
 ## Implementation
 ```bash
@@ -38,5 +47,13 @@ while IFS= read -r f; do
         fail=1
     fi
 done < <(git diff --cached --name-only --diff-filter=AR)
+
+# INV-7 (Tier-0): scan staged CONTENT for credential formats. Deliberately wider than the
+# naming check above — every added/copied/modified path, any file type, and NOT grandfathered:
+# a name that predates the rule is tolerable, a live credential never is.
+if ! python3 "${HOME}/bin/vault_secrets.py" --staged; then
+    fail=1
+fi
+
 exit "$fail"
 ```
