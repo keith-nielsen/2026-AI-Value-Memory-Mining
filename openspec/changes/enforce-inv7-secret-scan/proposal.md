@@ -355,9 +355,14 @@ is the violation recorded as F29 in the live vault's failure-mode ledger.
 
 - [x] **ADR created:** `openspec/adr/0036-enforce-inv7-secret-scan.md`
 - [x] **ADR captures** context / options / choice / consequence / **sacrifice**
-- [ ] **Human sign-off recorded:** _pending_ — constitution §5: the SIGN-OFF gate is human-only;
-      agents may draft CHECK and PLAN and may transcribe the operator's reply, never supply it.
+- [x] **Human sign-off recorded: Approved — Keith Nielsen, 2026-07-28.** The operator was presented
+      with the principle, its rationale, and the "what breaks" consequences (constitution §5(a)),
+      including the four sacrifices — false positives can block a legitimate commit; known formats
+      only, so a clean scan is not proof of absence; the advisory tier is deliberately toothless;
+      `--no-verify` bypasses — and the note that INV-6 remains unenforced. The operator replied
+      `Approved`. Recorded by Claude Code per the standing Gate-4 ritual: **the human decision is
+      the operator's reply, the agent only transcribes it.**
 
 **SIGN-OFF** (human only — agents may not sign):
-Name: ___________________________
-Date: ___________________________
+Name: **Keith Nielsen**
+Date: **2026-07-28**

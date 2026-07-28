@@ -14,28 +14,34 @@
 - [x] `openspec/changes/enforce-inv7-secret-scan/proposal.md` — Gates 1–2 authored from transcripts
 - [x] `specs/access-control/spec.md` — ADDED Requirement + 5 scenarios
 - [x] `openspec validate --all` green (8 passed, 0 failed)
-- [ ] `openspec/adr/0036-enforce-inv7-secret-scan.md`
-- [ ] `README.md` ADR count 35 → 36 + reference `0036` (CI-guarded by `adr-count-lint`)
+- [x] `openspec/adr/0036-enforce-inv7-secret-scan.md` — **Accepted** (Keith Nielsen, 2026-07-28)
+- [x] `README.md` ADR count 35 → 36 + reference `0036` (CI-guarded by `adr-count-lint`) — verified rc=0
 
 ## 3. Blast-radius edits (from the Gate-1 transcript)
 
-- [ ] `README.md:113` — 13 → 14 literate meta-scripts
-- [ ] `docs/obsidian.md:8` — 13 → 14 scripts
-- [ ] `docs/obsidian.md:147` — 13 → 14 scripts
-- [ ] `SECURITY.md:37` — name the mechanism in the INV-7 row (advisory)
-- [ ] `CHANGELOG.md` — v0.1.35
+- [x] `README.md:113` — 13 → 14 literate meta-scripts
+- [x] `docs/obsidian.md:8` — 13 → 14 scripts
+- [x] `docs/obsidian.md:147` — 13 → 14 scripts
+- [x] `SECURITY.md:37` — name the mechanism in the INV-7 row (INV-7 row only; an "Enforced by" column across all rows was rejected as scope creep)
+- [x] `CHANGELOG.md` — v0.1.35 stamped in this PR (the v0.1.31 lesson: deferring it costs an extra PR)
 - [x] `tools/template-sync-manifest.json` — verified **no change needed** (directory-prefix lockstep)
 
-## 4. Operator decision — pending
+## 4. Operator decision — RESOLVED 2026-07-28
 
-- [ ] Fold in the retraction of `access-control` lines 68/73 (stale claim that the commit gate
-      enforces INV-4/INV-5 — superseded by ADR-0022's kernel enforcement), or run it separately?
+- [x] **Run separately.** Folding the `access-control` lines 68/73 retraction into this ceremony was
+      proposed by the agent on a proximity argument ("same spec, same ceremony"), checked against
+      `CONTRIBUTING.md:65` — *"One change, one purpose. Don't bundle unrelated capabilities"* — and
+      **retracted**. Recorded as **F29** in the live vault's failure catalog, with the operator's
+      rollback-entanglement rationale: a bundle creates undeclared dependencies, so a later rollback
+      of one concern silently drags the others back. `fleet-hygiene-bundle` (2026-07-06) is
+      explicitly **not** precedent. Queued as its own change: retract the stale claim that the commit
+      gate enforces INV-4/INV-5 (superseded by ADR-0022's kernel enforcement).
 
 ## 5. Ship
 
 - [ ] `tools/ship-release.py v0.1.35` — gated commands, re-verified per layer
 - [ ] PR with ```scope block; `scope-review` job clean
-- [ ] Gate-4 human sign-off recorded in the proposal
+- [x] Gate-4 human sign-off recorded in the proposal — **Approved, Keith Nielsen, 2026-07-28**
 - [ ] Archive **on the feature branch before merge** (else a second archive PR is owed)
 - [ ] Tag → Release; `pr-state.py` parity check
 

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0036 — Give INV-7 a mechanism: credential scanning at the commit boundary
 
-**Status:** **Proposed** (Gate-4 pending — human-only sign-off, constitution §5)
+**Status:** **Accepted** (human sign-off: Keith Nielsen, 2026-07-28)
 **Date:** 2026-07-28
 **Relates:** `access-control` (INV-7) · change `enforce-inv7-secret-scan` · **same defect class as
 ADR-0030** (a rule enforced nowhere) and ADR-0029 · ADR-0022 (the enforcement posture this
