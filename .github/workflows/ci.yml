@@ -379,6 +379,59 @@ jobs:
           sys.exit(1 if hits else 0)
           EOF
 
+  inv6-offline-static:
+    name: INV-6 static (no fleet script calls the network)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Selftest the checker — must fire on calls AND stay silent on names
+        # The second half is the load-bearing one: the INV-14 guards are fleet scripts whose
+        # source is dense with outward verbs as regex literals. A checker that cannot tell a
+        # string Constant from an Import would flag them and be switched off within a week.
+        run: python3 tools/inv6-offline-check.py --selftest
+
+      - name: Analyse the fleet
+        run: python3 tools/inv6-offline-check.py
+
+  inv6-offline-dynamic:
+    name: INV-6 dynamic (fleet suite in a network namespace)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Permit unprivileged user namespaces
+        # Ubuntu 24.04+ ships kernel.apparmor_restrict_unprivileged_userns=1, which blocks
+        # `unshare -n` for non-root users. Discovered by this job failing closed on its first
+        # run rather than reporting a false pass. Only touched if the key exists, so this is a
+        # no-op on kernels without the restriction; the value is printed so the run records
+        # what policy it actually executed under.
+        run: |
+          if sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          else
+            echo "key absent on this kernel — no change needed"
+          fi
+          sysctl -n user.max_user_namespaces | sed 's/^/user.max_user_namespaces = /'
+
+      - name: Run the fleet suite with no network, controls proven first
+        # Fails closed: if the namespace cannot be shown to isolate, the job exits 3 (instrument
+        # blocked, no verdict) rather than 1 (a real INV-6 violation). Those must not look alike.
+        run: bash .github/scripts/inv6-offline-dynamic.sh
+
   secret-scan:
     name: Secret scan (INV-7)
     runs-on: ubuntu-latest

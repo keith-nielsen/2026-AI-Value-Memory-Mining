@@ -32,6 +32,48 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Evidence: P6/SE-4 (re-run 2026-07-27, EROFS + path-specific control), P16/SE-5, P15 substrate, and
   SE-2 deps (`bwrap`/`socat`) verified present.
 
+## [0.1.36] - 2026-07-28
+
+### Added
+- **INV-6 gains a runner — static AST analysis plus a network-namespace behavioural check**
+  (`enforce-inv6-offline-check`, `constitution-override` **conforming**, **ADR-0037**). INV-6 —
+  *"`[script]` operations make no network calls and no LLM calls"* — was, after v0.1.35, **the last
+  live Tier-0 invariant with no mechanism at all**. Measured: a grep across `tests/` and all fifteen
+  CI jobs for `socket|network|offline|urllib|requests|unshare` returned one hit, and it was **prose in
+  a docstring**.
+- **The defect was the opposite shape to INV-7's**, and both are now on record. INV-7's Requirement
+  carried a *wrong* scenario (it inspected two config files). INV-6's scenario was already **correct
+  and behavioural** — *"THEN it issues no network request and invokes no model"* — and **nothing ran
+  it.** A well-formed rule with no runner is the harder of the two to notice, because reading the spec
+  is reassuring.
+- **`tools/inv6-offline-check.py`** (repo-only, stdlib-only) analyses each fleet note's fence: Python
+  by **AST**, bash by a conservative command-position scan. The AST requirement is not fastidiousness —
+  the `outbound-publish-guard` and `push-guard` notes implement the INV-14 rail and exist to *name*
+  outward verbs in regex literals. Measured on the shipped files: naive grep **6** and **2** hits,
+  AST violations **0** and **0**. A checker that failed the two most security-relevant scripts on every
+  run would be disabled, not obeyed (RC-E, *over-denial is camouflage*). Indirection — computed dynamic
+  imports, non-literal argv — is reported **UNRESOLVED** and fails, never passed silently.
+- **`.github/scripts/inv6-offline-dynamic.sh`** runs the fleet suite inside an unprivileged **network
+  namespace**, proving the isolation first: the network must be reachable *outside* and unreachable
+  *inside* in the same run, or the job **fails closed**. A confound was found and eliminated rather
+  than worked around — `unshare -r` maps the caller to root, which ignores permission bits and broke
+  one test asserting `EACCES`; `--map-current-user` preserves uid and the suite passes 38/38 with the
+  control still blocking.
+- Two CI jobs (`inv6-offline-static`, `inv6-offline-dynamic`) and `tests/test_inv6_offline.py`
+  (28 cases, weighted toward the false-positive direction). `maintenance` gains an ADDED Requirement;
+  the existing INV-6 Requirement is left intact, per ADR-0030's pattern.
+
+### Notes
+- **All nine live Tier-0 invariants now have a mechanism.** The condition RC-B identified — an
+  invariant asserted as enforced with no behavioural evidence — no longer holds anywhere in the set.
+- **Honest bound, carried in the spec, the tool's help, and its output:** a pass means *no statically
+  visible network call, and none on the paths the suite exercises*. It does **not** mean the fleet is
+  offline. Static analysis is blind to `__import__`/`eval`/C extensions; the dynamic half is bounded by
+  test coverage — and coverage is thinnest where the verbs live, since **the two INV-14 guards have no
+  tests**. Queued separately.
+- **Repo-side only — no `render`, no mirror, no operator deploy step.** No fleet member is added; the
+  fleet is authored upstream and deployed down.
+
 ## [0.1.35] - 2026-07-28
 
 ### Added
