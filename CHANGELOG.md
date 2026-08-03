@@ -13,6 +13,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
+- **The PR lifecycle is now driven, not composed — `tools/pr-flow.py`** (`add-pr-flow-driver`,
+  conforming amendment, **no ADR**, `maintenance` +3 Requirements). The sibling of
+  `ship-release.py`: a guarded, re-entrant state machine for branch → push → PR → checks → merge →
+  branch deletion, holding no state file and re-deriving everything from the world each run. Same
+  load-bearing contract — it **never executes an outward mutation**, because the INV-14 guard
+  text-matches the command the *caller* runs and a wrapper would silently bypass the rail. It proves
+  each guard, emits the next single command **with its owner named**, exits `2`, and on re-invocation
+  verifies the mutation actually landed.
+- **Why:** F30 (live vault `determinism-failure-modes-claude`, class 8) recorded a single session in
+  which a child PR was opened before its parent merged, a mandatory body-PATCH step was named then
+  dropped, `gh pr merge --delete-branch` half-failed while printing `✓ Merged`, a rebase was reported
+  complete with `.git/rebase-merge` still active, and three emitted commands were not executable as
+  written. All ordering, syntax, or postcondition defects — precisely what `ship-release.py` already
+  solves for the *other* half of the ceremony. This extends the proven contract rather than inventing
+  a second pattern. **A table of command templates was considered and rejected:** this repo's own
+  record is that a prose ENFORCE has the reliability of recall, and a list an agent is meant to
+  consult is a list it can skip.
+- **Ownership is probed, never recalled — `--capabilities`.** The one defect class a driver cannot
+  fix by ordering is *"the operator must run this"* when the agent can. The agent asserted "no GitHub
+  egress this session" and it was false: plain `git` and the anonymous REST API both worked, and only
+  `gh` was unavailable (a sandboxed `gh` cannot reach the OS keyring and reports a bogus 401). A
+  static table would have preserved that wrong answer; a probe re-measures. It reports the mechanism,
+  not just the verdict.
+- **`tools/gh_read.py`** — shared read layer, anonymous REST first with `gh` as fallback, returning
+  the answering **channel** with every payload. Stdlib only; no new dependency.
+
 - **Two non-default GitHub rulesets on the repo, recorded by ADR-0034** (`record-github-rulesets`,
   recording change, **no spec delta**). Server-side, empty-bypass (binds even admin): `v*` tags are
   immutable (can't be moved/deleted/force-pushed; creation still allowed) and `main` requires a PR +
@@ -22,6 +48,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   PR confirms the exact check-context names. Repo-config only — no `vault-template/` delta.
 
 ### Changed
+- **`tools/pr-state.py` no longer dies when `gh` is unavailable.** The standing rule *"run
+  `pr-state.py` first on any confusing PR state"* was unrunnable by a sandboxed agent, which is why
+  hand-rolled `curl` replaced it at the exact moment of confusion. Reads now degrade to the anonymous
+  channel; GraphQL-only layers (`mergeStateStatus`, the check rollup, run-level aggregation) report
+  **UNAVAILABLE and are never synthesised**, and the layer-disagreement comparison is skipped rather
+  than computed from one side. **Dogfooding caught a real defect pre-ship** — the state-machine line
+  was labelled `· GraphQL` while sourced from REST, which is the channel-stripping error the reporter
+  exists to prevent.
 - **Reference deployment adopted the strict write-scope sandbox (Stage-B), recorded by ADR-0035**
   (`adopt-strict-write-scope-sandbox`, recording ADR, **no spec delta, no `vault-template/` change**).
   The live instance's `.claude/settings.json` moves from burn-in to strict — `failIfUnavailable: true`

@@ -18,6 +18,31 @@ edits to `vault-template/` or `openspec/specs/`.
 6. Open a PR — the PR template checklist will guide you
 ```
 
+### Landing a change (branch → PR → merge → cleanup)
+
+The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of the ship driver. Walk
+it; do not hand-compose the sequence:
+
+```
+0. tools/pr-flow.py --capabilities        # who runs what, MEASURED not recalled
+1. tools/pr-flow.py --branch BR [--base main] [--body-file PATH] [--title STR]
+                                          # proves worktree settled, base-current, pushed, PR
+                                          # exists, head matches, checks green — then EMITS the
+                                          # next single command with its OWNER and exits 2
+2. Run exactly the emitted command (git push …, gh pr create …, gh pr merge …)
+3. Re-run tools/pr-flow.py — it verifies the mutation actually landed before advancing
+4. Repeat until it prints LIFECYCLE COMPLETE and exits 0
+```
+
+Like the ship driver, it **never executes an outward mutation** — the INV-14 guard text-matches the
+command the caller runs, so a wrapper would bypass the rail. Two hazards it exists to catch, both
+from the F30 record: **`gh pr merge --delete-branch` is not atomic** (if the local delete fails, gh
+aborts before deleting the remote and still prints `✓ Merged`), and **a stale base makes a PR's
+checks report on something other than its own change** — rebase before pushing, never after opening.
+
+`main` currently carries **no `required_status_checks`** (ADR-0034's follow-on is pending), so a red
+check does not block a merge. Until that lands, this driver is the gate.
+
 ### Shipping a version (tag → release → mirror)
 
 After a change is merged to `main`, the ship is **not complete** until a GitHub **Release object**
