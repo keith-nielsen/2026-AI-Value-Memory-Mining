@@ -3,7 +3,7 @@
 
 ## 1. Gate 1 — CHECK (blast radius)
 
-- [x] 1.1 `openspec/specs/maintenance/spec.md` — three ADDED Requirements, no existing Requirement
+- [x] 1.1 `openspec/specs/maintenance/spec.md` — six ADDED Requirements, no existing Requirement
       modified or weakened
 - [x] 1.2 `tools/pr-flow.py` (new), `tools/gh_read.py` (new), `tools/pr-state.py` (modified reads)
 - [x] 1.3 `tests/test_pr_flow.py` (new)
@@ -35,6 +35,25 @@
       labelled a REST-sourced line `· GraphQL`, the channel-stripping error the tool exists to
       prevent
 - [x] 3.6 Dogfood `pr-flow.py` on this branch — correctly refused on an unclean worktree
+
+## 3b. Flow review — all 49 PRs in repo history (operator-directed, before ship)
+
+- [x] 3b.1 Enumerate every PR #1–#50 from the API and classify by shape
+- [x] 3b.2 **Bot/remote-only branch** (#1–5, #18, #46–48 open now): `rev-parse` DWIM read a
+      Dependabot branch as local and proposed rebasing it — **fixed**: explicit `refs/heads/`
+      lookup; no rebase/push/delete for foreign branches; merge omits `--delete-branch`
+- [x] 3b.3 **Local command with another branch checked out**: bare `git rebase` acts on HEAD —
+      **fixed**: emits `git switch` first
+- [x] 3b.4 **Stacked PR** (#29, died irrecoverably, F21) — **fixed**: refuses to merge while open
+      children exist, names them, prescribes the retarget; flags a PR that is itself stacked
+- [x] 3b.5 **Closed-unmerged PR** (#18, #29) — **fixed**: queries all states, reports the dead PR
+      instead of silently proposing a duplicate
+- [x] 3b.6 **Completed-lifecycle re-run** — **fixed**: absence on both sides now reports LIFECYCLE
+      COMPLETE instead of refusing, restoring the re-entrancy contract
+- [x] 3b.7 Draft PRs and multiple-open-PRs-per-head now refuse rather than guess
+- [x] 3b.8 Confirmed generic path already covers: release PRs, feature+archive two-PR ceremonies,
+      docs-only recording ADRs, and the three non-vault repos. Fork PRs out of scope, stated.
+- [x] 3b.9 Suite after extension: **126 passed** (17 → 22 cases in this file)
 
 ## 4. Gate 4 — HUMAN SIGN-OFF
 

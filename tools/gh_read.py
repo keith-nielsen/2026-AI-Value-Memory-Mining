@@ -109,13 +109,30 @@ def branches(slug):
     return get(f"/repos/{slug}/branches?per_page=100")
 
 
-def pulls_for_branch(slug, branch, base=None):
-    """Open PRs whose head is `branch`. `head` needs the owner prefix in the REST filter."""
+def pulls_for_branch(slug, branch, base=None, state="open"):
+    """PRs whose head is `branch`. `head` needs the owner prefix in the REST filter.
+
+    `state="all"` matters: a CLOSED-unmerged PR is invisible to an open-only query, so a driver
+    that only asks for open PRs concludes "no PR" and proposes creating a duplicate. This repo has
+    two such PRs in its history (#18 auto-closed by Dependabot, #29 closed irrecoverably when its
+    stacked parent merged with --delete-branch).
+    """
     owner = slug.split("/")[0]
-    q = f"/repos/{slug}/pulls?state=open&head={owner}:{branch}&per_page=100"
+    q = f"/repos/{slug}/pulls?state={state}&head={owner}:{branch}&per_page=100"
     if base:
         q += f"&base={base}"
     return get(q)
+
+
+def open_children(slug, branch):
+    """Open PRs whose BASE is `branch` — i.e. PRs stacked on top of it.
+
+    F21: merging a parent with `--delete-branch` auto-closes every stacked child IRRECOVERABLY —
+    GitHub then refuses both to reopen it (base gone) and to retarget it (closed). PR #29 in this
+    repo died exactly that way and had to be recreated. Children must be retargeted BEFORE the
+    parent merges, so they have to be visible before the merge is emitted.
+    """
+    return get(f"/repos/{slug}/pulls?state=open&base={branch}&per_page=100")
 
 
 def summarize_checks(payload):

@@ -103,6 +103,7 @@ def test_emits_rebase_when_branch_does_not_contain_base_tip(work):
     git(["add", "-A"], work)
     git(["commit", "-m", "advance main"], work)
     git(["push", "origin", "main"], work)
+    git(["switch", "feat/stale"], work)  # the branch under test IS checked out
 
     r = run_flow(work, "--branch", "feat/stale")
     assert r.returncode == EXIT_NEEDS_INPUT
@@ -199,3 +200,80 @@ def test_summarize_checks_separates_pending_from_failing():
 
 def test_summarize_checks_is_empty_safe():
     assert gh_read.summarize_checks({}) == (0, [], [])
+
+
+# --- shapes the repo's own PR history proves are allowed ---------------------------------------
+
+def test_switches_before_rebasing_so_the_wrong_branch_is_never_rebased(work):
+    """A bare `git rebase` acts on HEAD. Emitting it while another branch is checked out rebases
+    the wrong branch — caught during the flow review, before it could be run."""
+    commit_on(work, "feat/stale")
+    git(["switch", "main"], work)
+    (work / "moved.md").write_text("base moved\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "advance main"], work)
+    git(["push", "origin", "main"], work)
+    git(["switch", "-c", "feat/other"], work)  # a DIFFERENT branch is checked out
+
+    r = run_flow(work, "--branch", "feat/stale")
+    assert r.returncode == EXIT_NEEDS_INPUT
+    assert "switch feat/stale" in r.stdout
+    assert "WRONG branch" in r.stdout
+    assert "rebase origin/main" not in r.stdout.split("NEXT COMMAND")[1]
+
+
+def test_remote_only_branch_is_never_rebased_or_pushed(work):
+    """Dependabot branches (3 open on the live repo today) are not ours. `git rev-parse <name>`
+    resolves a remote-tracking ref by DWIM, so the driver once treated one as local and proposed
+    rebasing it — which would detach it from Dependabot's own automation."""
+    commit_on(work, "dependabot/npm_and_yarn/thing-1.7.0")
+    git(["push", "-u", "origin", "dependabot/npm_and_yarn/thing-1.7.0"], work)
+    git(["switch", "main"], work)
+    git(["branch", "-D", "dependabot/npm_and_yarn/thing-1.7.0"], work)
+
+    r = run_flow(work, "--branch", "dependabot/npm_and_yarn/thing-1.7.0")
+    assert "dependabot branch" in r.stdout
+    assert "NOT local" in r.stdout
+    # No rebase or push is ever EMITTED for a branch we do not own. (The locality line mentions
+    # the words while explaining that those steps are skipped, so assert on the emitted command.)
+    emitted = r.stdout.split("NEXT COMMAND")[1] if "NEXT COMMAND" in r.stdout else ""
+    assert "rebase" not in emitted
+    assert "push" not in emitted
+
+
+def test_absent_branch_defers_the_verdict_instead_of_refusing_outright(work):
+    """A branch gone from both sides is the normal END STATE of a completed lifecycle. Refusing
+    there would break the driver's re-entrancy contract."""
+    r = run_flow(work, "--branch", "feat/gone")
+    assert "absent locally and on origin" in r.stdout
+    assert "checking whether its lifecycle already completed" in r.stdout
+
+
+def test_pr_lookup_asks_for_all_states_not_just_open(monkeypatch):
+    """A CLOSED-unmerged PR is invisible to an open-only query, so the driver would propose
+    creating a duplicate. This repo has two such PRs: #18 and #29."""
+    seen = {}
+
+    def fake_get(path):
+        seen["path"] = path
+        return [], "stub"
+
+    monkeypatch.setattr(gh_read, "get", fake_get)
+    gh_read.pulls_for_branch("o/r", "feat/x", "main", state="all")
+    assert "state=all" in seen["path"]
+    assert "head=o:feat/x" in seen["path"]
+
+
+def test_open_children_queries_by_base_for_the_f21_hazard(monkeypatch):
+    """Stacked children must be visible BEFORE the parent merges — merging with --delete-branch
+    closes them irrecoverably (PR #29 died this way)."""
+    seen = {}
+
+    def fake_get(path):
+        seen["path"] = path
+        return [], "stub"
+
+    monkeypatch.setattr(gh_read, "get", fake_get)
+    gh_read.open_children("o/r", "parent-branch")
+    assert "base=parent-branch" in seen["path"]
+    assert "state=open" in seen["path"]

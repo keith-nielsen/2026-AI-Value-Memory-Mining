@@ -3,8 +3,10 @@
 
 **Change type:** `constitution-override`
 **Principle(s) affected:** Touches the `maintenance` spec (`protects: [INV-2, INV-3, INV-6]`) —
-**ADDS** three Requirements ("PR Lifecycle Is Driven, Not Composed", "Platform Capability Is
-Probed, Not Recalled", "GitHub Reads Degrade To An Unauthenticated Channel"). **No principle is
+**ADDS** six Requirements ("PR Lifecycle Is Driven, Not Composed", "Platform Capability Is Probed,
+Not Recalled", "GitHub Reads Degrade To An Unauthenticated Channel", "Branches Not Owned By This
+Repo Are Never Rewritten", "Stacked Pull Requests Are Retargeted Before The Parent Merges",
+"Ambiguous Or Unmergeable Pull Request State Is Refused, Not Guessed"). **No principle is
 overridden or weakened.** All three are additive and repo-only; the driver is designed so the
 INV-14 outbound ASK rail keeps firing (it never executes an outward mutation itself), and INV-6 is
 not engaged because these are maintainer/ceremony tools, not `[script]` fleet members — the same
@@ -89,6 +91,30 @@ cannot, because it re-measures. Measured 2026-08-03 and now emitted by `--capabi
   report **UNAVAILABLE and are never synthesised**, and the state-machine line now names the channel
   that actually answered — dogfooding caught it labelling a REST-sourced line "GraphQL", the very
   defect the reporter exists to prevent.
+
+## Flow review — all 49 pull requests in this repo's history
+
+The driver was written against the flows we had just run, so before shipping it every PR the
+repository has ever had (#1–#50) was enumerated from the API and classified. **Five shapes are
+attested in that history but were unhandled or mishandled**, and each was fixed rather than left
+for a later rebuild:
+
+| shape | attested by | was | now |
+|---|---|---|---|
+| **Bot / remote-only branch** | #1–#5, #18, **#46–#48 open today** | `git rev-parse` resolved the remote-tracking ref by DWIM, so a Dependabot branch read as *local* and the driver proposed **rebasing it** — which detaches it from Dependabot's own automation | locality determined by explicit `refs/heads/` lookup; rebase/push/delete never emitted for a foreign branch; merge omits `--delete-branch` |
+| **Local command while another branch is checked out** | any multi-branch session | emitted a bare `git rebase`, which acts on **HEAD** — it would have rebased the wrong branch | emits the `git switch` first, and says why |
+| **Stacked PR (base ≠ default)** | **#29**, closed irrecoverably when its parent merged (F21) | no child detection; a merge could orphan children | refuses to emit a merge while open children exist, names them, and prescribes the retarget; flags the PR when it is itself stacked |
+| **Closed-unmerged PR** | **#18**, **#29** | open-only query → concluded "no PR" → would propose a **duplicate** | queries all states; reports the dead PR before proposing a replacement |
+| **Completed lifecycle re-run** | every finished change | branch absent on both sides → refused, breaking the re-entrancy contract the driver claims | defers the verdict to the PR lookup and reports LIFECYCLE COMPLETE |
+
+Also added from the same review: refusal on a **draft** PR, and refusal when **more than one open
+PR shares a head** (silently taking the first is how the wrong PR gets merged).
+
+Shapes reviewed and deliberately **not** special-cased, because the generic path already covers
+them: release PRs (#37, #41), two-PR feature+archive ceremonies (#34/#35, #40/#41), docs-only
+recording-ADR PRs (#42, #43), and PRs against the three operator-authorized non-vault repos (the
+slug is resolved from the remote, never hard-coded). Fork PRs are **out of scope and stated as
+such** — the head filter is owner-qualified, and this repo takes no external contributions.
 
 ## Impact
 

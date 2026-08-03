@@ -45,6 +45,68 @@ command the caller runs — keeps firing on every outward step.
 - **WHEN** the driver emits any command
 - **THEN** the output carries an explicit owner for that command
 
+#### Scenario: A local command is emitted while another branch is checked out
+- **WHEN** the branch under test needs a local mutation and is not the checked-out branch
+- **THEN** the driver emits the branch switch first and does not emit the mutation
+- **THEN** the emitted reason states that the bare command would act on the wrong branch
+
+#### Scenario: The lifecycle has already completed
+- **WHEN** the branch is absent both locally and on origin and its PR is merged
+- **THEN** the driver reports the lifecycle complete and exits `0`
+- **THEN** it does not refuse, because absence on both sides is the normal end state
+
+### Requirement: Branches Not Owned By This Repo Are Never Rewritten
+
+The driver SHALL distinguish a branch that exists locally from one that exists only on the remote,
+and SHALL NOT emit a rebase, a push, or a branch deletion for a remote-only branch. Bot branches —
+Dependabot's above all — are maintained by the automation that created them, and rewriting or
+deleting one detaches it from that automation or causes the pull request to be recreated. Locality
+SHALL be determined by an explicit `refs/heads/` lookup, because a bare revision parse resolves a
+remote-tracking ref by DWIM and reports a foreign branch as local.
+
+#### Scenario: A Dependabot pull request is driven
+- **WHEN** the branch exists on origin but not under `refs/heads/`
+- **THEN** the driver reports the branch as not local and skips the rebase and push guards
+- **THEN** the merge command it emits omits `--delete-branch`
+- **THEN** after the merge it leaves the remote branch in place
+
+### Requirement: Stacked Pull Requests Are Retargeted Before The Parent Merges
+
+The driver SHALL detect open pull requests whose base is the branch being merged, and SHALL refuse
+to emit a merge while any exists. Merging a parent with `--delete-branch` auto-closes its stacked
+children irrecoverably: GitHub refuses both to reopen a pull request whose base branch is gone and
+to retarget a closed one. Where the branch under test is itself stacked — its base is not the
+default branch — the driver SHALL say so.
+
+#### Scenario: A pull request has children stacked on it
+- **WHEN** an open pull request targets the branch being merged as its base
+- **THEN** the driver refuses with exit `1` and names each child pull request
+- **THEN** the refusal states that the children must be retargeted before this merge
+
+#### Scenario: The pull request under test is itself a stacked child
+- **WHEN** the base is not the default branch
+- **THEN** the driver reports that the pull request is stacked and is lost if its parent merges first
+
+### Requirement: Ambiguous Or Unmergeable Pull Request State Is Refused, Not Guessed
+
+The driver SHALL query pull requests in every state rather than open ones alone, SHALL refuse when
+more than one open pull request shares the head branch, and SHALL refuse to advance a draft. A
+closed-unmerged pull request SHALL be reported when a new one is proposed for the same branch, so
+that creating a replacement is a stated consequence rather than an accident.
+
+#### Scenario: Two open pull requests share a head branch
+- **WHEN** more than one open pull request has the same head
+- **THEN** the driver refuses with exit `1` and names each
+- **THEN** it does not select one, because selecting silently is how the wrong one gets merged
+
+#### Scenario: The pull request is a draft
+- **WHEN** the pull request is marked draft
+- **THEN** the driver refuses with exit `1`
+
+#### Scenario: A closed-unmerged pull request exists for the branch
+- **WHEN** no open pull request exists but a closed-unmerged one does
+- **THEN** the driver reports it before emitting a create command
+
 ### Requirement: Platform Capability Is Probed, Not Recalled
 
 The driver SHALL provide a `--capabilities` mode that MEASURES, at invocation time, which channels

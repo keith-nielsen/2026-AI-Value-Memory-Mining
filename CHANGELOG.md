@@ -14,7 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **The PR lifecycle is now driven, not composed — `tools/pr-flow.py`** (`add-pr-flow-driver`,
-  conforming amendment, **no ADR**, `maintenance` +3 Requirements). The sibling of
+  conforming amendment, **no ADR**, `maintenance` +6 Requirements). The sibling of
   `ship-release.py`: a guarded, re-entrant state machine for branch → push → PR → checks → merge →
   branch deletion, holding no state file and re-deriving everything from the world each run. Same
   load-bearing contract — it **never executes an outward mutation**, because the INV-14 guard
@@ -38,6 +38,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   not just the verdict.
 - **`tools/gh_read.py`** — shared read layer, anonymous REST first with `gh` as fallback, returning
   the answering **channel** with every payload. Stdlib only; no new dependency.
+- **Extended against all 49 PRs in this repo's history before shipping**, so the driver covers the
+  flows we are *allowed* to run and not merely the ones we happened to run last. Five attested
+  shapes were unhandled or mishandled, and the two most serious were live defects: **a Dependabot
+  branch read as local** (a bare revision parse resolves a remote-tracking ref by DWIM) so the
+  driver proposed **rebasing a branch we do not own**, which detaches it from Dependabot's
+  automation; and **a bare `git rebase` emitted while a different branch was checked out**, which
+  acts on `HEAD` and would have rebased the wrong branch. Also now handled: **stacked PRs** — open
+  children are detected and the merge refused until they are retargeted, because merging a parent
+  with `--delete-branch` closes them irrecoverably (PR #29 died exactly that way, F21); **closed-
+  unmerged PRs** (#18, #29), previously invisible to an open-only query so a duplicate would have
+  been proposed; **draft PRs** and **multiple open PRs sharing a head**, both now refused rather
+  than guessed; and **re-running a completed lifecycle**, which used to refuse and now reports
+  LIFECYCLE COMPLETE, restoring the re-entrancy the driver claims. Release PRs, feature+archive
+  two-PR ceremonies, docs-only recording ADRs and the non-vault repos need no special case; fork
+  PRs are out of scope and stated as such.
 
 - **Two non-default GitHub rulesets on the repo, recorded by ADR-0034** (`record-github-rulesets`,
   recording change, **no spec delta**). Server-side, empty-bypass (binds even admin): `v*` tags are
