@@ -702,11 +702,11 @@ Collapsing them into one oracle is the documented failure mode; the reporter kee
 
 ### Requirement: Operator-Only Paths Fail Legibly
 
-A fleet script whose write target lies in an area the Area Access Matrix withholds from the agent
-SHALL, on a write refused by the OS sandbox (`OSError` with `errno == EROFS`), exit with a distinct
-status of **4** and a message that names the path, states the denial is **by design**, and directs the
-reader to run the step as the operator. It SHALL NOT emit a bare traceback for this case, and SHALL
-re-raise any other `OSError` unchanged.
+A fleet script SHALL fail legibly when its write target lies in an area the Area Access Matrix
+withholds from the agent: on a write refused by the OS sandbox (`OSError` with `errno == EROFS`), it
+SHALL exit with a distinct status of **4** and a message that names the path, states the denial is
+**by design**, and directs the reader to run the step as the operator. It SHALL NOT emit a bare
+traceback for this case, and SHALL re-raise any other `OSError` unchanged.
 
 The denial itself is correct and is not relaxed: `vault-render.py render` writes only
 `deploy_target`s (`~/bin/`, `99-Operations/hooks/`, `.claude/hooks/`) and `vault_naming.py` in emit
