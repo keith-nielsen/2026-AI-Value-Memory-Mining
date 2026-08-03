@@ -44,6 +44,10 @@ vulnerabilities in the current release:
 
 - OS-level write-protection of `99-Operations/` (INV-5 is honored by design;
   enforcement via ACLs is deferred)
-- osquery file-integrity monitoring and network egress enforcement
 - Sandboxing of Hermes Agent workers (containment is via the commit-gate hook,
   not OS sandbox)
+
+Runtime detection telemetry (osquery file-integrity monitoring and network egress
+monitoring) was previously listed here. It is **no longer deferred work — it is
+retracted**; see the `add-telemetry-segment` retraction in the changelog. Runtime
+detection may be re-proposed, but not from that design.
