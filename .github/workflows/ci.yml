@@ -24,7 +24,9 @@ jobs:
           OPENSPEC_TELEMETRY: "0"
 
       - name: Validate OpenSpec project
-        run: node_modules/.bin/openspec validate --all
+        # --strict is the runner for the strict-only rules (e.g. requirement text must
+        # carry SHALL/MUST). Without it the ceremony docs mandate a check CI never ran.
+        run: node_modules/.bin/openspec validate --all --strict
         env:
           OPENSPEC_TELEMETRY: "0"
 

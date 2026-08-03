@@ -32,6 +32,43 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Evidence: P6/SE-4 (re-run 2026-07-27, EROFS + path-specific control), P16/SE-5, P15 substrate, and
   SE-2 deps (`bwrap`/`socat`) verified present.
 
+### Changed
+- **CI validates with `--strict`, matching the weekly canary and the ceremony docs** (editorial, **no
+  spec delta, no ADR**). `.github/workflows/ci.yml` ran `openspec validate --all`; the
+  `openspec-canary.yml` workflow already ran `openspec validate --all --strict` against `@latest`, and
+  `AGENTS.md` and the ceremony docs mandate the strict form. The PR/push job now agrees with both.
+  Verified green under the pinned 1.6.0: `OpenSpec validate` passed on this branch with `--strict` in
+  place.
+- **`maintenance` requirement *Operator-Only Paths Fail Legibly* reflowed** so `SHALL` sits on the
+  first physical line rather than the second. Semantics unchanged — same EROFS trigger, same exit
+  status **4**, same message obligations, same re-raise rule. This is defensive, not corrective: under
+  the pinned OpenSpec **1.6.0 the original wrap validates cleanly**. It fails only under **1.4.1**,
+  which parses just the first physical line as `requirement.text`. Keeping the modal verb on line 1
+  costs nothing and removes a parser-version dependency.
+
+### Notes
+- **A false alarm is recorded here deliberately, because the corrective is a rule and not an
+  apology.** This change was first written up as *"the `openspec-validate` job has been RED on `main`
+  since v0.1.33 (2026-07-20) and nothing surfaced it"*, with two consequences drawn from it: that the
+  weekly canary had been filing false upstream-incompatibility issues, and that the Dependabot OpenSpec
+  bump PR — the compatibility gate — had been reporting against a red baseline and was therefore
+  uninterpretable. **All three claims were false.**
+- **The cause was a stale local CLI, not the corpus.** `~/.local/bin/openspec` on the maintainer
+  machine is **1.4.1**; the repo pins **1.6.0** and CI installs the pin via `npm ci`. Every local
+  `validate` run was executing a two-minor-versions-old parser against a corpus written for the pin.
+- **What refuted it, and what should have been checked first:** the GitHub API. `OpenSpec validate` is
+  `success` on `main` head `405dee3` (2026-07-28); both open PRs report **34/34 green**; the repository
+  has **zero open issues**, so no canary issue was ever filed. Anonymous `api.github.com` needs no
+  token and answers in one call — *the check history is observable, and a claim about CI's state that
+  is never checked against it is a guess wearing evidence's clothes.*
+- **Rule going forward:** compare `openspec --version` against `package.json` before treating any local
+  validation failure as a defect. A local tool disagreeing with the pinned tool is the first hypothesis,
+  not the last.
+- **One true finding survives, and it is unrelated:** per ADR-0034 the `main` ruleset carries **no
+  `required_status_checks`** (follow-on *pending*), so a PR is required to merge but no check must
+  pass. That gap is real and still queued — **it simply was not masking anything here**, and the
+  retracted red-CI story must not be cited as its evidence.
+
 ## [0.1.36] - 2026-07-28
 
 ### Added
