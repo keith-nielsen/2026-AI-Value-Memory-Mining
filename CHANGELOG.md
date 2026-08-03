@@ -31,8 +31,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   adopt strict only after their own clean burn-in (SE-3), per `docs/USING-THIS-TEMPLATE.md` Step 4c.
   Evidence: P6/SE-4 (re-run 2026-07-27, EROFS + path-specific control), P16/SE-5, P15 substrate, and
   SE-2 deps (`bwrap`/`socat`) verified present.
-
-### Changed
 - **CI validates with `--strict`, matching the weekly canary and the ceremony docs** (editorial, **no
   spec delta, no ADR**). `.github/workflows/ci.yml` ran `openspec validate --all`; the
   `openspec-canary.yml` workflow already ran `openspec validate --all --strict` against `@latest`, and
@@ -68,6 +66,33 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `required_status_checks`** (follow-on *pending*), so a PR is required to merge but no check must
   pass. That gap is real and still queued — **it simply was not masking anything here**, and the
   retracted red-CI story must not be cited as its evidence.
+
+### Removed
+- **`add-telemetry-segment` RETRACTED** — the osquery file-integrity/egress detection change, authored
+  in the initial commit (`82fa68a`, 2026-06-14) and untouched since, is withdrawn unshipped. **No spec
+  delta was ever applied; none is applied now** — retraction is a deletion, not an archive. It was the
+  only entry in `openspec/changes/` and stood at `0/17` tasks for seven weeks.
+- **Its deferral condition had been met, and that is why it needed deciding rather than ignoring.**
+  Task 1.1 gated it on *"OS-level write-protection of `99-Operations/`"*, which shipped as ADR-0022
+  (v0.1.19) and the Stage-B strict flip (ADR-0035); `access-control` already records §14.1 as
+  *"hereby un-deferred"*. A change whose only blocker is gone is not dormant, it is pending.
+- **Retracted rather than activated, because three of its four premises were overtaken by
+  measurement.** (1) Its egress rule flags *"connections to anything other than `localhost`"* — but the
+  INV-14 investigation measured **all sandboxed egress traversing the auth proxy at `localhost:3128`**,
+  so as written the rule flags nothing and misses the only real path. (2) Its FIM half is now largely
+  served by the kernel-level write scope it was designed to backstop. (3) osquery is a third-party
+  runtime dependency, against the trust-ring-minimization posture adopted later (precedent N2/v0.1.22).
+  (4) Its log targets sat under `99-Operations/`, an autonomy-banned area under the current matrix.
+- **It was also imposing a running tax.** Because it MODIFIED `maintenance`, every later
+  `maintenance`-touching change had to write a coexistence paragraph and an archive-ordering note
+  against it — found in `add-template-parity-check`, `add-ship-ceremony-tools`, `add-template-mirror-driver`,
+  and `fix-append-idempotent-catalog-link`. Retraction ends that.
+- **The standing hazard it carried:** `openspec archive` applies deltas at archive time by header match,
+  last-writer-wins. Archiving it — by name or in a batch — would have injected two ADDED Requirements
+  describing machinery that does not exist, re-opening the ADR-0037 *rule-with-no-runner* class from the
+  other end. Closes the `add-telemetry-segment` re-scope item queued in v0.1.36's §6.
+- **Not lost:** the design intent is preserved in git history at `82fa68a`, and runtime detection may be
+  re-proposed on measured premises. This retracts a June design, not the idea.
 
 ## [0.1.36] - 2026-07-28
 
