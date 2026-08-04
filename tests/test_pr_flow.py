@@ -387,19 +387,46 @@ def test_a_push_is_never_emitted_without_an_explicit_target_redirect(work):
     assert line and all("-C " in ln for ln in line)
 
 
-def test_gate4_approval_requires_a_ticked_box_not_the_word(tmp_path):
-    """An earlier cut matched the word 'Approved' anywhere, so the UNTICKED task describing the
-    sign-off read as the sign-off itself — a declared end-state reported as reached, inside the
-    driver built to prevent exactly that. Caught by dogfooding, locked down here."""
-    d = tmp_path / "openspec" / "changes" / "c"
-    d.mkdir(parents=True)
-    (d / "tasks.md").write_text("- [ ] 4.1 Operator reviews and records **Approved**\n")
+GATE4 = "## 4. Gate 4 — HUMAN SIGN-OFF\n"
+
+
+def write_tasks(tmp_path, name, body):
+    d = tmp_path / "openspec" / "changes" / name
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "tasks.md").write_text(body)
+    return d
+
+
+def test_gate4_signoff_is_a_record_with_a_shape_not_a_keyword(tmp_path):
+    """Three defects were found in this check by audit, all the same family: loose enough to be
+    satisfied by prose that merely MENTIONS the thing it verifies. Each is locked down here."""
+    # 1. The unticked task DESCRIBING the sign-off necessarily contains the word.
+    write_tasks(tmp_path, "c", GATE4 + "- [ ] 4.1 Operator records **Approved**\n")
     signed, detail = pr_flow.approval_state(str(tmp_path))
     assert signed is False and "UNSIGNED" in detail
 
-    (d / "tasks.md").write_text("- [x] 4.1 Operator recorded **Approved** 2026-08-04\n")
-    signed, _ = pr_flow.approval_state(str(tmp_path))
-    assert signed is True
+    # 2. A ticked item mentioning it OUTSIDE the Gate-4 section must not count.
+    write_tasks(tmp_path, "c",
+                "## 3. Regression\n- [x] 3.9 Checked whether the operator Approved 2026-08-04\n")
+    assert pr_flow.approval_state(str(tmp_path))[0] is False
+
+    # 3. Ticked and in-section but with no date is not a record.
+    write_tasks(tmp_path, "c", GATE4 + "- [x] 4.1 Operator records **Approved**\n")
+    assert pr_flow.approval_state(str(tmp_path))[0] is False
+
+    # The real shape: ticked, in section, with an ISO date.
+    write_tasks(tmp_path, "c", GATE4 + "- [x] 4.1 **Approved** — Keith Nielsen, 2026-08-04\n")
+    assert pr_flow.approval_state(str(tmp_path))[0] is True
+
+
+def test_every_unarchived_change_is_evaluated_not_just_the_first(tmp_path):
+    """The earlier cut returned from inside the per-file loop, so a SECOND unarchived change was
+    never examined — one signed change would have authorized an unsigned one."""
+    write_tasks(tmp_path, "a", GATE4 + "- [x] 4.1 **Approved** — op, 2026-08-04\n")
+    write_tasks(tmp_path, "b", GATE4 + "- [ ] 4.1 Operator records **Approved**\n")
+    signed, detail = pr_flow.approval_state(str(tmp_path))
+    assert signed is False
+    assert "b/tasks.md" in detail
 
 
 # --- B/D: correct verbs and the guards that were missing ----------------------------------------
@@ -586,6 +613,28 @@ def test_scope_block_detection_requires_a_fenced_block():
     assert pr_flow.scope_block_in("a\n```scope\nfile.py\n```\n")
     assert not pr_flow.scope_block_in("the word scope appears but no fence")
     assert not pr_flow.scope_block_in("```python\nscope\n```")
+
+
+def test_scope_check_never_passes_what_the_ci_gate_would_reject():
+    """This check exists to pre-verify the declared-scope gate. An earlier cut tested only that a
+    fence was OPENED, so a body whose fence is never closed passed here and is rejected there — a
+    check that green-lights what the real gate fails is worse than none, because it is relied on."""
+    assert not pr_flow.scope_block_in("```scope\ntools/x.py")      # never closed
+    assert not pr_flow.scope_block_in("```scope\n```")             # closed but empty
+    assert pr_flow.scope_block_in("```scope\ntools/x.py\n```")
+
+
+def test_scope_rule_is_the_ci_gates_own_rule_not_a_restatement():
+    """Anti-drift: the tool imports the gate's regex rather than paraphrasing it, so the two
+    cannot diverge as either changes."""
+    rule = pr_flow._ci_scope_rule(str(REPO))
+    assert rule is not None, "the CI extractor should be importable for its fence rule"
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "_ds", REPO / ".github/scripts/extract-declared-scope.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert rule.pattern == mod.FENCE_RE.pattern
 
 
 def test_ready_requires_its_identifier_so_it_stays_one_request(work):

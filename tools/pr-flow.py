@@ -436,24 +436,53 @@ def check_clean_worktree(root):
     return None
 
 
-def approval_state(root):
-    """Step 0: Gate-4 sign-off is the one pure-authority step, and it is measured, not assumed.
+GATE4_HEADING = re.compile(r"^#{2,}\s.*\bGate 4\b", re.I)
+ANY_HEADING = re.compile(r"^#{2,}\s")
+# A sign-off is a RECORD, not a word: ticked box, the word, AND an ISO date. The date is what makes
+# it unforgeable by the template, whose unticked task necessarily contains the word "Approved"
+# while describing what signing would mean.
+SIGNOFF_LINE = re.compile(r"^\s*- \[[xX]\]\s.*\bApproved\b.*\b\d{4}-\d{2}-\d{2}\b")
 
-    The checkbox must be TICKED. Matching the word "Approved" anywhere is not enough: the unticked
-    task that DESCRIBES the sign-off (`- [ ] 4.1 Operator ... records **Approved**`) contains it
-    too, and an earlier cut of this function read that description as the act — reporting Gate 4
-    signed while it was not. That is precisely the declared-end-state-never-reached defect this
-    driver exists to prevent, so it is asserted structurally, on the tick.
+SIGNOFF_SHAPE = ("a ticked item inside the '## 4. Gate 4' section carrying the word Approved and "
+                 "an ISO date, e.g. `- [x] 4.1 ... **Approved** — <operator>, 2026-08-04`")
+
+
+def approval_state(root):
+    """Step 0: Gate-4 sign-off is the one pure-authority step, measured structurally.
+
+    THREE defects were found here by audit, all of the same family — a check loose enough to be
+    satisfied by prose that merely mentions the thing it is meant to verify:
+
+      1. The first cut matched the word "Approved" ANYWHERE, so the unticked task DESCRIBING the
+         sign-off read as the sign-off. Dogfooding caught it reporting Gate 4 signed while unsigned.
+      2. The second cut required a ticked box but still scanned the WHOLE file, so any ticked item
+         mentioning the word would pass.
+      3. Its `return` sat inside the per-file loop, so only the FIRST change directory was ever
+         examined and a second unarchived change was never checked at all.
+
+    So the match is now scoped to the Gate-4 SECTION, requires a ticked box, and requires an ISO
+    date — a record with a shape, not a keyword. Every unarchived change is evaluated, and one
+    unsigned change is enough to withhold authorization.
     """
-    hits = sorted(pathlib.Path(root).glob("openspec/changes/*/tasks.md"))
-    for t in hits:
+    results = []
+    for t in sorted(pathlib.Path(root).glob("openspec/changes/*/tasks.md")):
         if "archive" in t.parts:
             continue
+        in_gate4, signed = False, False
         for line in t.read_text(errors="replace").splitlines():
-            if re.match(r"\s*- \[[xX]\]", line) and "Approved" in line:
-                return True, f"recorded ticked in {t.relative_to(root)}"
-        return False, f"Gate 4 UNSIGNED in {t.relative_to(root)} (no ticked Approved item)"
-    return None, "no unarchived openspec change on this branch"
+            if ANY_HEADING.match(line):
+                in_gate4 = bool(GATE4_HEADING.match(line))
+                continue
+            if in_gate4 and SIGNOFF_LINE.match(line):
+                signed = True
+                break
+        results.append((signed, t.relative_to(root)))
+    if not results:
+        return None, "no unarchived openspec change on this branch"
+    unsigned = [str(p) for ok, p in results if not ok]
+    if unsigned:
+        return False, f"Gate 4 UNSIGNED in {', '.join(unsigned)} — expected {SIGNOFF_SHAPE}"
+    return True, f"recorded in {', '.join(str(p) for _, p in results)}"
 
 
 def unarchived_change(root):
@@ -463,8 +492,39 @@ def unarchived_change(root):
     return None
 
 
-def scope_block_in(text):
-    return bool(re.search(r"^```scope\b", text or "", re.M))
+def _ci_scope_rule(root):
+    """Load the declared-scope CI gate's OWN fence rule, so the two cannot disagree.
+
+    Read-only import of `.github/scripts/extract-declared-scope.py` (it guards its `__main__`, so
+    importing executes nothing). Returns None if unavailable.
+    """
+    try:
+        import importlib.util
+        p = pathlib.Path(root) / ".github/scripts/extract-declared-scope.py"
+        spec = importlib.util.spec_from_file_location("_declared_scope", p)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.FENCE_RE
+    except Exception:  # noqa: BLE001 - absence is handled by the caller's stricter fallback
+        return None
+
+
+def scope_block_in(text, root=None):
+    """True only if the body carries a scope block THE CI GATE WOULD ACCEPT.
+
+    An earlier cut of this tested `^```scope` alone. That is looser than the gate it claims to
+    pre-verify: a fence opened at line start and NEVER CLOSED passed here and is rejected there.
+    A check that green-lights what the real gate will fail is worse than no check, because it is
+    relied upon. The gate's own regex is therefore imported rather than restated, and the block
+    must additionally carry at least one path entry — the gate fails an empty one.
+    """
+    body = text or ""
+    rule = _ci_scope_rule(root) if root else None
+    if rule is None:
+        # Conservative fallback: line-anchored open AND a closing fence, matching the gate's shape.
+        rule = re.compile(r"^```scope[ \t]*\r?\n(.*?)```", re.DOTALL | re.M)
+    m = rule.search(body)
+    return bool(m) and any(ln.strip() for ln in m.group(1).splitlines())
 
 
 # --- the traversal ---------------------------------------------------------------------------
@@ -623,7 +683,7 @@ def drive(args, root, route, plan=False):
             return refuse(route, "pr", f"--body-file {args.body_file} does not exist",
                           "an emitted command with a missing input is not executable as written",
                           plan)
-        if not scope_block_in(body_path.read_text(errors="replace")):
+        if not scope_block_in(body_path.read_text(errors="replace"), root):
             return refuse(route, "pr", f"{args.body_file} has no fenced ```scope block",
                           "the declared-scope CI gate fails without it, and --body-file bypasses "
                           "the PR template, so the block has to be yours", plan)
@@ -660,7 +720,7 @@ def drive(args, root, route, plan=False):
     route.mark("pr", "ok", f"#{number}, open, not draft, head matches")
 
     # --- body: the declared-scope block must be IN the PR, not merely in a local file ------------
-    if not scope_block_in(pr.get("body")):
+    if not scope_block_in(pr.get("body"), root):
         cmd = (f"cd {root} && gh api -X PATCH /repos/{slug}/pulls/{number} "
                f"-f body=\"$(cat {args.body_file or '<BODY-FILE>'})\"")
         if not args.body_file:
