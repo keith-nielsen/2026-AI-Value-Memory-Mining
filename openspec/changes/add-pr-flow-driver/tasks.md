@@ -11,8 +11,15 @@
 - [x] 1.5 `CHANGELOG.md` — `[Unreleased]` entry
 - [x] 1.6 Confirm NO `vault-template/` delta → no mirror, no `render`, no operator deploy step
 - [x] 1.7 Confirm no new third-party dependency (stdlib `urllib` only)
-- [x] 1.8 Re-confirmed 2026-08-04 after the design review: the revision touches **no new path**, so
-      the declared-scope block for the pull request (PR) is unchanged
+- [x] 1.8 Re-confirmed 2026-08-04 after the design review: the second pass touched no new path
+- [x] 1.9 **Scope block CORRECTED at close-out** — `README.md` **is** a new path. Its `tools/` inventory
+      listed the fleet and omitted both tools this change adds, so it is updated and added to the
+      declared scope. §1.8's "no new path" claim was true when written and is no longer; leaving it
+      unqualified would have been a stale declaration in the change that exists to end those. The
+      block is now: `CHANGELOG.md`, `CONTRIBUTING.md`, `README.md`,
+      `openspec/changes/add-pr-flow-driver/`, `openspec/changes/archive/`,
+      `openspec/specs/maintenance/spec.md`, `tests/test_pr_flow.py`, `tools/gh_read.py`,
+      `tools/pr-flow.py`, `tools/pr-state.py`
 
 ## 2. Gate 2 — PLAN (build, first pass — complete)
 
