@@ -24,21 +24,38 @@ The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of th
 it; do not hand-compose the sequence:
 
 ```
-0. tools/pr-flow.py --capabilities        # who runs what, MEASURED not recalled
+0. tools/pr-flow.py --plan --branch BR     # THE WHOLE ROUTE FIRST — 14 steps, each with its
+                                           # executor, its authority, and whether the guard was
+                                           # MEASURED or is only PROJECTED. Do this before writing
+                                           # a plan of your own; that is what it is for.
+   tools/pr-flow.py --capabilities         # who runs what, MEASURED not recalled, plus read budget
 1. tools/pr-flow.py --branch BR [--base main] [--body-file PATH] [--title STR]
-                                          # proves worktree settled, base-current, pushed, PR
-                                          # exists, head matches, checks green — then EMITS the
-                                          # next single command with its OWNER and exits 2
-2. Run exactly the emitted command (git push …, gh pr create …, gh pr merge …)
+                                           # proves each guard, then EMITS the next single command
+                                           # with runs: / authority: / consent: and exits 2
+2. Run exactly the emitted command. If it is yours to run, it is also written to
+   .git/pr-flow/next.sh — paste `bash .git/pr-flow/next.sh`, which re-asserts the state you were
+   shown and aborts if GitHub moved (it also expires after 24h).
 3. Re-run tools/pr-flow.py — it verifies the mutation actually landed before advancing
-4. Repeat until it prints LIFECYCLE COMPLETE and exits 0
+4. If it says NOT READY, poll `tools/pr-flow.py --ready …` (exit 0 ready / 2 waiting). Never sleep.
+5. Repeat until it prints LIFECYCLE COMPLETE and exits 0
 ```
 
 Like the ship driver, it **never executes an outward mutation** — the INV-14 guard text-matches the
-command the caller runs, so a wrapper would bypass the rail. Two hazards it exists to catch, both
-from the F30 record: **`gh pr merge --delete-branch` is not atomic** (if the local delete fails, gh
-aborts before deleting the remote and still prints `✓ Merged`), and **a stale base makes a PR's
-checks report on something other than its own change** — rebase before pushing, never after opening.
+command the caller runs, so a wrapper would bypass the rail.
+
+**Authority is not the same as typing.** Where the agent is measured capable, it runs the command and
+your role is consent, discharged through the INV-14 ask at execution time — `git push` and the
+post-merge branch deletion work that way. What stays yours to run are the `gh` mutations, and for two
+reasons together: `gh` needs the OS keyring, *and* no write token is exported here by policy, because
+credential absence is the barrier the outbound rail actually rests on.
+
+**`gh pr merge --delete-branch` is never used.** It cannot express a head precondition, it bypasses
+GitHub's retargeting of stacked children (so they are closed instead — this is how PR #29 died), and
+its deletion is non-atomic while still printing `✓ Merged`. The merge goes through the REST endpoint
+carrying `sha`, so a raced head is refused by the server with 409. Two further standing hazards:
+**a stale base makes a pull request's checks report on something other than its own change** — rebase
+before pushing, never after opening; and **a body-derived check reads the event payload as of push
+time**, so after correcting a body you must PUSH, not re-run the job.
 
 `main` currently carries **no `required_status_checks`** (ADR-0034's follow-on is pending), so a red
 check does not block a merge. Until that lands, this driver is the gate.

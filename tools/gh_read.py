@@ -25,6 +25,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import urllib.error
 import urllib.request
 
@@ -34,9 +35,43 @@ TIMEOUT = 30
 CH_ANON = "anon-rest"
 CH_GH = "gh-api"
 
+# The anonymous channel is rate limited to 60 requests/hour, and a full pr-flow invocation costs
+# ~3 of them. MEASURED 2026-08-04, and the measurement refuted the usual assumption: a conditional
+# request answered `304 Not Modified` STILL decrements the anonymous budget (57 -> 56 -> 55). The
+# "conditional requests are free" rule applies to AUTHENTICATED requests only, so ETag caching buys
+# no headroom here. Every response's budget headers are recorded so callers can report the figure
+# rather than guess it — a channel that runs out mid-lifecycle blinds every guard that needs it.
+BUDGET = {"remaining": None, "limit": None, "reset": None, "retry_after": None}
+
 
 class ReadError(RuntimeError):
     """A read failed on every available channel."""
+
+
+def _record_budget(headers):
+    """Record the rate budget from any response, success or error. Never raises."""
+    for key, header in (("remaining", "X-RateLimit-Remaining"),
+                        ("limit", "X-RateLimit-Limit"),
+                        ("reset", "X-RateLimit-Reset")):
+        try:
+            BUDGET[key] = int(headers.get(header))
+        except (TypeError, ValueError):
+            pass
+    try:
+        BUDGET["retry_after"] = int(headers.get("Retry-After"))
+    except (TypeError, ValueError):
+        BUDGET["retry_after"] = None
+
+
+def budget_report():
+    """One line describing the remaining read budget, or None if nothing has been measured."""
+    if BUDGET["remaining"] is None:
+        return None
+    line = f"{BUDGET['remaining']}/{BUDGET['limit']} reads remaining"
+    if BUDGET["reset"]:
+        mins = max(0, round((BUDGET["reset"] - time.time()) / 60))
+        line += f", resets in ~{mins} min"
+    return line
 
 
 def _run(cmd, timeout=TIMEOUT):
@@ -67,6 +102,7 @@ def _anon(path):
         headers={"Accept": "application/vnd.github+json", "User-Agent": "vmm-gh-read"},
     )
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        _record_budget(resp.headers)
         return json.loads(resp.read().decode())
 
 
@@ -87,7 +123,10 @@ def get(path):
     """
     try:
         return _anon(path), CH_ANON
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError) as exc:
+    except urllib.error.HTTPError as exc:
+        _record_budget(exc.headers)  # a 403/429 carries the budget that explains it
+        anon_err = exc
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
         anon_err = exc
     try:
         return _gh(path), CH_GH
@@ -97,7 +136,23 @@ def get(path):
         ) from exc
 
 
+def rate_limit():
+    """Probe the remaining budget. `/rate_limit` does not itself count against the limit.
+
+    Returns the report line, or None when the channel cannot be reached — never raises, because a
+    probe that crashes teaches its caller to skip probing.
+    """
+    try:
+        _anon("/rate_limit")
+    except Exception:  # noqa: BLE001 - probe reports, never raises
+        return None
+    return budget_report()
+
+
 def pull_request(slug, number):
+    """A SINGLE pull request. The LIST endpoint omits `mergeable`, so mergeability can only be
+    read here — a driver that checks mergeability off a list result is reading a field that is
+    never present and will always see None."""
     return get(f"/repos/{slug}/pulls/{number}")
 
 

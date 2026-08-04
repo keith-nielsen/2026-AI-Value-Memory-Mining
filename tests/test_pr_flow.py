@@ -277,3 +277,300 @@ def test_open_children_queries_by_base_for_the_f21_hazard(monkeypatch):
     gh_read.open_children("o/r", "parent-branch")
     assert "base=parent-branch" in seen["path"]
     assert "state=open" in seen["path"]
+
+
+# =================================================================================================
+# Second pass: route/plan, authority, correct verbs, readiness and the TOCTOU window.
+#
+# The GitHub-side steps cannot be reached from the subprocess tests above, because the work repo's
+# origin is a local bare path with no resolvable slug. These load the driver IN-PROCESS and stub the
+# read layer, so every branch after the PR lookup is exercised OFFLINE.
+# =================================================================================================
+
+import importlib.util  # noqa: E402
+import types  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location("pr_flow", FLOW)
+pr_flow = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(pr_flow)
+
+
+def args_for(branch, **kw):
+    a = types.SimpleNamespace(branch=branch, base="main", body_file=None, title=None)
+    for k, v in kw.items():
+        setattr(a, k, v)
+    return a
+
+
+def stub_reads(monkeypatch, *, prs, checks=None, full=None, children=()):
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda *_a, **_k: "o/r")
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch",
+                        lambda *a, **k: (prs, "stub"))
+    monkeypatch.setattr(pr_flow.gh_read, "check_runs",
+                        lambda *a, **k: (checks or {"check_runs": []}, "stub"))
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda *a, **k: (full if full is not None else prs[0], "stub"))
+    monkeypatch.setattr(pr_flow.gh_read, "open_children", lambda *a, **k: (list(children), "stub"))
+
+
+def open_pr(head_sha, **kw):
+    pr = {"number": 51, "state": "open", "title": "t", "draft": False,
+          "head": {"sha": head_sha, "ref": "feat/x"}, "base": {"ref": "main"},
+          "body": "text\n```scope\ntools/pr-flow.py\n```\n", "mergeable": True,
+          "mergeable_state": "clean", "merged_at": None}
+    pr.update(kw)
+    return pr
+
+
+def head_of(work, branch="feat/x"):
+    return git(["rev-parse", f"refs/heads/{branch}"], work).stdout.strip()
+
+
+def drive(work, a, plan=False):
+    route = pr_flow.Route()
+    code = pr_flow.drive(a, str(work), route, plan=plan)
+    return code, route
+
+
+# --- A: the route is visible before the step ---------------------------------------------------
+
+def test_plan_lists_every_step_and_composes_no_command_for_projected_ones(work):
+    commit_on(work, "feat/x")
+    r = run_flow(work, "--plan", "--branch", "feat/x")
+    for sid, _ in pr_flow.STEPS:
+        assert sid in r.stdout
+    assert "PROJECTED" in r.stdout
+    # The current step may carry a command; a projected one must never do so.
+    projected = [ln for ln in r.stdout.splitlines() if "PROJECTED" in ln]
+    assert projected and not any("git " in ln or "gh " in ln for ln in projected)
+
+
+def test_every_emission_carries_the_route_header(work):
+    commit_on(work, "feat/x")
+    r = run_flow(work, "--branch", "feat/x")
+    assert "route: " in r.stdout
+    assert "step " in r.stdout
+
+
+# --- C: authority is distinguished from execution ----------------------------------------------
+
+def test_push_runs_as_agent_under_operator_authority(work):
+    """The correction F30 names in its own framing: do not hand the operator a command the agent
+    can run. Authority stays theirs; the keystrokes do not."""
+    commit_on(work, "feat/x")
+    r = run_flow(work, "--branch", "feat/x")
+    assert "runs:      AGENT" in r.stdout
+    assert "authority: OPERATOR" in r.stdout
+    assert "consent:" in r.stdout
+
+
+def test_purely_local_command_needs_no_consent(work):
+    commit_on(work, "feat/stale")
+    git(["switch", "main"], work)
+    (work / "moved.md").write_text("moved\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "advance"], work)
+    git(["push", "origin", "main"], work)
+    git(["switch", "feat/stale"], work)
+    r = run_flow(work, "--branch", "feat/stale")
+    assert "runs:      AGENT" in r.stdout
+    assert "authority: AGENT" in r.stdout
+    assert "nothing leaves this machine" in r.stdout
+
+
+def test_a_push_is_never_emitted_without_an_explicit_target_redirect(work):
+    """A bare `git push` from a session whose cwd is the vault resolves its effective target TO the
+    vault and is HARD DENIED. The redirect is what keeps the emitted command runnable."""
+    commit_on(work, "feat/x")
+    r = run_flow(work, "--branch", "feat/x")
+    line = [ln for ln in r.stdout.splitlines() if "push" in ln and ln.strip().startswith("git")]
+    assert line and all("-C " in ln for ln in line)
+
+
+def test_gate4_approval_requires_a_ticked_box_not_the_word(tmp_path):
+    """An earlier cut matched the word 'Approved' anywhere, so the UNTICKED task describing the
+    sign-off read as the sign-off itself — a declared end-state reported as reached, inside the
+    driver built to prevent exactly that. Caught by dogfooding, locked down here."""
+    d = tmp_path / "openspec" / "changes" / "c"
+    d.mkdir(parents=True)
+    (d / "tasks.md").write_text("- [ ] 4.1 Operator reviews and records **Approved**\n")
+    signed, detail = pr_flow.approval_state(str(tmp_path))
+    assert signed is False and "UNSIGNED" in detail
+
+    (d / "tasks.md").write_text("- [x] 4.1 Operator recorded **Approved** 2026-08-04\n")
+    signed, _ = pr_flow.approval_state(str(tmp_path))
+    assert signed is True
+
+
+# --- B/D: correct verbs and the guards that were missing ----------------------------------------
+
+def test_merge_uses_the_server_side_sha_precondition_and_never_delete_branch(work, monkeypatch,
+                                                                            capsys):
+    """`gh pr merge --delete-branch` is wrong on three counts: no head precondition, it bypasses
+    GitHub's retargeting of stacked children (how #29 died), and its deletion fails open."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha)],
+               checks={"check_runs": [{"name": "ci", "status": "completed",
+                                       "conclusion": "success"}]})
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_NEEDS_INPUT
+    command = o.split("NEXT COMMAND")[1].splitlines()[1]
+    assert "gh api -X PUT /repos/o/r/pulls/51/merge" in command
+    assert f"sha={sha}" in command
+    # The prose names the flag in order to warn against it; the COMMAND must never carry it.
+    assert "--delete-branch" not in command
+    assert "--delete-branch` is deliberately NOT used" in o
+
+
+def test_zero_check_runs_is_not_ready_and_never_green(work, monkeypatch, capsys):
+    """A push races the platform queueing its workflow. Zero runs is 'not yet', not 'all green'."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    stub_reads(monkeypatch, prs=[open_pr(head_of(work))], checks={"check_runs": []})
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_NEEDS_INPUT
+    assert "NOT READY" in o and "no check runs" in o
+    assert "--ready checks --sha" in o
+    assert "merge" not in o.split("NOT READY")[1]
+
+
+def test_uncomputed_mergeability_waits_rather_than_assuming_mergeable(work, monkeypatch, capsys):
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha)],
+               checks={"check_runs": [{"name": "ci", "status": "completed",
+                                       "conclusion": "success"}]},
+               full=open_pr(sha, mergeable=None, mergeable_state="unknown"))
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_NEEDS_INPUT
+    assert "NOT READY" in o and "mergeability" in o
+
+
+def test_unmergeable_pull_request_is_refused(work, monkeypatch, capsys):
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha)],
+               checks={"check_runs": [{"name": "ci", "status": "completed",
+                                       "conclusion": "success"}]},
+               full=open_pr(sha, mergeable=False, mergeable_state="dirty"))
+    code, _ = drive(work, args_for("feat/x"))
+    assert code == EXIT_REFUSED
+    assert "NOT mergeable" in capsys.readouterr().out
+
+
+def test_stacked_children_refusal_prescribes_the_rest_patch_not_gh_pr_edit(work, monkeypatch,
+                                                                          capsys):
+    """F21 stumble 3: `gh pr edit --base` failed SILENTLY behind a GraphQL deprecation. Emitting it
+    at the exact moment #29 died would hand over a no-op."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha)],
+               checks={"check_runs": [{"name": "ci", "status": "completed",
+                                       "conclusion": "success"}]},
+               children=[{"number": 29, "head": {"ref": "child"}}])
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_REFUSED
+    assert "#29" in o
+    assert "gh api -X PATCH" in o
+    assert "gh pr edit" in o and "NOT" in o  # named only to warn against it
+
+
+def test_body_derived_check_failure_prescribes_a_push_not_a_rerun(work, monkeypatch, capsys):
+    """The gate reads the body from the pull_request event payload, a SNAPSHOT as of push time; a
+    re-run replays the stale one. F21 stumble 1 was re-running the job."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    stub_reads(monkeypatch, prs=[open_pr(head_of(work))],
+               checks={"check_runs": [{"name": "scope-review", "status": "completed",
+                                       "conclusion": "failure"}]})
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_REFUSED
+    assert "SNAPSHOT" in o and "do not re-run" in o
+
+
+def test_missing_scope_block_in_the_pr_body_is_caught_before_the_merge(work, monkeypatch, capsys):
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha, body="no block here")])
+    body = work.parent / "body.md"
+    body.write_text("text\n```scope\ntools/pr-flow.py\n```\n")
+    code, _ = drive(work, args_for("feat/x", body_file=str(body)))
+    o = capsys.readouterr().out
+    assert code == EXIT_NEEDS_INPUT
+    assert "gh api -X PATCH /repos/o/r/pulls/51" in o
+    assert "PUSH, not a re-run" in o
+
+
+def test_body_file_lacking_a_scope_block_is_refused_before_any_command(work, monkeypatch, capsys):
+    """The scope-block rule used to live in a prose string inside the tool built to end prose."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    stub_reads(monkeypatch, prs=[])
+    body = work.parent / "body.md"
+    body.write_text("no fenced block at all\n")
+    code, _ = drive(work, args_for("feat/x", body_file=str(body), title="t"))
+    o = capsys.readouterr().out
+    assert code == EXIT_REFUSED
+    assert "no fenced" in o
+    assert "gh pr create" not in o
+
+
+def test_missing_title_refuses_rather_than_emitting_a_placeholder(work, monkeypatch, capsys):
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    stub_reads(monkeypatch, prs=[])
+    body = work.parent / "body.md"
+    body.write_text("t\n```scope\nx\n```\n")
+    code, _ = drive(work, args_for("feat/x", body_file=str(body)))
+    o = capsys.readouterr().out
+    assert code == EXIT_REFUSED
+    assert "placeholder" in o
+    assert "<TITLE>" not in o
+
+
+def test_surviving_remote_branch_after_merge_is_emitted_as_its_own_step(work, monkeypatch, capsys):
+    """F30 item 3: the deletion did not happen and the tool printed a success tick anyway."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    stub_reads(monkeypatch, prs=[open_pr(sha, state="closed", merged_at="2026-08-04T00:00:00Z")],
+               full=open_pr(sha, state="closed", merged_at="2026-08-04T00:00:00Z"))
+    code, _ = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert code == EXIT_NEEDS_INPUT
+    assert "push origin --delete feat/x" in o
+    assert "verified rather than assumed" in o
+
+
+# --- E: the saved plan closes the TOCTOU window on an operator step ------------------------------
+
+def test_saved_plan_asserts_preconditions_and_expires(work):
+    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51")
+    text = pathlib.Path(path).read_text()
+    assert "set -euo pipefail" in text
+    assert "date +%s" in text and "EXPIRED" in text
+    assert "gh api -X PUT /x" in text
+    assert text.index("date +%s") < text.index("gh api -X PUT /x")  # the check precedes the act
+
+
+def test_scope_block_detection_requires_a_fenced_block():
+    assert pr_flow.scope_block_in("a\n```scope\nfile.py\n```\n")
+    assert not pr_flow.scope_block_in("the word scope appears but no fence")
+    assert not pr_flow.scope_block_in("```python\nscope\n```")
+
+
+def test_ready_requires_its_identifier_so_it_stays_one_request(work):
+    r = run_flow(work, "--ready", "checks")
+    assert r.returncode == EXIT_BLOCKED
+    assert "--sha" in r.stderr

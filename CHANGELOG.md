@@ -13,8 +13,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
-- **The PR lifecycle is now driven, not composed — `tools/pr-flow.py`** (`add-pr-flow-driver`,
-  conforming amendment, **no ADR**, `maintenance` +6 Requirements). The sibling of
+- **The pull request lifecycle is now driven, not composed — `tools/pr-flow.py`**
+  (`add-pr-flow-driver`, conforming amendment, **no Architecture Decision Record (ADR)**,
+  `maintenance` +11 Requirements). The sibling of
   `ship-release.py`: a guarded, re-entrant state machine for branch → push → PR → checks → merge →
   branch deletion, holding no state file and re-deriving everything from the world each run. Same
   load-bearing contract — it **never executes an outward mutation**, because the INV-14 guard
@@ -38,6 +39,48 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   not just the verdict.
 - **`tools/gh_read.py`** — shared read layer, anonymous REST first with `gh` as fallback, returning
   the answering **channel** with every payload. Stdlib only; no new dependency.
+- **The whole route is shown before the next step — `--plan`.** The driver was a *step* oracle, not
+  a *route* oracle: it could say what to do next but not what the journey was, so planning fell back
+  to recall. One ordered step table now drives both the emitter and the planner, every invocation
+  prints a route header, and `--plan` reports each step's executor, authority and guard, marked
+  **measured** or **projected**. No command text is composed for a projected step, because an
+  unreached step's command is a prediction.
+- **Authority is distinguished from execution (RACI; four-eyes).** A single `owner` field conflated
+  *who runs it* with *whose authority is required* — reproducing the very defect F30 names. Emissions
+  now carry `runs:` / `authority:` / `consent:`, and the consent class is **measured** by evaluating
+  the outbound guard against the exact command. Consequently `git push` and the post-merge branch
+  deletion move **off the operator's keyboard**: the agent runs them under the INV-14 ask. Human
+  decision points went *down*, not up.
+- **Preconditions are re-asserted at the moment of mutation.** An operator-executed command may run
+  long after the state that justified it was measured — an unbounded time-of-check-to-time-of-use
+  (TOCTOU) window. Operator steps are written to `.git/pr-flow/next.sh` with the approved predicates
+  asserted ahead of the mutation and a 24-hour expiry, so a short line is what gets pasted (the
+  interactive paste channel had already corrupted two hand-offs and clobbered a repo file).
+- **Asynchronous state is awaited, never assumed.** Zero check runs and uncomputed mergeability now
+  report NOT READY rather than reading as "green" and "not false". `--ready` answers one condition in
+  one request with a meaningful exit code, so a wait is testable instead of described, and the driver
+  never blocks or sleeps. The anonymous read budget is surfaced: **60/hour, and `304 Not Modified`
+  still decrements it** — measured, refuting the usual "conditional requests are free" claim, which
+  holds only for authenticated requests.
+
+### Fixed
+- **`gh pr merge --delete-branch` is never emitted again.** It is defective on three independent
+  counts: it cannot express a head precondition (`cli/cli#5686`); it bypasses GitHub's own
+  retargeting of stacked children, which are **closed** instead (`cli/cli#1168`) — this, not platform
+  inscrutability, is how PR #29 died; and its branch deletion is non-atomic and prints a success tick
+  when it did not happen. The merge now goes through the REST endpoint carrying `sha`, so a raced
+  head is refused **by the server** with 409, and deletion is a separate, verified step.
+- Retargeting a stacked child is prescribed via `gh api -X PATCH` with a re-read, not
+  `gh pr edit --base`, which can fail **silently** behind a deprecated GraphQL layer.
+- A failing body-derived check now prescribes a **push, not a re-run**: the gate reads the body from
+  the event payload, which is a snapshot as of push time, so a re-run replays the stale one.
+- Zero check runs no longer read as "all 0 checks green"; `mergeable` is now read at all (from the
+  single-pull-request endpoint, the only one that carries it); a failed `git fetch` no longer lets
+  base-currency be measured against a stale ref; and the declared-scope block is verified rather than
+  requested in a prose string.
+- **Gate-4 approval is measured on a ticked checkbox.** Caught by dogfooding: an earlier cut matched
+  the word "Approved" anywhere, so the *unticked* task describing the sign-off read as the sign-off
+  itself — a declared end-state reported as reached, inside the driver built to prevent that.
 - **Extended against all 49 PRs in this repo's history before shipping**, so the driver covers the
   flows we are *allowed* to run and not merely the ones we happened to run last. Five attested
   shapes were unhandled or mishandled, and the two most serious were live defects: **a Dependabot
