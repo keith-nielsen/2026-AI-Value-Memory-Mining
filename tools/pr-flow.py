@@ -143,11 +143,31 @@ class Route:
         return "\n".join(rows)
 
 
-def run(cmd, cwd=None, stdin=None):
-    return subprocess.run(
-        cmd, capture_output=True, text=True, cwd=cwd, timeout=60, input=stdin,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
-    )
+TIMEOUT_RC = 124   # conventional shell exit code for a timed-out command
+UNRUNNABLE_RC = 127  # conventional shell exit code for "command not executable"
+
+
+def run(cmd, cwd=None, stdin=None, timeout=60):
+    """Run a command and degrade EVERY failure into a return code. This never raises.
+
+    F33: an unhandled `TimeoutExpired` from `git fetch` crashed the driver out of its own exit-code
+    contract — a traceback, no route header, no state, on a tool whose four exit codes ARE the
+    product. The guard written for "the fetch failed" checked the RETURN CODE and so could not see
+    an EXCEPTION, which is the one path the failure actually took. The fix belongs here rather than
+    at each call site: a guard can only act on what the runner can express, so the runner must be
+    total.
+    """
+    try:
+        return subprocess.run(
+            cmd, capture_output=True, text=True, cwd=cwd, timeout=timeout, input=stdin,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            cmd, TIMEOUT_RC, "", f"timed out after {timeout}s (no response from the remote)")
+    except (OSError, ValueError) as exc:  # missing binary, bad cwd, bad argv
+        return subprocess.CompletedProcess(
+            cmd, UNRUNNABLE_RC, "", f"could not execute {cmd[0]!r}: {exc}")
 
 
 def git(args, cwd=None):
@@ -590,14 +610,20 @@ def drive(args, root, route, plan=False):
 
     # B3: a failed fetch leaves origin/<base> stale, and base-currency measured against a stale ref
     # silently restores the very defect the guard exists to prevent.
-    fetched = git(["fetch", "--quiet", "origin", base], cwd=root).returncode == 0
+    # A TIMEOUT is a failure this guard must see. Before F33 it could not: the runner raised, so the
+    # return code it inspects was never produced. `run()` is now total, and the reason is reported.
+    fetch = git(["fetch", "--quiet", "origin", base], cwd=root)
+    fetched = fetch.returncode == 0
+    why_not = ((fetch.stderr or "").strip().splitlines() or [f"exit {fetch.returncode}"])[-1][:120]
     base_ref = f"origin/{base}"
     if not fetched and git(["rev-parse", "--verify", "--quiet", base_ref], cwd=root).returncode:
-        return refuse(route, "base", f"could not fetch {base_ref} and no local copy exists",
+        return refuse(route, "base",
+                      f"could not fetch {base_ref} and no local copy exists — {why_not}",
                       "base-currency cannot be measured against a ref that was never read", plan)
     if not fetched:
-        note(f"NOTE [base]: fetch of {base_ref} FAILED — its tip is UNVERIFIED (last known copy "
-              "in use). Re-run when the remote is reachable before trusting base-currency.")
+        note(f"NOTE [base]: fetch of {base_ref} FAILED ({why_not}) — its tip is UNVERIFIED (last "
+             "known copy in use). Re-run when the remote is reachable before trusting "
+             "base-currency.")
 
     local_sha = git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
                     cwd=root).stdout.strip() or None
@@ -988,15 +1014,30 @@ def main(argv=None):
         return assert_preconditions(args.assert_preconditions)
 
     route = Route()
-    if args.plan:
-        globals()["QUIET"] = True
-        branch = args.branch or git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=root).stdout.strip()
-        try:
-            code = drive(args, root, route, plan=True)
-        except PlanStop as stop:
-            return render_plan(route, stop, branch, args.base)
-        return code
-    return drive(args, root, route, plan=False)
+    # F33: a state machine that dies without printing where it got is not carrying state. ANY
+    # escaping exception still emits the route reached and exits inside the declared vocabulary —
+    # a traceback is not one of the four exit codes, and those codes are the whole contract.
+    try:
+        if args.plan:
+            globals()["QUIET"] = True
+            branch = args.branch or git(["rev-parse", "--abbrev-ref", "HEAD"],
+                                        cwd=root).stdout.strip()
+            try:
+                code = drive(args, root, route, plan=True)
+            except PlanStop as stop:
+                return render_plan(route, stop, branch, args.base)
+            return code
+        return drive(args, root, route, plan=False)
+    except Exception as exc:  # noqa: BLE001 - the contract is four exit codes, never a traceback
+        globals()["QUIET"] = False
+        print("")
+        print(route.header())
+        print("")
+        print(f"BLOCKED: the driver could not complete — {type(exc).__name__}: {exc}",
+              file=sys.stderr)
+        print("  The route above is the state actually reached. Nothing was mutated; re-invoke to "
+              "resume from there.")
+        return EXIT_BLOCKED
 
 
 if __name__ == "__main__":

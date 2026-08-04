@@ -669,6 +669,54 @@ def test_fast_forward_push_carries_no_force_flag(work):
     assert "fast-forward" in r.stdout
 
 
+def test_run_degrades_a_timeout_into_a_return_code_and_never_raises():
+    """F33: an unhandled TimeoutExpired from `git fetch` crashed the driver out of its own exit-code
+    contract. A guard that inspects a return code cannot see an exception, so the runner must be
+    total — otherwise the guard written for 'the operation failed' misses the way it actually did."""
+    r = pr_flow.run([sys.executable, "-c", "import time; time.sleep(5)"], timeout=1)
+    assert r.returncode == pr_flow.TIMEOUT_RC
+    assert "timed out" in r.stderr
+
+
+def test_run_degrades_a_missing_binary_instead_of_raising():
+    r = pr_flow.run(["definitely-not-a-real-binary-xyz"])
+    assert r.returncode == pr_flow.UNRUNNABLE_RC
+    assert "could not execute" in r.stderr
+
+
+def test_an_escaping_exception_still_prints_the_route_and_exits_blocked(work, monkeypatch, capsys):
+    """A state machine that dies without printing where it got is not carrying state. The four exit
+    codes are the contract; a traceback is outside it."""
+    commit_on(work, "feat/x")
+    monkeypatch.chdir(work)
+    monkeypatch.setattr(pr_flow, "drive",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    code = pr_flow.main(["--branch", "feat/x"])
+    o = capsys.readouterr()
+    assert code == EXIT_BLOCKED
+    assert "route: " in o.out
+    assert "state actually reached" in o.out
+    assert "RuntimeError: boom" in o.err
+    assert "Traceback" not in o.err
+
+
+def test_a_failed_fetch_names_why_it_failed(work, monkeypatch, capsys):
+    """The guard used to say only 'FAILED'. A timeout and a missing remote need different fixes, so
+    the reason has to reach the caller."""
+    commit_on(work, "feat/x")
+    real = pr_flow.git
+
+    def fake_git(args, cwd=None):
+        if args[:2] == ["fetch", "--quiet"]:
+            return subprocess.CompletedProcess(
+                args, pr_flow.TIMEOUT_RC, "", "timed out after 60s (no response from the remote)")
+        return real(args, cwd=cwd)
+
+    monkeypatch.setattr(pr_flow, "git", fake_git)
+    pr_flow.drive(args_for("feat/x"), str(work), pr_flow.Route())
+    assert "timed out after 60s" in capsys.readouterr().out
+
+
 def test_scope_block_detection_requires_a_fenced_block():
     assert pr_flow.scope_block_in("a\n```scope\nfile.py\n```\n")
     assert not pr_flow.scope_block_in("the word scope appears but no fence")
