@@ -468,7 +468,7 @@ SIGNOFF_SHAPE = ("a ticked item inside the '## 4. Gate 4' section carrying the w
                  "an ISO date, e.g. `- [x] 4.1 ... **Approved** — <operator>, 2026-08-04`")
 
 
-def approval_state(root):
+def approval_state(root, branch=None):
     """Step 0: Gate-4 sign-off is the one pure-authority step, measured structurally.
 
     THREE defects were found here by audit, all of the same family — a check loose enough to be
@@ -489,21 +489,42 @@ def approval_state(root):
     for t in sorted(pathlib.Path(root).glob("openspec/changes/*/tasks.md")):
         if "archive" in t.parts:
             continue
-        in_gate4, signed = False, False
-        for line in t.read_text(errors="replace").splitlines():
-            if ANY_HEADING.match(line):
-                in_gate4 = bool(GATE4_HEADING.match(line))
-                continue
-            if in_gate4 and SIGNOFF_LINE.match(line):
-                signed = True
-                break
-        results.append((signed, t.relative_to(root)))
-    if not results:
-        return None, "no unarchived openspec change on this branch"
-    unsigned = [str(p) for ok, p in results if not ok]
-    if unsigned:
-        return False, f"Gate 4 UNSIGNED in {', '.join(unsigned)} — expected {SIGNOFF_SHAPE}"
-    return True, f"recorded in {', '.join(str(p) for _, p in results)}"
+        results.append((_gate4_signed(t), t.relative_to(root)))
+    if results:
+        unsigned = [str(p) for ok, p in results if not ok]
+        if unsigned:
+            return False, f"Gate 4 UNSIGNED in {', '.join(unsigned)} — expected {SIGNOFF_SHAPE}"
+        return True, f"recorded in {', '.join(str(p) for _, p in results)}"
+
+    # No UNARCHIVED change — but archiving on the feature branch before the merge is the
+    # RECOMMENDED order (archiving after costs a second pull request), so by merge time the
+    # sign-off for the change this branch carries has moved into the archive. Reading it there is
+    # what keeps the gate live at the one moment it matters.
+    #
+    # Looked up BY NAME, never by scanning the archive: any historical change would carry a valid
+    # sign-off, so an unkeyed scan would let some 2026-06 approval authorize today's merge — the
+    # same wrong-scope error that made the first cut of this function match any ticked line.
+    stem = (branch or "").split("/")[-1]
+    if stem:
+        for d in sorted(pathlib.Path(root).glob("openspec/changes/archive/*")):
+            t = d / "tasks.md"
+            if d.is_dir() and d.name.endswith(stem) and t.exists():
+                if _gate4_signed(t):
+                    return True, f"recorded in {t.relative_to(root)} (archived)"
+                return False, (f"Gate 4 UNSIGNED in archived {d.name} — expected {SIGNOFF_SHAPE}")
+    return None, "no openspec change on this branch matches it"
+
+
+def _gate4_signed(path):
+    """True only for a ticked, dated sign-off inside the Gate-4 section of this file."""
+    in_gate4 = False
+    for line in path.read_text(errors="replace").splitlines():
+        if ANY_HEADING.match(line):
+            in_gate4 = bool(GATE4_HEADING.match(line))
+            continue
+        if in_gate4 and SIGNOFF_LINE.match(line):
+            return True
+    return False
 
 
 def unarchived_change(root):
@@ -561,7 +582,7 @@ def drive(args, root, route, plan=False):
         return refuse(route, "worktree", f"branch and base are both {base!r}",
                       "check out the feature branch first", plan)
 
-    signed, detail = approval_state(root)
+    signed, detail = approval_state(root, branch)
     route.mark("approval", "na" if signed is None else ("ok" if signed else "fail"), detail)
     if signed is False:
         note(f"NOTE [approval]: {detail} — the lifecycle may be walked, but the merge is not "

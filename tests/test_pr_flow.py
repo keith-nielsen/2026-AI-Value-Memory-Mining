@@ -419,6 +419,37 @@ def test_gate4_signoff_is_a_record_with_a_shape_not_a_keyword(tmp_path):
     assert pr_flow.approval_state(str(tmp_path))[0] is True
 
 
+def test_signoff_is_still_read_after_the_change_is_archived(tmp_path):
+    """Archiving on the feature branch BEFORE the merge is the recommended order (archiving after
+    costs a second PR), which moves tasks.md one level deeper. The first cut then reported
+    `no unarchived change` — so the merge gate, which refuses only on signed is False, went INERT at
+    exactly the step it exists to guard. Found by walking this change's own ceremony."""
+    d = tmp_path / "openspec" / "changes" / "archive" / "2026-08-04-add-pr-flow-driver"
+    d.mkdir(parents=True)
+    (d / "tasks.md").write_text(GATE4 + "- [x] 4.1 **Approved** — Keith Nielsen, 2026-08-04\n")
+    signed, detail = pr_flow.approval_state(str(tmp_path), "feat/add-pr-flow-driver")
+    assert signed is True
+    assert "archived" in detail
+
+
+def test_an_unrelated_archived_signoff_never_authorizes_this_branch(tmp_path):
+    """Every archived change carries a valid sign-off, so an unkeyed scan of the archive would let
+    a June approval authorize today's merge — the wrong-scope error one level up."""
+    d = tmp_path / "openspec" / "changes" / "archive" / "2026-06-28-something-else"
+    d.mkdir(parents=True)
+    (d / "tasks.md").write_text(GATE4 + "- [x] 4.1 **Approved** — someone, 2026-06-28\n")
+    signed, _ = pr_flow.approval_state(str(tmp_path), "feat/add-pr-flow-driver")
+    assert signed is None, "an unrelated archived change must not satisfy this branch's gate"
+
+
+def test_archived_but_unsigned_still_refuses(tmp_path):
+    d = tmp_path / "openspec" / "changes" / "archive" / "2026-08-04-add-pr-flow-driver"
+    d.mkdir(parents=True)
+    (d / "tasks.md").write_text(GATE4 + "- [ ] 4.1 Operator records **Approved**\n")
+    signed, detail = pr_flow.approval_state(str(tmp_path), "feat/add-pr-flow-driver")
+    assert signed is False and "UNSIGNED" in detail
+
+
 def test_every_unarchived_change_is_evaluated_not_just_the_first(tmp_path):
     """The earlier cut returned from inside the per-file loop, so a SECOND unarchived change was
     never examined — one signed change would have authorized an unsigned one."""
