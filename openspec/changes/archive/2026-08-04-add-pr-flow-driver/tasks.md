@@ -123,7 +123,8 @@
 
 ## 4. Gate 4 — HUMAN SIGN-OFF
 
-- [ ] 4.1 Operator reviews this proposal and records **Approved** (agents may not sign)
+- [x] 4.1 Operator reviewed this proposal and recorded **Approved** — Keith Nielsen, 2026-08-04
+      (transcribed by the agent from the operator's explicit reply; agents may not sign)
 - [ ] 4.2 Open the PR with a fenced `scope` block covering every path in §1
 - [ ] 4.3 Merge once checks are green
 - [ ] 4.4 Archive on `main` in merge order; `openspec validate --all --strict` clean afterwards
