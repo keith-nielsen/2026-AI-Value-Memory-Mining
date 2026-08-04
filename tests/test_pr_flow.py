@@ -564,6 +564,24 @@ def test_saved_plan_asserts_preconditions_and_expires(work):
     assert text.index("date +%s") < text.index("gh api -X PUT /x")  # the check precedes the act
 
 
+def test_fast_forward_push_carries_no_force_flag(work):
+    """Local merely AHEAD of origin is a fast-forward. Emitting --force-with-lease there would
+    succeed, but it normalises a force push for a case that never needed one — and a reader seeing
+    the flag would reasonably infer history had been rewritten. Found by dogfooding."""
+    commit_on(work, "feat/ff")
+    git(["push", "-u", "origin", "feat/ff"], work)
+    (work / "more.md").write_text("another commit\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "add more"], work)
+
+    r = run_flow(work, "--branch", "feat/ff")
+    assert r.returncode == EXIT_NEEDS_INPUT
+    command = r.stdout.split("NEXT COMMAND")[1].splitlines()[1]
+    assert "push origin feat/ff" in command
+    assert "--force" not in command
+    assert "fast-forward" in r.stdout
+
+
 def test_scope_block_detection_requires_a_fenced_block():
     assert pr_flow.scope_block_in("a\n```scope\nfile.py\n```\n")
     assert not pr_flow.scope_block_in("the word scope appears but no fence")

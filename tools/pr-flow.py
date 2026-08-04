@@ -550,9 +550,20 @@ def drive(args, root, route, plan=False):
         out("commits", f"{ahead} over {base_ref}")
 
         if remote_sha != local_sha:
+            fast_forward = remote_sha is not None and git(
+                ["merge-base", "--is-ancestor", remote_sha, local_sha], cwd=root).returncode == 0
             if remote_sha is None:
                 cmd = f"git -C {root} push -u origin {branch}"
                 why = "remote branch does not exist yet"
+            elif fast_forward:
+                # Local merely ADDS commits: this is a fast-forward and a plain push is correct.
+                # Emitting --force-with-lease here would work, but it would normalise a force push
+                # for a case that never needed one, and a reader seeing the flag would reasonably
+                # infer that history had been rewritten. Caught by dogfooding.
+                cmd = f"git -C {root} push origin {branch}"
+                why = ("local is ahead of origin by new commits (a fast-forward). No force flag: "
+                       "nothing is being rewritten, and a force push emitted where none is needed "
+                       "teaches the reader to skip past the flag that does matter")
             else:
                 cmd = f"git -C {root} push --force-with-lease origin {branch}"
                 why = ("remote branch differs from local (rebased). --force-with-lease, never "
