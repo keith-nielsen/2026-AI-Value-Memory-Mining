@@ -583,12 +583,41 @@ def test_surviving_remote_branch_after_merge_is_emitted_as_its_own_step(work, mo
 # --- E: the saved plan closes the TOCTOU window on an operator step ------------------------------
 
 def test_saved_plan_asserts_preconditions_and_expires(work):
-    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51")
+    """Found by dogfooding at the moment of use: the script CLAIMED to re-assert the approved state
+    and contained no assertion at all — only an expiry. A safety claim with no mechanism behind it
+    is the class-9 defect inside the mechanism built to prevent it."""
+    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
+                                    assert_args=["pr=51", "head=abc123", "failures=0"])
     text = pathlib.Path(path).read_text()
     assert "set -euo pipefail" in text
     assert "date +%s" in text and "EXPIRED" in text
-    assert "gh api -X PUT /x" in text
-    assert text.index("date +%s") < text.index("gh api -X PUT /x")  # the check precedes the act
+    assert "--assert-preconditions pr=51 head=abc123 failures=0" in text
+    # The assertion must precede the mutation, or `set -e` cannot stop it.
+    assert text.index("--assert-preconditions") < text.index("gh api -X PUT /x")
+
+
+def test_saved_plan_never_claims_an_assertion_it_does_not_make(work):
+    """When there is no pull request to assert against, the script must say so rather than inherit
+    the reassuring header. Saying only what it does is the whole corrective."""
+    path = pr_flow.write_saved_plan(str(work), "pr", "gh pr create --title x", "opens a PR")
+    text = pathlib.Path(path).read_text()
+    assert "--assert-preconditions" not in text
+    assert "no live-state assertion is made here" in text
+    assert "Consent was given for the state asserted below" not in text
+
+
+def test_assert_preconditions_compares_counts_exactly_not_by_prefix(work, monkeypatch, capsys):
+    """A prefix comparison would let an approved `failures=1` be satisfied by an actual 12."""
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda *a, **k: "o/r")
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda *a, **k: (open_pr("abc123"), "stub"))
+    monkeypatch.setattr(pr_flow.gh_read, "check_runs", lambda *a, **k: (
+        {"check_runs": [{"name": f"c{i}", "status": "completed", "conclusion": "failure"}
+                        for i in range(12)]}, "stub"))
+    monkeypatch.chdir(work)
+    code = pr_flow.assert_preconditions(["pr=51", "failures=1"])
+    assert code == EXIT_REFUSED
+    assert "failures" in capsys.readouterr().out
 
 
 def test_fast_forward_push_carries_no_force_flag(work):

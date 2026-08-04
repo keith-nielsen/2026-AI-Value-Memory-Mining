@@ -204,7 +204,8 @@ def probe_consent(root, command):
 
 # --- emitters ------------------------------------------------------------------------------------
 
-def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None):
+def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None,
+         assert_args=None):
     if plan:
         raise PlanStop("emit", step, command, runs, authority, consent, why)
     route.mark(step, "current")
@@ -221,13 +222,19 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     if approve:
         print("  approve:   " + approve)
     if runs == OPERATOR and root:
-        path = write_saved_plan(root, step, command, approve)
+        path = write_saved_plan(root, step, command, approve, assert_args)
         if path:
             print("")
             print(f"  Saved plan: {path}")
             print(f"  To run it:  bash {path}")
-            print("  It re-asserts the state you were shown and aborts if GitHub has moved; it "
-                  "expires in 24h.")
+            if assert_args:
+                print("  It re-asserts the state you were shown and aborts WITHOUT mutating if "
+                      "GitHub has moved; it expires in 24h.")
+            else:
+                # Say only what the script does. Claiming an assertion this step cannot make is the
+                # same false-assurance defect the driver exists to prevent (class 9).
+                print("  It carries a 24h expiry. NO live-state assertion is possible at this step "
+                      "— there is no pull request yet to assert against.")
     return EXIT_NEEDS_INPUT
 
 
@@ -262,7 +269,7 @@ def not_ready(route, step, what, probe, plan=False):
     return EXIT_NEEDS_INPUT
 
 
-def write_saved_plan(root, step, command, approve):
+def write_saved_plan(root, step, command, approve, assert_args=None):
     """Write the operator's command to disk so a SHORT line is what gets pasted.
 
     F14 and F26: the interactive paste channel corrupted two hand-offs and clobbered a repo file.
@@ -274,12 +281,18 @@ def write_saved_plan(root, step, command, approve):
         d.mkdir(parents=True, exist_ok=True)
         path = d / "next.sh"
         expiry = int(time.time()) + PLAN_TTL_SECONDS
+        header = (
+            ["# Consent was given for the state asserted below. If GitHub has moved, this aborts",
+             "# WITHOUT mutating: approval does not transfer to a different state."]
+            if assert_args else
+            ["# NOTE: no live-state assertion is made here — this step has no pull request to",
+             "# assert against. The expiry below is the only staleness guard."]
+        )
         body = [
             "#!/usr/bin/env bash",
             f"# generated {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} by pr-flow.py"
             f" — step '{step}'",
-            "# Consent was given for the state asserted below. If GitHub has moved, this aborts",
-            "# WITHOUT mutating: approval does not transfer to a different state.",
+            *header,
             "set -euo pipefail",
             f'if [ "$(date +%s)" -gt {expiry} ]; then',
             '  echo "saved plan EXPIRED — re-run tools/pr-flow.py to derive a current one" >&2',
@@ -289,6 +302,11 @@ def write_saved_plan(root, step, command, approve):
         ]
         if approve:
             body.append(f"# authorizing: {approve}")
+        if assert_args:
+            # The assertion runs BEFORE the mutation and `set -e` aborts on its non-zero exit, so
+            # a state that moved between emission and execution never reaches the command.
+            body.append(f"python3 {root}/tools/pr-flow.py --assert-preconditions "
+                        + " ".join(assert_args))
         body += [command, "", "# verify the mutation actually landed:",
                  f"python3 {root}/tools/pr-flow.py --branch \"${{PR_FLOW_BRANCH:-$(git branch "
                  f"--show-current)}}\""]
@@ -409,8 +427,11 @@ def assert_preconditions(pairs):
         print(f"BLOCKED: cannot re-assert state — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
 
+    # EXACT comparison, except `head` where a short SHA prefix is a convenience. A prefix match on a
+    # count would let an approved `failures=1` silently satisfy an actual 12.
     moved = [(k, v, actual.get(k)) for k, v in want.items()
-             if k != "pr" and k in actual and not actual[k].startswith(v)]
+             if k != "pr" and k in actual
+             and (not actual[k].startswith(v) if k == "head" else actual[k] != v)]
     if moved:
         print("PRECONDITION FAILED — the state you approved has moved; not mutating:")
         for k, expected, got in moved:
@@ -732,7 +753,8 @@ def drive(args, root, route, plan=False):
                     "check reads the body from the event payload as of PUSH time — after this "
                     "PATCH the gate needs a PUSH, not a re-run.",
                     approve=f"replaces the body of PR #{number} with {args.body_file}.",
-                    plan=plan, root=root)
+                    plan=plan, root=root,
+                    assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}"])
     route.mark("body", "ok", "declared-scope block present in the PR body")
 
     # --- checks -----------------------------------------------------------------------------------
@@ -831,7 +853,9 @@ def drive(args, root, route, plan=False):
                     approve=f"merges PR #{number} ({pr['title'][:60]}) into {base} at "
                             f"{head_sha[:7]}; {total} checks green, {len(children)} stacked "
                             "children. Branch deletion is a separate, verified step.",
-                    plan=plan, root=root)
+                    plan=plan, root=root,
+                    assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}",
+                                 "failures=0", "pending=0", "children=0", "mergeable=ok"])
     return post_merge(root, slug, branch, number, foreign, route, plan)
 
 
