@@ -115,7 +115,9 @@ Render them in Obsidian or any Mermaid-capable viewer.
 │
 ├── tools/                       # Repo maintenance tools (template-parity.py: mirror completeness check;
 │                                #   template-mirror.py: repo→live mirror driver; ship-release.py: guarded
-│                                #   tag→Release driver; pr-state.py: per-layer PR reporter)
+│                                #   tag→Release driver; pr-flow.py: guarded branch→merge lifecycle
+│                                #   driver; gh_read.py: shared GitHub read layer, anonymous REST first;
+│                                #   pr-state.py: per-layer PR reporter)
 │
 ├── docs/                        # Project documentation
 │   ├── diagrams.md              #   7 Mermaid system diagrams
