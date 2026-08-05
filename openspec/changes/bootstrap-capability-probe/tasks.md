@@ -45,7 +45,10 @@ the exact failure this change exists to prevent.
 
 ## 6. Release + deploy-down
 
-- [ ] 6.1 Gate-4 authorization from operator (absolute `view <path>` + explicit "reply Approved")
+- [x] 6.1 Gate-4 authorization — operator replied **Approved** 2026-08-05. ⚠ Recorded with a defect:
+      the standard prompt (absolute `view <path>` + "reply Approved") was **not issued first**; the
+      operator pre-empted it and the path was supplied immediately after, for confirmation against
+      the artifact. Sign-off stands unless the operator says otherwise.
 - [ ] 6.2 `/opsx:archive` + CHANGELOG + tag
 - [ ] 6.3 Deploy-down to live vault: runbook + `CLAUDE.md` + `vmm-session-rebooted.md`
       (operator-applied — `denyWrite`)
