@@ -10,6 +10,7 @@ those are what the driver exists to prevent: advancing on a stale base, pushing 
 remote without a lease, and treating a half-finished rebase as settled state.
 """
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -350,6 +351,50 @@ def test_every_emission_carries_the_route_header(work):
     r = run_flow(work, "--branch", "feat/x")
     assert "route: " in r.stdout
     assert "step " in r.stdout
+
+
+def test_the_route_header_explains_every_marker_it_renders(work):
+    """A key that is not on the page is not a key. Six glyphs were shipped with no legend at all —
+    the reader had to infer all of them from context."""
+    commit_on(work, "feat/x")
+    r = run_flow(work, "--branch", "feat/x")
+    key_line = [ln for ln in r.stdout.splitlines() if ln.strip().startswith("key:")]
+    assert key_line, "the route header must carry a legend"
+    route_line = [ln for ln in r.stdout.splitlines() if ln.startswith("route:")][0]
+    rendered = set(re.findall(r"\[(.)\]", route_line))
+    explained = set(re.findall(r"\[(.)\]", key_line[0]))
+    assert rendered <= explained, f"unexplained markers: {rendered - explained}"
+
+
+def test_waiting_and_untested_do_not_share_a_glyph():
+    """`[~]` means 'built but NOT TESTED' in task files — a deficiency needing action. The driver's
+    wait state means 'the platform has not answered', which resolves itself. One glyph for both
+    would let an untested item read as benignly in flight."""
+    assert pr_flow.MARK["wait"][0] == "?"
+    assert "~" not in {glyph for glyph, _ in pr_flow.MARK.values()}
+
+
+def test_the_pass_mark_is_not_a_glyph_that_inverts_by_convention():
+    """`x` means *selected* in the US/UK but 「×」(batsu) means *wrong* across much of East Asia.
+    The pair was the real hazard: `[x]`=passed beside `[!]`=failed scans as two negatives under
+    that reading, collapsing the route's most important distinction."""
+    glyphs = {glyph for glyph, _ in pr_flow.MARK.values()}
+    assert pr_flow.MARK["ok"][0] == "P" and pr_flow.MARK["fail"][0] == "F"
+    assert "x" not in glyphs and "!" not in glyphs
+
+
+def test_every_marker_is_ascii_so_no_font_can_render_it_as_a_box():
+    for glyph, words in pr_flow.MARK.values():
+        assert len(glyph) == 1 and ord(glyph) < 128, f"{glyph!r} is not single-char ASCII"
+        assert words, "a marker with no definition cannot appear in the legend"
+
+
+def test_a_completed_route_does_not_report_a_step_past_the_end(work):
+    """Cosmetic, but it was reported as `step 15/14` on a finished lifecycle."""
+    route = pr_flow.Route()
+    for sid, _ in pr_flow.STEPS:
+        route.mark(sid, "ok")
+    assert f"step {len(pr_flow.STEPS)}/{len(pr_flow.STEPS)}" in route.header()
 
 
 # --- C: authority is distinguished from execution ----------------------------------------------
