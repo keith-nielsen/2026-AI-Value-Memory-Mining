@@ -717,6 +717,110 @@ def test_a_failed_fetch_names_why_it_failed(work, monkeypatch, capsys):
     assert "timed out after 60s" in capsys.readouterr().out
 
 
+# =================================================================================================
+# THE CREDIBLE STATE SPACE, ENUMERATED FORWARD.
+#
+# The original regression replayed HISTORY — 49 past pull requests and 22 recorded failures — and
+# was presented as coverage. It is not: a replay validates against the old failure surface, not the
+# new one the mechanism itself creates. F34 was exactly that gap. "PR merged, branch not yet
+# cleaned up" is a state this driver's OWN saved plan schedules on every single lifecycle, and it
+# had no test, because it had never appeared in history — there was no driver before.
+#
+# So: enumerate the states the lifecycle can credibly ENTER, forward, and assert the verdict for
+# each. Not the full cross-product (that is the ocean); the states a real ceremony passes through
+# or lands in when something is off.
+# =================================================================================================
+
+def pr_at(sha, **kw):
+    return open_pr(sha, **kw)
+
+
+GREEN = {"check_runs": [{"name": "ci", "status": "completed", "conclusion": "success"}]}
+PENDING = {"check_runs": [{"name": "ci", "status": "in_progress", "conclusion": None}]}
+RED = {"check_runs": [{"name": "ci", "status": "completed", "conclusion": "failure"}]}
+NO_RUNS = {"check_runs": []}
+
+# id, prs-for-branch, check payload, full-PR override, children, expected exit, expected marker
+LIFECYCLE_STATES = [
+    ("S7  pushed, no pull request",        [],            NO_RUNS, None, (), EXIT_NEEDS_INPUT, "gh pr create"),
+    ("S8  body lacks the scope block",     ["body-less"], NO_RUNS, None, (), EXIT_NEEDS_INPUT, "gh api -X PATCH"),
+    ("S9  no check runs registered",       ["open"],      NO_RUNS, None, (), EXIT_NEEDS_INPUT, "NOT READY"),
+    ("S10 checks still pending",           ["open"],      PENDING, None, (), EXIT_NEEDS_INPUT, "NOT READY"),
+    ("S11 a check is failing",             ["open"],      RED,     None, (), EXIT_REFUSED,     "failing check"),
+    ("S12 mergeable not yet computed",     ["open"],      GREEN, {"mergeable": None}, (), EXIT_NEEDS_INPUT, "NOT READY"),
+    ("S13 not mergeable (conflict)",       ["open"],      GREEN, {"mergeable": False}, (), EXIT_REFUSED, "NOT mergeable"),
+    ("S14 an open child is stacked on it", ["open"],      GREEN, None, ({"number": 29, "head": {"ref": "kid"}},), EXIT_REFUSED, "stacked on it"),
+    ("S15 all clear -> merge",             ["open"],      GREEN, None, (), EXIT_NEEDS_INPUT, "gh api -X PUT"),
+    # S16 ("merged, branch not yet cleaned up") is deliberately NOT a row here. Verified by removing
+    # the fix: this harness leaves the branch containing origin/main, so a row for S16 passes
+    # VACUOUSLY — the traversal never reaches the guard that breaks, and the row proves nothing
+    # while reading as coverage. S16 requires the base-ahead geometry a real merge creates, so it
+    # has its own test below, and that test was confirmed to FAIL without the fix.
+    ("S21 pull request is a draft",        ["draft"],     GREEN, None, (), EXIT_REFUSED,     "DRAFT"),
+    ("S22 two open pull requests, one head", ["open", "open2"], GREEN, None, (), EXIT_REFUSED, "open PRs share head"),
+    ("S23 closed-unmerged, none open",     ["dead"],      NO_RUNS, None, (), EXIT_NEEDS_INPUT, "CLOSED and unmerged"),
+]
+
+
+@pytest.mark.parametrize("state", LIFECYCLE_STATES, ids=[s[0] for s in LIFECYCLE_STATES])
+def test_every_credible_lifecycle_state_has_a_defined_verdict(work, monkeypatch, capsys, state):
+    label, kinds, checks, full_override, children, want_code, want_text = state
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+
+    made = []
+    for k in kinds:
+        if k == "open":
+            made.append(pr_at(sha))
+        elif k == "open2":
+            made.append(pr_at(sha, number=52))
+        elif k == "draft":
+            made.append(pr_at(sha, draft=True))
+        elif k == "dead":
+            made.append(pr_at(sha, state="closed", merged_at=None))
+        elif k == "merged":
+            made.append(pr_at(sha, state="closed", merged_at="2026-08-04T00:00:00Z"))
+        elif k == "body-less":
+            made.append(pr_at(sha, body="no scope block here"))
+    full = pr_at(sha, **(full_override or {}))
+    if "merged" in kinds:
+        full = pr_at(sha, state="closed", merged_at="2026-08-04T00:00:00Z")
+    stub_reads(monkeypatch, prs=made, checks=checks, full=full, children=children)
+
+    body = work.parent / "body.md"
+    body.write_text("t\n```scope\ntools/pr-flow.py\n```\n")
+    code, _ = drive(work, args_for("feat/x", body_file=str(body), title="t"))
+    o = capsys.readouterr().out
+    assert code == want_code, f"{label}: expected exit {want_code}, got {code}\n{o}"
+    assert want_text in o, f"{label}: expected {want_text!r} in output\n{o}"
+
+
+def test_s16_the_state_the_driver_itself_creates_never_prescribes_a_rebase(work, monkeypatch,
+                                                                          capsys):
+    """F34, pinned separately because it is the one that shipped broken. After a merge, origin/base
+    has advanced PAST the branch, so the base-current guard WILL fire unless terminal state is
+    resolved first. Reproduce that exact geometry: base ahead, branch merged."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    sha = head_of(work)
+    git(["switch", "main"], work)
+    (work / "after-merge.md").write_text("main moved on past the branch\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "merge landed"], work)
+    git(["push", "origin", "main"], work)
+    git(["switch", "feat/x"], work)
+
+    merged = pr_at(sha, state="closed", merged_at="2026-08-04T00:00:00Z")
+    stub_reads(monkeypatch, prs=[merged], checks=GREEN, full=merged)
+    code, route = drive(work, args_for("feat/x"))
+    o = capsys.readouterr().out
+    assert "rebase" not in o, "a merged branch must never be told to rebase"
+    assert "already merged" in o
+    assert route.state["base"] == "na"
+    assert code == EXIT_NEEDS_INPUT and "push origin --delete feat/x" in o
+
+
 def test_scope_block_detection_requires_a_fenced_block():
     assert pr_flow.scope_block_in("a\n```scope\nfile.py\n```\n")
     assert not pr_flow.scope_block_in("the word scope appears but no fence")

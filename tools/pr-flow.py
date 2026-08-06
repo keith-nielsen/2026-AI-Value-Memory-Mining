@@ -592,6 +592,7 @@ def scope_block_in(text, root=None):
 # --- the traversal ---------------------------------------------------------------------------
 
 def drive(args, root, route, plan=False):
+    prefetched = None  # the terminal-state lookup, reused so the fix costs no extra read budget
     branch = args.branch or git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=root).stdout.strip()
     base = args.base
     if not plan:
@@ -650,6 +651,32 @@ def drive(args, root, route, plan=False):
             return refuse(route, "worktree", problem[0], problem[1], plan)
         route.mark("worktree", "ok", "clean, no operation in progress")
         out("worktree", "clean, no operation in progress")
+
+        # F34 — TERMINAL STATE IS RESOLVED BEFORE PRE-TERMINAL GUARDS.
+        # A merge advances origin/<base> PAST this branch, so the base-current guard below would
+        # emit a rebase for a branch whose pull request merged seconds earlier, and the traversal
+        # would never reach the lookup that says so. The pre-merge guards are only meaningful while
+        # the change is UNMERGED. This state — merged, not yet cleaned up — is one the driver's own
+        # saved plan schedules on every lifecycle, and it had no test: the coverage enumerated the
+        # states the WORLD presents and not the states this MECHANISM creates.
+        # The lookup is skipped when the slug is unresolvable, preserving the offline local path.
+        early_slug = gh_read.slug_from_remote(root)
+        if early_slug:
+            try:
+                prefetched = gh_read.pulls_for_branch(early_slug, branch, base, state="all")
+            except gh_read.ReadError:
+                prefetched = None
+            if prefetched:
+                seen = prefetched[0]
+                done = [p for p in seen if p.get("merged_at")]
+                still_open = [p for p in seen if p["state"] == "open"]
+                if done and not still_open:
+                    for sid in ("base", "commits", "pushed"):
+                        route.mark(sid, "na", "pull request already merged — pre-merge guard moot")
+                    out("lifecycle", f"PR #{done[-1]['number']} is already merged — pre-merge "
+                                     "guards skipped; verifying the merge and cleanup instead")
+                    return post_merge(root, early_slug, branch, done[-1]["number"], foreign,
+                                      route, plan)
 
         current = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=root).stdout.strip()
         base_sha = git(["rev-parse", base_ref], cwd=root).stdout.strip()
@@ -714,7 +741,7 @@ def drive(args, root, route, plan=False):
         return EXIT_BLOCKED
     out("repo", slug)
     try:
-        prs, ch = gh_read.pulls_for_branch(slug, branch, base, state="all")
+        prs, ch = prefetched or gh_read.pulls_for_branch(slug, branch, base, state="all")
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot read PRs — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
