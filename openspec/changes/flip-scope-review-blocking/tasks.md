@@ -43,10 +43,31 @@ that the happy path still works.
       behaviour the flip changes — verified on the real geometry, not a stub.
 - [ ] 5.3 Confirm the renamed context appears as `Scope review (declared-scope gate)` in the check-runs
       of this PR, and that the old name no longer appears
+- [x] 5.4 **ESCAPE-HATCH REGRESSION — the operator's condition of approval: prove a blocking gate
+      cannot corner us out of releasing or reverting.** Three routes tested independently:
+      1. **The ruleset cannot block on it.** Live read of ruleset `19666243`: 16 required contexts,
+         `Scope review` **not among them**. So even a comparator that failed every PR could not
+         produce a server-side merge refusal — a merge remains available via `gh api -X PUT`.
+      2. **The release path is independent.** `tools/ship-release.py` contains **zero** references to
+         checks; its layers are `local-tag` / `remote-tag` / `release-object`. Tag and Release
+         creation never consult CI, so a red gate cannot block a ship.
+      3. **A revert passes its own gate.** Reverted **both** commits onto the post-flip tree, verified
+         it restores `continue-on-error: True` and the old job name, then ran the **blocking**
+         comparator on the revert's 5-file diff with a correct declaration → **PASS, exit 0**.
+      ⚠ Two earlier attempts at (3) were INVALID and are recorded so the result is not over-read: the
+      first branched from `origin/main`, which lacks the flip, so the revert was a no-op and an empty
+      diff passed trivially; the second reverted only the first of two commits and left a `UD`
+      conflict on `tasks.md`. Only the third drill reproduces the real geometry.
 
 ## 6. Gate 4 — authorization
 
-- [ ] 6.1 Operator sign-off recorded here as a ticked item carrying **Approved** and an ISO date
+- [x] 6.1 Operator reviewed the proposal and recorded **Approved** — Keith Nielsen, 2026-08-06.
+      **Conditional:** *"conditional on there having been a regression test to make sure we don't paint
+      ourselves into a corner and block our ability to release/regress completely."* **Condition
+      DISCHARGED by §5.4** — three independent escape routes measured (ruleset cannot block, release
+      path has no check dependency, a revert passes the blocking gate). The condition was raised
+      before the drill existed, and the first two attempts at it were invalid; the discharge rests on
+      the third only.
 
 ## 7. Deliberately deferred, with its trigger
 
