@@ -1,8 +1,9 @@
 # Vault conventions — Value Mining (read before any operation)
 
 **Session start:** follow `96-Runbooks/session-bootstrap-loader` — source `99-Operations/config.env`,
-engage the gates (governance-first · re-read-before-acting · autonomy-bans · clean-ops), and know the
-just-in-time pointers. A Claude Code SessionStart hook surfaces it automatically.
+engage the gates (governance-first · re-read-before-acting · autonomy-bans · clean-ops ·
+measure-don't-infer), run the capability probe before asserting what this session can reach or write,
+and know the just-in-time pointers. A Claude Code SessionStart hook surfaces it automatically.
 
 This vault is a Value Mining operation governed by 99-Operations/ and the build PRD.
 Content flows: Capture (20-Claims) -> Dig -> Ore -> Sort -> Refine ->
