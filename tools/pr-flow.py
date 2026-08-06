@@ -90,7 +90,32 @@ STEPS = [
     ("remote-gone", "remote branch deleted"),
     ("local-gone",  "local branch deleted"),
 ]
-MARK = {"ok": "x", "na": "-", "current": ">", "todo": " ", "wait": "~", "fail": "!"}
+# Glyph, and the words that define it. The legend is rendered FROM this table, so a marker cannot
+# exist without an explanation — the route header is read far more often than this source file.
+#
+# `P`/`F`, NOT `x`/`!`. The pass mark was originally `x`, copied from the markdown checkbox habit
+# rather than chosen. `x` INVERTS by convention: "an X in the box" means *selected* in the US/UK,
+# while 「×」(batsu) means *wrong* across Japan and much of East Asia, against 「○」(maru) for
+# correct. The isolated glyph is survivable; the PAIR was not — `[x]`=passed sat beside `[!]`=failed,
+# so under the batsu reading both scan as negative and the route's single most important
+# distinction collapses. A legend only rescues that if it is read, and a status line's whole value
+# is being scannable WITHOUT reading prose. `P`/`F` are language-bound but never inverted, and are
+# ASCII so no terminal font can render them as a box (operator's call, 2026-08-05).
+#
+# `?` (not `~`) for waiting, deliberately: `[~]` means "built but NOT TESTED" in task files, which
+# is a deficiency requiring action, while this means "the platform has not answered yet", which
+# resolves itself. One glyph for both would let an untested item read as benignly in-flight.
+#
+# Task files keep markdown's `[x]` for done: GitHub's renderer only recognises `[ ]` and `[x]`, so
+# that split is forced by the renderer, not an oversight. Both legends state their own set.
+MARK = {
+    "ok":      ("P", "passed"),
+    "na":      ("-", "not applicable here"),
+    "current": (">", "current step"),
+    "todo":    (" ", "not yet reached"),
+    "wait":    ("?", "awaiting the platform"),
+    "fail":    ("F", "failed"),
+}
 
 
 class PlanStop(Exception):
@@ -116,11 +141,17 @@ class Route:
             self.detail[sid] = detail
 
     def header(self, next_owner=None):
-        cells = " ".join(f"[{MARK[self.state[sid]]}]{sid}" for sid, _ in STEPS)
+        cells = " ".join(f"[{MARK[self.state[sid]][0]}]{sid}" for sid, _ in STEPS)
         done = sum(1 for sid, _ in STEPS if self.state[sid] in ("ok", "na"))
-        lines = ["route: " + cells, f"       step {done + 1}/{len(STEPS)}"]
+        step_no = min(done + 1, len(STEPS))
+        lines = ["route: " + cells, f"       step {step_no}/{len(STEPS)}"]
         if next_owner:
             lines[-1] += f" · next owner: {next_owner}"
+        # Explain only the glyphs actually rendered: a legend for markers that are not on screen is
+        # noise, and this header prints on every invocation.
+        used = {self.state[sid] for sid, _ in STEPS}
+        key = " · ".join(f"[{MARK[k][0]}] {MARK[k][1]}" for k in MARK if k in used)
+        lines.append(f"       key: {key}")
         return "\n".join(lines)
 
     def table(self, stop):
