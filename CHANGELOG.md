@@ -13,6 +13,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
+- **The session prime now measures its own capability instead of recalling it**
+  (`bootstrap-capability-probe`, conforming amendment, **no Architecture Decision Record (ADR)**,
+  `maintenance` +1 Requirement). The cold-start prime gains a fifth gate — *measure, don't infer* —
+  and a capability-probe step that runs before any claim about what the session can read, write, or
+  reach. Write scope, `gh` credential, `git` credential, and network reachability are reported as
+  four **independent** layers, none inferred from another; and capability is distinguished from
+  authority, since a channel the agent can execute may still require operator consent (INV-14). The
+  step **references** the existing capability reporter rather than restating its checks, so one
+  system owns the criterion. Both gate-enumerating adapters (`vault-template/CLAUDE.md`,
+  `vmm-session-rebooted.md`) were updated in lockstep. Attested by failure mode F35: an agent
+  asserted "no network" from a single credential-lock error that was in fact a *write* failure,
+  while a purpose-built probe answering the question in one call sat unrun in the open repository.
 - **The pull request lifecycle is now driven, not composed — `tools/pr-flow.py`**
   (`add-pr-flow-driver`, conforming amendment, **no Architecture Decision Record (ADR)**,
   `maintenance` +11 Requirements). The sibling of

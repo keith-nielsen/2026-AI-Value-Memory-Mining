@@ -27,8 +27,16 @@
 - [x] 4.1 `runbook-lint` (CI job reproduced locally) — **4 checked, 0 errors, exit 0**
 - [x] 4.2 `openspec validate --all --strict` — **7 passed, 0 failed, exit 0**; CLI `1.6.0` == pin
 - [x] 4.3 `vault-template/.claude/settings.json` valid JSON
-- [ ] 4.4 `validate-scripts.sh` sandboxed (no `.py` touched — expect no-op)
-- [ ] 4.5 CI green on the pull request
+- [ ] 4.4 `validate-scripts.sh` — **NOT VERIFIABLE in a write-scoped sandbox; deferred to CI.** Run
+      here it exits `1` with 12 `FAIL` lines that are **all false**: the script uses `mktemp -d` for
+      `$WORK` but hardcodes bare `/tmp/pc.txt` `/tmp/bn.txt` `/tmp/sc.txt` for stderr capture (lines
+      49/56/58). `/tmp` is read-only under the sandbox, so the redirect fails and the `if` takes the
+      else branch — **reporting a compile failure for a compile that never ran.** Verified
+      independently: every `tools/*.py` compiles clean against a writable temp. Defect queued at
+      §7.4; NOT fixed here.
+- [x] 4.5 CI green on the pull request — **PR #53, 34 of 34 checks successful** (read via anon-rest);
+      `Scope review (declared-scope gate, burn-in)` = `completed/success`, so the declared-scope block
+      was accepted by the real gate rather than by a paraphrase of it
 
 ## 5. Dogfood — the probe must be RUN, not merely written
 
@@ -49,7 +57,19 @@ the exact failure this change exists to prevent.
       the standard prompt (absolute `view <path>` + "reply Approved") was **not issued first**; the
       operator pre-empted it and the path was supplied immediately after, for confirmation against
       the artifact. Sign-off stands unless the operator says otherwise.
-- [ ] 6.2 `/opsx:archive` + CHANGELOG + tag
+- [x] 6.2a Archived on the feature branch **before** merge (`openspec archive` — `/opsx:archive`
+      equivalent). Verified by measurement, not exit code: `maintenance` requirements **31 -> 32**,
+      the new Requirement present with its **4 scenarios** intact, `protects:` tag preserved,
+      `openspec validate --all --strict` **6 passed / 0 failed**. Order derived from precedent, not
+      preference — the default is branch-archive (`enforce-inv7-secret-scan`: "else a second archive
+      PR is owed"); the exception is concurrent changes touching the same capability spec, which
+      archive on `main` in merge order (`add-template-mirror-driver`: "both touch `maintenance`") to
+      avoid batch-archive last-writer-wins. **Exception checked and absent:** this was the only
+      unarchived change on any ref, and no other open PR touches `openspec/`.
+- [x] 6.2b CHANGELOG `[Unreleased]` entry added
+- [ ] 6.2c Version tag — **deferred, operator decision.** This carries a spec delta (unlike the
+      docs-only ADR-0034/0035 pattern that shipped untagged), and `[Unreleased]` already holds
+      `add-pr-flow-driver`; whether these ship as one version is not the agent's call.
 - [ ] 6.3 Deploy-down to live vault: runbook + `CLAUDE.md` + `vmm-session-rebooted.md`
       (operator-applied — `denyWrite`)
 - [ ] 6.4 Outbound to GitHub — **operator-authorized (INV-14)**; agent can execute `git`, may not decide
@@ -62,3 +82,13 @@ the exact failure this change exists to prevent.
       repo; INV-6 bars the deterministic fleet from the two network layers
 - [ ] 7.3 INV-14 commit-message parser false-positive — 5th reproduction (matched "push" inside a
       `git commit -m` body); already queued
+- [ ] 7.4 `.github/scripts/validate-scripts.sh` hardcodes bare `/tmp/{pc,bn,sc}.txt` for stderr
+      capture while using `mktemp -d` for its work dir — under a write-scoped sandbox the redirect
+      fails and it **reports a failure for a check it never ran** (12 false FAILs, exit 1). Passes
+      in CI, where `/tmp` is writable, so the defect is invisible exactly where the corpus is
+      normally validated. Fix: route all three through `$WORK`. Same family as F36 root cause 3 —
+      a wrong channel making a non-result read as a result.
+- [ ] 7.5 Archive-order rule exists in **no** spec, ADR, or runbook — only in per-change `tasks.md`
+      files, which nobody reads at decision time. Its exception has already cost a batch-archive
+      last-writer-wins incident. Candidate `maintenance` requirement; parked with the
+      CONTRIBUTING/runbook drafts at operator direction.
