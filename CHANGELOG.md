@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.38] - 2026-08-06
+
 ### Changed
 - **The declared-scope gate is now BLOCKING** (`flip-scope-review-blocking`, conforming amendment,
   **no Architecture Decision Record (ADR)**, `maintenance` ~1 Requirement). `scope-review` loses
