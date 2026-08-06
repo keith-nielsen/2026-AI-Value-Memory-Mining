@@ -46,16 +46,16 @@ ok "render + naming-rules.json"
 
 hdr "static checks — python compiles"
 for py in "$HOME"/bin/*.py; do
-  if python3 -m py_compile "$py" 2>/tmp/pc.txt; then ok "py_compile $(basename "$py")"; else no "py_compile $(basename "$py")"; cat /tmp/pc.txt; fi
+  if python3 -m py_compile "$py" 2>"$WORK/pc.txt"; then ok "py_compile $(basename "$py")"; else no "py_compile $(basename "$py")"; cat "$WORK/pc.txt"; fi
 done
 
 hdr "static checks — bash syntax + shellcheck"
 SH_FILES=("$HOME"/bin/*.sh "$VAULT/99-Operations/hooks/pre-commit")
 for sh in "${SH_FILES[@]}"; do
   base="$(basename "$sh")"
-  bash -n "$sh" 2>/tmp/bn.txt && ok "bash -n $base" || { no "bash -n $base"; cat /tmp/bn.txt; }
+  bash -n "$sh" 2>"$WORK/bn.txt" && ok "bash -n $base" || { no "bash -n $base"; cat "$WORK/bn.txt"; }
   if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck -S warning "$sh" >/tmp/sc.txt 2>&1 && ok "shellcheck $base" || { no "shellcheck $base"; cat /tmp/sc.txt; }
+    shellcheck -S warning "$sh" >"$WORK/sc.txt" 2>&1 && ok "shellcheck $base" || { no "shellcheck $base"; cat "$WORK/sc.txt"; }
   fi
 done
 command -v shellcheck >/dev/null 2>&1 || echo "  (shellcheck not installed — skipped)"
