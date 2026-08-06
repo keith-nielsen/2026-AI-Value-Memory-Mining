@@ -43,7 +43,7 @@ the exact failure this change exists to prevent.
 - [ ] 5.4 Adversarial: mutate the write scope, re-probe, confirm the **new** scope is reported
       (partially evidenced — the operator's live `allowWrite` edit was detected without a restart)
 
-## 6. Release + deploy-down
+## 6. Gate 4 — authorization, release + deploy-down
 
 - [x] 6.1 Gate-4 authorization — operator replied **Approved** 2026-08-05. ⚠ Recorded with a defect:
       the standard prompt (absolute `view <path>` + "reply Approved") was **not issued first**; the
