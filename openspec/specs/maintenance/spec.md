@@ -362,13 +362,20 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
   schema were informed by an evaluated external tool, credited in the CHANGELOG).
 - **The threshold is repo-owned:** the job fails on any finding — undeclared file (medium) or
   undeclared workflow env var / dependency (high). Malformed inputs fail closed.
-- **Two-stage adoption:** Phase A runs report-only (`continue-on-error`) as burn-in; the flip to
-  blocking is its own governed change after clean burn-in. Dependabot PRs are exempt by actor.
+- **The gate is BLOCKING (Phase B, complete).** The job SHALL NOT carry `continue-on-error`; a
+  finding fails the job and the run. Phase A's report-only burn-in is discharged. Dependabot PRs
+  remain exempt by actor, and the job does not run on the `push` trigger.
+- **Where the block binds SHALL be stated, not assumed.** A failing job blocks a merge through the
+  lifecycle driver, which refuses to emit a merge command while any check is failing. Adding this
+  job to the branch ruleset's required contexts is a **separate** decision, because the job reports
+  `skipped` on the `push` trigger and on dependabot PRs, and whether a `skipped` conclusion
+  satisfies a required context cannot be dry-run on this plan.
 
 #### Scenario: PR without a Declared-scope block fails extraction
 - **WHEN** a pull request is opened whose body contains no fenced ```scope block
 - **THEN** the `scope-review` job fails at the extraction step, naming the fix (add the block per
   the PR template), and no checker invocation occurs
+- **THEN** the failure is not suppressed — the job has no `continue-on-error`
 
 #### Scenario: Diff touching an undeclared path is a failing finding
 - **WHEN** the PR diff modifies a file matched by no declared entry (e.g. an undeclared
@@ -376,6 +383,7 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
 - **THEN** the checker reports a `scope.file` finding and the threshold step exits non-zero,
   listing the offending path(s) — the author either shrinks the diff or amends the declaration
   deliberately
+- **THEN** the lifecycle driver refuses to emit a merge command while that check is failing
 
 #### Scenario: Declared-only diff passes
 - **WHEN** every path in the PR diff is matched by a declared entry (exact path or directory
@@ -385,6 +393,12 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
 #### Scenario: Checker crash fails closed
 - **WHEN** the comparator receives a missing or malformed scope file or diff
 - **THEN** it exits non-zero (fail-closed); the gate never passes by silence
+
+#### Scenario: The job is renamed only while its context is unrequired
+- **WHEN** the job's `name` is changed, since the name is the check-context identity
+- **THEN** the change is made while the context is absent from the ruleset's required contexts
+- **THEN** any later addition to required contexts uses the new name, so no required context is
+  ever renamed out from under a merge
 
 ### Requirement: GitHub Release Object Per Version Tag
 

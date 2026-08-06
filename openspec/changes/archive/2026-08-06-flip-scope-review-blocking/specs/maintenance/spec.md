@@ -50,6 +50,10 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
   prefix) and no undeclared dependencies/endpoints/env-vars are introduced
 - **THEN** the threshold step exits 0 and reports PASS with any low-severity advisories
 
+#### Scenario: Checker crash fails closed
+- **WHEN** the comparator receives a missing or malformed scope file or diff
+- **THEN** it exits non-zero (fail-closed); the gate never passes by silence
+
 #### Scenario: The job is renamed only while its context is unrequired
 - **WHEN** the job's `name` is changed, since the name is the check-context identity
 - **THEN** the change is made while the context is absent from the ruleset's required contexts

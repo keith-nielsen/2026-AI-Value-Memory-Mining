@@ -12,6 +12,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Changed
+- **The declared-scope gate is now BLOCKING** (`flip-scope-review-blocking`, conforming amendment,
+  **no Architecture Decision Record (ADR)**, `maintenance` ~1 Requirement). `scope-review` loses
+  `continue-on-error` after a burn-in measured across the 14 most recent merged pull requests
+  (#41–#57), every one `success`. A pull request whose diff touches a path outside its declared
+  ```scope block now **fails** rather than reporting quietly. The job was renamed
+  `Scope review (declared-scope gate, burn-in)` → `Scope review (declared-scope gate)` deliberately
+  **while the context was still unrequired**, because the job name is the check-context identity and
+  renaming a required context deadlocks merges. **Where the block binds is stated, not assumed:** the
+  gate is *not* in the branch ruleset's required contexts, because the job reports `skipped` on the
+  `push` trigger and on Dependabot pull requests, and whether a `skipped` conclusion satisfies a
+  required context cannot be dry-run on this plan (ADR-0034 — `evaluate` enforcement is
+  Enterprise-only). Until that is resolved the gate binds through `tools/pr-flow.py` step 8, which
+  refuses to emit a merge command while any check is failing. Approval was **conditional on an
+  escape-hatch regression**, discharged by three independent measurements: the ruleset cannot refuse
+  a merge on this context, `ship-release.py` has no dependency on checks so releases are unaffected,
+  and a revert of the change passes the blocking gate itself.
+
+### Fixed
+- **`validate-scripts.sh` no longer reports failures for checks it never ran**
+  (`fix/validate-scripts-tmp-capture`, defect fix, **no change directory**). The script created its
+  work directory with `mktemp -d` but hardcoded bare `/tmp/pc.txt`, `/tmp/bn.txt` and `/tmp/sc.txt`
+  for stderr capture. Under a write-scoped sandbox `/tmp` is read-only, so each redirect failed and
+  the enclosing `if` fell to its `else` branch — **12 false `FAIL` lines and exit 1**, while every
+  file compiled clean. It passed in continuous integration, where `/tmp` is writable, so the defect
+  was invisible exactly where the corpus is normally validated and present exactly where an agent
+  would run it. All three captures now route through `$WORK`.
+
+### Added
+- **ADR-0038 — the required check contexts are complete** (`record-required-check-contexts`,
+  recording ADR, **no spec delta**). Discharges ADR-0034's Follow-on §2. The `main` ruleset's
+  `required_status_checks` rule was neither absent nor complete: **13** contexts required against
+  **17** that run, and the four unrequired ones included **all three Tier-0 runners** — `Secret scan
+  (INV-7)`, `INV-6 static` and `INV-6 dynamic` — so the invariants with the highest blast radius had
+  runners that could not block a merge. Extended to **16**.
+
 ## [0.1.37] - 2026-08-06
 
 ### Added
