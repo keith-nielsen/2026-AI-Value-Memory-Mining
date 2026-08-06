@@ -508,14 +508,21 @@ jobs:
         run: pytest tests/ -v
 
   scope-review:
-    name: Scope review (declared-scope gate, burn-in)
+    name: Scope review (declared-scope gate)
     runs-on: ubuntu-latest
-    # Phase A burn-in: report-only (continue-on-error). The Phase-B blocking flip
-    # is its own governed change after clean burn-in — see the maintenance spec.
+    # Phase B (ADR-0039): BLOCKING. `continue-on-error` removed after a clean burn-in
+    # measured across 14 consecutive merged PRs (#41–#57), every one `success`.
+    # The job name dropped ", burn-in" in the same change — deliberately, while the
+    # context was still UNREQUIRED, because the name IS the check-context identity and
+    # renaming a required context is what deadlocks merges.
+    # NOT yet in the ruleset's required_status_checks: this job is `skipped` on the push
+    # trigger and on dependabot PRs (both `if` clauses below), and whether GitHub counts a
+    # `skipped` conclusion as satisfying a required context cannot be dry-run on this plan
+    # (ADR-0034: `evaluate` enforcement is Enterprise-only). Until that is settled the gate
+    # binds through `pr-flow.py` step 8, which refuses to emit a merge on any failing check.
     # Self-contained: both scripts are stdlib-only Python — no registry fetch, no
     # third-party code in the trust ring (concept credit: OverReach, MIT; see CHANGELOG).
     if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
-    continue-on-error: true
     permissions:
       contents: read
     steps:
