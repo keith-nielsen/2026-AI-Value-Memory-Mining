@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.37] - 2026-08-06
+
 ### Added
 - **The session prime now measures its own capability instead of recalling it**
   (`bootstrap-capability-probe`, conforming amendment, **no Architecture Decision Record (ADR)**,
@@ -76,6 +78,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   holds only for authenticated requests.
 
 ### Fixed
+- **The driver's route markers now carry their own legend, and the pass mark no longer inverts**
+  (`fix/pr-flow-marker-legend`, defect fix to maintainer tooling, **no change directory**, by the
+  precedent of #35/#39/#49). Six status glyphs shipped with no key anywhere, so a reader had to infer
+  all of them. The legend now renders **from the marker table** — a glyph cannot exist without a
+  definition — and lists only the markers actually on screen. The pass mark was `x`, copied from the
+  markdown-checkbox habit, and `x` **inverts**: "an X in the box" reads as *selected* in the US and
+  UK, while *batsu* means *wrong* across Japan and much of East Asia, against *maru* for correct. The
+  isolated glyph was survivable; the **pair** was not — `[x]=passed` sat beside `[!]=failed`, and
+  under the batsu reading both scan negative, collapsing the route's most important distinction. A
+  legend only rescues that if it is read, and a status line's whole value is being scannable
+  *without* reading prose. Now `P`=passed and `F`=failed: language-bound but never inverted, and
+  ASCII so no terminal font can render a box. `!` is dropped too — in most interfaces it means
+  *warning*, which understates a hard failure. Task files keep `[x]` because the GitHub renderer
+  accepts only `[ ]` and `[x]`; that split is renderer-forced, and both legends state their own set.
+  Also fixes an off-by-one that reported the completed route as `step 15/14`.
 - **`gh pr merge --delete-branch` is never emitted again.** It is defective on three independent
   counts: it cannot express a head precondition (`cli/cli#5686`); it bypasses GitHub's own
   retargeting of stacked children, which are **closed** instead (`cli/cli#1168`) — this, not platform
