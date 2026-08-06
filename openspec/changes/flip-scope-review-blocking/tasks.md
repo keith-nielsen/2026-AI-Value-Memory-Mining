@@ -23,7 +23,8 @@
 - [x] 4.1 `openspec validate --all --strict` — **7 passed, 0 failed**
 - [x] 4.2 YAML parses via `yaml.safe_load`; 15 jobs; `scope-review.name` =
       `Scope review (declared-scope gate)`; `continue-on-error` key **absent**; `if` unchanged
-- [ ] 4.3 CI green on this PR — **including the renamed, now-blocking job itself**
+- [x] 4.3 CI green on PR #58 (`4c0f3f9`) — **34 runs, 0 pending, 0 failing**, including the renamed,
+      now-blocking job running without `continue-on-error` for the first time
 
 ## 5. Dogfood — the gate must be exercised, not merely enabled
 
@@ -41,8 +42,10 @@ that the happy path still works.
       exit **1**.
       The non-zero exit is what `continue-on-error` was previously swallowing, so this is the precise
       behaviour the flip changes — verified on the real geometry, not a stub.
-- [ ] 5.3 Confirm the renamed context appears as `Scope review (declared-scope gate)` in the check-runs
-      of this PR, and that the old name no longer appears
+- [x] 5.3 Rename confirmed live on PR #58 (`4c0f3f9`): check-runs report
+      `Scope review (declared-scope gate)` and the old `…, burn-in)` name is **absent**. Two runs, as
+      predicted by the two triggers — `success` (pull_request) and `skipped` (push). That skipped twin
+      is precisely why §7.1 stays deferred.
 - [x] 5.4 **ESCAPE-HATCH REGRESSION — the operator's condition of approval: prove a blocking gate
       cannot corner us out of releasing or reverting.** Three routes tested independently:
       1. **The ruleset cannot block on it.** Live read of ruleset `19666243`: 16 required contexts,
