@@ -20,8 +20,9 @@
 
 ## 4. Regression
 
-- [ ] 4.1 `openspec validate --all --strict`
-- [ ] 4.2 YAML parses; job block well-formed
+- [x] 4.1 `openspec validate --all --strict` — **7 passed, 0 failed**
+- [x] 4.2 YAML parses via `yaml.safe_load`; 15 jobs; `scope-review.name` =
+      `Scope review (declared-scope gate)`; `continue-on-error` key **absent**; `if` unchanged
 - [ ] 4.3 CI green on this PR — **including the renamed, now-blocking job itself**
 
 ## 5. Dogfood — the gate must be exercised, not merely enabled
@@ -31,10 +32,15 @@ that the happy path still works.
 
 - [x] 5.1 Passing case: this PR's own declared scope covers its diff, verified against
       `extract-declared-scope.py` before pushing
-- [ ] 5.2 **Failing case — the load-bearing test.** Confirm an undeclared path actually FAILS the job
-      now, rather than reporting quietly. Without this the flip is unproven: `success` looks identical
-      before and after. Options: a scratch PR with a deliberately narrow scope block, or a local run of
-      the comparator against a mismatched declaration.
+- [x] 5.2 **Failing case — the load-bearing test. RUN, against this change's real diff.** Both CI steps
+      reproduced locally (`extract-declared-scope.py` then `check-scope-findings.py`, the exact
+      invocation in the job):
+      · **correct scope** → `PASS (5 file(s), all declared)`, exit **0**
+      · **`.github/workflows/ci.yml` omitted from the block** → `FAIL — the diff exceeds the Declared
+      scope`, `[MEDIUM] scope.file: File ".github/workflows/ci.yml" is not in the Declared scope`,
+      exit **1**.
+      The non-zero exit is what `continue-on-error` was previously swallowing, so this is the precise
+      behaviour the flip changes — verified on the real geometry, not a stub.
 - [ ] 5.3 Confirm the renamed context appears as `Scope review (declared-scope gate)` in the check-runs
       of this PR, and that the old name no longer appears
 
