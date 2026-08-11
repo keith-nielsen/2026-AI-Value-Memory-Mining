@@ -6,15 +6,15 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 
 ## 1. Spec (ordinary change — ADDED only)
 
-- [ ] 1.1 `maintenance` ADDED: *An Architecture Decision Record Citation Resolves* (4 scenarios)
-- [ ] 1.2 Confirm nature is ordinary, not override — ADD-only, nothing weakened; `constitution.md` §2
+- [x] 1.1 `maintenance` ADDED: *An Architecture Decision Record Citation Resolves* (4 scenarios) — `openspec validate --all --strict` 7/7, exit 0
+- [x] 1.2 Confirm nature is ordinary, not override — ADD-only, nothing weakened; `constitution.md` §2
       places conventions at Tier 2 ("no ceremony required"); §5's hard stop is about *modifying* a
       `protects:`-tagged element. Precedent: PR #53. **Not** derived from a green `constitution-lint`,
       which does no diff analysis
 
 ## 2. ADR-0039 — the missing record
 
-- [~] 2.1 `openspec/adr/0039-flip-scope-review-blocking.md` — Context / Options / Decision /
+- [x] 2.1 `openspec/adr/0039-flip-scope-review-blocking.md` — Context / Options / Decision /
       Consequences / Sacrifice / Follow-on, matching ADR-0037's structure
 - [~] 2.2 Content consolidated from the `ci.yml:505-519` comment block and
       `flip-scope-review-blocking`'s proposal — **not** reconstructed from memory. Cite both
@@ -26,17 +26,15 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 - [~] 2.5 Carry the open follow-on with its trigger: `Scope review` joins `required_status_checks` once
       the `skipped`-conclusion question resolves (undecidable on this plan — ADR-0034)
 
-⚠ **2.x is `[~]` — written, not verified.** Two consequences of writing the ADR ahead of the rest,
-recorded rather than left to be discovered:
+**On the markers above:** 2.1 is `[x]` because the record's *absence* was observed to fail the check
+(5.1) and its presence to pass it (5.2) — that is a test. **2.2–2.5 stay `[~]` deliberately: they are
+claims about the ADR's *content*, verified by inspection against the two cited sources, not by any
+test.** No check can confirm that a decision record faithfully represents the decision, and marking
+them `[x]` would borrow credibility from 5.1's evidence for a claim it does not cover.
 
-- **`spec-lint` is now knowingly red locally.** 39 ADR files exist while `README.md` still claims 38
-  in three places, so the existing *Check README ADR count matches actual* step fails until task 4
-  lands. Nothing is committed; tasks 2 and 4 must land together.
-- **Test 5.1's evidence must now be reconstructed, not observed in place.** The pre-fix measurement
-  (`ADR-0039` dangling, `ci.yml:513`) was captured before the file was written and is quoted in
-  `proposal.md`; the new check must still be run against a tree with the ADR moved aside. Untracked,
-  so this is reconstructible — but it is weaker than having run the check first, and is not to be
-  ticked `[x]` on the strength of the earlier grep alone.
+Resolved since first draft: the transient README/ADR-count mismatch closed when task 4 landed in the
+same commit, and 5.1's evidence was reconstructed by moving the ADR aside rather than inferred from
+the earlier grep.
 
 ## 3. Instrument — `spec-lint` in `.github/workflows/ci.yml`
 
