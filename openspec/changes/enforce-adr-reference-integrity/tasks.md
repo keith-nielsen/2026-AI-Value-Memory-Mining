@@ -40,55 +40,71 @@ recorded rather than left to be discovered:
 
 ## 3. Instrument — `spec-lint` in `.github/workflows/ci.yml`
 
-- [ ] 3.1 Replace `EXPECTED = [... range(1, 9)]` with a **contiguity** assertion over the records
-      present: `0001..max`, no gap, no duplicate. Defect 1 — the current check validates 8 of 38 and
-      is green regardless
-- [ ] 3.2 Add the **reference-integrity** check: every `ADR-[0-9]{4}` cited in the repo resolves
-- [ ] 3.3 Apply the scoped forward-reference policy: unresolved citations permitted **only** under
-      `openspec/changes/`, **excluding** `openspec/changes/archive/`
-- [ ] 3.4 Report **file and line** per unresolved citation — an identifier alone does not locate the
-      assertion needing correction
-- [ ] 3.5 Keep it stdlib-only Python, consistent with the sibling `spec-lint` steps and the standing
-      trust-ring constraint (no third-party code added)
-- [ ] 3.6 Exclude `node_modules/` from the sweep
+- [x] 3.1 Replaced `EXPECTED = [... range(1, 9)]` with a **contiguity** assertion (`0001..max`, no gap,
+      no duplicate), step renamed *Check ADR numbering is contiguous*. Evidence: 5.5
+- [x] 3.2 Added *Check every cited ADR resolves*. Evidence: 5.1 / 5.2
+- [x] 3.3 Scoped forward-reference policy implemented — permitted only under `openspec/changes/<slug>/`,
+      **excluding** `archive/`. Evidence: 5.3 (pass) and 5.4 (fail), the two halves
+- [x] 3.4 Reports `file:line` per unresolved citation. Evidence: 5.1 output names
+      `.github/workflows/ci.yml:565`
+- [x] 3.5 Stdlib-only (`collections`, `pathlib`, `re`, `sys`) — no third-party code added to the trust
+      ring, consistent with the sibling `spec-lint` steps
+- [~] 3.6 `node_modules`, `.git`, `.venv` excluded, and the sweep is suffix-filtered. Exclusion is
+      **not independently asserted** by a test — the run completes and reports only expected findings,
+      which is consistent with exclusion but does not prove it
 
 ## 4. Lockstep — `README.md` (enforced by the existing count check)
 
-- [ ] 4.1 `README.md:29` — "38 ADRs" → "39 ADRs"
-- [ ] 4.2 `README.md:100` — "38 Architecture Decision Records (ADR-0001–0038)" → 39 / `ADR-0001–0039`
-- [ ] 4.3 `README.md:250` — "38 ADRs: framework choice → required check contexts" → 39, and extend the
-      summary to the new endpoint
-- [ ] 4.4 Verify against the existing *Check README ADR count matches actual* step — it asserts both
-      the count and that the highest number appears in README, so a partial edit fails
+- [x] 4.1 `README.md:29` — "38 ADRs" → "39 ADRs"
+- [x] 4.2 `README.md:100` — → "39 Architecture Decision Records (ADR-0001–0039)"
+- [x] 4.3 `README.md:250` — → "39 ADRs: framework choice → declared-scope gate blocking"
+- [x] 4.4 Existing *Check README ADR count matches actual* step run locally:
+      `adr-count-lint OK: 39 ADRs, latest 0039`, exit 0. It asserts both the count and that the
+      highest number appears, so a partial edit would have failed
 
 ## 5. Tests — observe the failure before the fix
 
-- [ ] 5.1 **Observe the check failing without ADR-0039** — it must fail naming
-      `.github/workflows/ci.yml:513`. ⚠ The ADR is already written (2.x), so run this with the file
-      moved aside; a check that has only ever been run against a tree where it passes proves nothing
-- [ ] 5.2 Run it again after ADR-0039 lands → passes
-- [ ] 5.3 `ADR-0040` in `estate-scoped-capability-probe/tasks.md:106` → **passes** (live change dir).
-      This is the adversarial case for over-denial; write it before the confirming one
-- [ ] 5.4 Same citation relocated under `openspec/changes/archive/` → **fails**. Exercises the
-      archive-is-a-record rule, a state the mechanism itself creates
-- [ ] 5.5 Contiguity: synthesise a corpus missing one number → fails naming the gap; and confirm the
-      real corpus (0001–0038, verified contiguous) passes
-- [ ] 5.6 Confirm the old `range(1, 9)` check would have passed every one of 5.1–5.5 — the measurement
-      that justifies replacing it rather than extending it
+Tests run against the **step text extracted from `ci.yml`**, not a retyped copy, so they exercise what
+ships (`scratchpad/extract_step.py` pulls the `run:` heredoc by step name).
+
+- [x] 5.1 ADR-0039 moved aside → **FAIL, exit 1**, `3 unresolved citation(s)`, naming
+      `.github/workflows/ci.yml:565` (the original PR #58 citation) plus the two new comment references.
+      Observed failing before the fix
+- [x] 5.2 ADR-0039 restored → **PASS, exit 0**, `all cited ADRs resolve (39 records)`
+- [x] 5.3 **Over-denial guard.** `ADR-0040` cited at `proposal.md:22` in this live change dir, still
+      dangling → **exit 0**. The legitimate forward reference is not punished
+- [x] 5.4 Same citation written under `openspec/changes/archive/zz-probe-temp/` → **exit 1**,
+      `cites ADR-0040 but no such record exists`. Archive-is-a-record holds. Temp dir removed;
+      `git status` confirmed no residue
+- [x] 5.5 ADR-0037 moved aside → **exit 1**, `GAP: ADR-0037 is missing (highest is 0039)`; restored →
+      **exit 0**, `adr-contiguity OK: 39 ADRs, 0001-0039`
+- [x] 5.6 **The measurement that justifies replacement over extension:** with ADR-0037 *and* ADR-0039
+      both absent and ADR-0039 cited in `ci.yml`, the old `range(1, 9)` check returns **PASS**. It was
+      green while blind to every defect this change fixes
 
 ## 6. Regression
 
-- [ ] 6.1 `openspec validate --all --strict` (CLI `1.6.0` == `package.json` pin)
-- [ ] 6.2 Full `spec-lint` job reproduced locally, all steps
-- [ ] 6.3 `md-lint` and `link-check` — README and a new ADR are both in their scope
-- [ ] 6.4 Confirm the strengthened `spec-lint` finds **no other** pre-existing violation; if it does,
-      that is a real defect to fix or log, **never** a reason to weaken the rule
+- [x] 6.1 `openspec validate --all --strict` — **7 passed, 0 failed, exit 0** (CLI `1.6.0` == pin)
+- [x] 6.2 `spec-lint`'s four spec/ADR steps reproduced locally — all exit 0:
+      `adr-contiguity OK: 39 ADRs, 0001-0039` · `adr-reference-integrity OK` ·
+      `adr-count-lint OK: 39 ADRs, latest 0039` · expected-specs exit 0
+- [x] 6.3 `ci.yml` parses as YAML after the edit (PyYAML `safe_load`, exit 0) — the edit is inside a
+      workflow file, so malformed YAML would take the whole pipeline down, not just this job
+- [ ] 6.4 `md-lint` / `link-check` — **NOT VERIFIABLE locally: `markdownlint-cli` is not installed**
+      (CI installs it at job time). Deferred to CI; do not tick on inspection
+- [x] 6.5 Strengthened `spec-lint` finds **no other** pre-existing violation across the corpus — the
+      only unresolved citation is `ADR-0040`, correctly exempt as a live proposal
 
-## 7. Ship
+## 7. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 7.1 PR body declares the full scope — `scope-review` is blocking (ADR-0039, the record this
+- [ ] 7.1 **Approved** — _<operator>, YYYY-MM-DD_ · pending. Gate 3 is complete: implementation done,
+      regression evidence recorded above with one item honestly deferred (6.4, tooling absent locally)
+
+## 8. Ship
+
+- [ ] 8.1 PR body declares the full scope — `scope-review` is blocking (ADR-0039, the record this
       change writes) and diffs the branch against the declared scope
-- [ ] 7.2 Land via `tools/pr-flow.py --plan --branch BR` first, then the driven route. Never
+- [ ] 8.2 Land via `tools/pr-flow.py --plan --branch BR` first, then the driven route. Never
       hand-compose the sequence
-- [ ] 7.3 Archive as its own follow-up `chore/archive-enforce-adr-reference-integrity` PR — the #58
+- [ ] 8.3 Archive as its own follow-up `chore/archive-enforce-adr-reference-integrity` PR — the #58
       shape, per the operator decision of 2026-08-11
