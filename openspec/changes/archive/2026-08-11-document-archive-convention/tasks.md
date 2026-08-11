@@ -60,7 +60,16 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 
 ## 7. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 7.1 **Approved** — _<operator>, YYYY-MM-DD_ · pending
+- [x] 7.1 **Approved** — Keith Nielsen, 2026-08-11, for ADR-0040 as written and this change archived on
+      its feature branch. Gate 3 complete; 5.5 (`md-lint`/`link-check`) deferred to CI for absent local
+      tooling and left unticked.
+
+⚠ **Provenance note.** `pr-flow.py` will report this branch's approval as *"recorded in
+`openspec/changes/enforce-adr-reference-integrity/tasks.md`"* — **the wrong change**.
+`approval_state`'s **live** path (`tools/pr-flow.py:539-548`) globs every unarchived change directory
+unkeyed to the branch and returns on the first signed one, never reaching the branch-keyed archive
+lookup (`:555-565`) where this change's sign-off actually lives. **The authorization recorded on 7.1 is
+the real one.** The driver's string becomes correct once PR #62's archive removes that live directory.
 
 ## 8. Ship
 
