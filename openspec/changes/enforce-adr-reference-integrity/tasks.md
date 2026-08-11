@@ -95,8 +95,9 @@ ships (`scratchpad/extract_step.py` pulls the `run:` heredoc by step name).
 
 ## 7. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 7.1 **Approved** — _<operator>, YYYY-MM-DD_ · pending. Gate 3 is complete: implementation done,
-      regression evidence recorded above with one item honestly deferred (6.4, tooling absent locally)
+- [x] 7.1 **Approved** — Keith Nielsen, 2026-08-11. Gate 3 complete: implementation done, regression
+      evidence recorded above, with 6.4 (`md-lint`/`link-check`) honestly deferred to CI for absent
+      local tooling and 3.6 / 2.2–2.5 left `[~]` rather than over-claimed
 
 ## 8. Ship
 
