@@ -137,18 +137,70 @@ jobs:
           sys.exit(1 if missing else 0)
           EOF
 
-      - name: Check all expected ADRs exist
+      # ADR-0039 / enforce-adr-reference-integrity. The previous cut of this step hardcoded
+      # `range(1, 9)` — correct on the day it was written, and thereafter green while validating
+      # 8 of 38 records. The expected set is now DERIVED from what is present, so the check cannot
+      # silently shrink relative to the corpus it guards.
+      - name: Check ADR numbering is contiguous
         run: |
           python3 - << 'EOF'
-          import pathlib, sys
-          EXPECTED = [f"openspec/adr/{i:04d}-" for i in range(1, 9)]
+          import collections, pathlib, sys
+          files = sorted(pathlib.Path("openspec/adr").glob("[0-9][0-9][0-9][0-9]-*.md"))
           errors = []
-          for prefix in EXPECTED:
-            matches = list(pathlib.Path("openspec/adr").glob(f"{prefix.split('/')[-1]}*.md"))
-            if not matches:
-              errors.append(f"MISSING ADR: {prefix}*.md")
+          if not files:
+            errors.append("no ADRs found under openspec/adr/")
+          else:
+            nums = [int(p.name[:4]) for p in files]
+            counts = collections.Counter(nums)
+            for n, c in sorted(counts.items()):
+              if c > 1:
+                errors.append(f"DUPLICATE ADR number {n:04d} ({c} files)")
+            if min(nums) != 1:
+              errors.append(f"ADR numbering starts at {min(nums):04d}, expected 0001")
+            for n in range(1, max(nums) + 1):
+              if n not in counts:
+                errors.append(f"GAP: ADR-{n:04d} is missing (highest is {max(nums):04d})")
           for e in errors:
             print(e, file=sys.stderr)
+          print(f"adr-contiguity OK: {len(files)} ADRs, 0001-{max(int(p.name[:4]) for p in files):04d}"
+                if not errors else "adr-contiguity FAIL")
+          sys.exit(1 if errors else 0)
+          EOF
+
+      # Every ADR id cited anywhere is an assertion that a decision was recorded. ci.yml:513 cited
+      # ADR-0039 for nine merged pull requests while no such record existed. Forward references are
+      # legitimate ONLY inside a live change directory: a change is a PROPOSAL and is forward-looking
+      # by nature, while specs, workflows, README, contributor docs and the ARCHIVE are RECORDS, and
+      # a record must resolve. An archived change is a record — a forward reference that was fine
+      # while the change was live fails once archived, because by then the ADR it promised is owed.
+      - name: Check every cited ADR resolves
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re, sys
+          CITE = re.compile(r"ADR-([0-9]{4})")
+          SKIP_DIRS = {".git", "node_modules", ".venv"}
+          SUFFIXES = {".md", ".yml", ".yaml", ".py", ".sh", ".json", ".env"}
+          have = {int(p.name[:4]) for p in pathlib.Path("openspec/adr").glob("[0-9][0-9][0-9][0-9]-*.md")}
+          errors = []
+          for path in sorted(pathlib.Path(".").rglob("*")):
+            if not path.is_file() or path.suffix not in SUFFIXES:
+              continue
+            if any(part in SKIP_DIRS for part in path.parts):
+              continue
+            parts = path.parts
+            # live change dir = openspec/changes/<slug>/... but NOT openspec/changes/archive/...
+            proposal = (len(parts) > 2 and parts[0] == "openspec" and parts[1] == "changes"
+                        and parts[2] != "archive")
+            if proposal:
+              continue
+            for i, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+              for m in CITE.finditer(line):
+                if int(m.group(1)) not in have:
+                  errors.append(f"{path}:{i}: cites ADR-{m.group(1)} but no such record exists")
+          for e in errors:
+            print(e, file=sys.stderr)
+          print(f"adr-reference-integrity OK: all cited ADRs resolve ({len(have)} records)"
+                if not errors else f"adr-reference-integrity FAIL: {len(errors)} unresolved citation(s)")
           sys.exit(1 if errors else 0)
           EOF
 
