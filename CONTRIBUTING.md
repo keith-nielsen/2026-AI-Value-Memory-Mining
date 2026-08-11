@@ -18,6 +18,24 @@ edits to `vault-template/` or `openspec/specs/`.
 6. Open a PR — the PR template checklist will guide you
 ```
 
+**Step 5 is not optional and does not come later — archiving happens on the feature branch, in the
+same pull request that merges the change** (ADR-0040; `maintenance` — *A Change Is Archived On Its Own
+Branch*). Archiving moves `openspec/changes/<slug>/` to `openspec/changes/archive/<YYYY-MM-DD>-<slug>/`,
+applies the delta into `openspec/specs/`, and stamps the CHANGELOG. A change that merges unarchived
+leaves `openspec/specs/` describing a state the repo has already left, and **owes a second PR**.
+
+**The one exception:** where another in-flight change carries a delta against the **same** capability
+spec, defer the archive and apply the deltas in merge order — otherwise the later archive can overwrite
+the earlier one's requirements without a conflict, since the two touch the same file but not
+necessarily the same lines. Name the change you are deferring to, so the second PR is a stated cost
+rather than an unexplained one.
+
+⚠ **If you are re-deriving this convention from history, use a pasted transcript over the merge graph —
+never commit subjects.** A dedicated `archive(<slug>)` commit does **not** imply a separate PR; it
+usually sits on the feature branch inside one PR. And use `--no-renames`: a directory *moved* into
+`archive/` records as a rename, so `--diff-filter=A` silently omits every deferred archive. Both traps
+produced confidently wrong answers on 2026-08-11 — see ADR-0040.
+
 ### Landing a change (branch → PR → merge → cleanup)
 
 The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of the ship driver. Walk

@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **The archive convention is written down** (`document-archive-convention`, ADR-0040). A change is
+  archived **on its own feature branch, in the pull request that merges it** — moving
+  `openspec/changes/<slug>/` into `archive/<date>-<slug>/`, applying the delta into `openspec/specs/`,
+  and stamping the CHANGELOG. The one exception: a concurrent change carrying a delta against the
+  **same** capability spec defers and applies in merge order, naming the change it defers to, because
+  two deltas to one spec file can overwrite each other without ever conflicting.
+  Measured over `main`'s merge graph: **12 of 14** pull-request-era changes archived in one PR, and both
+  deviations (#40→#41, #58→#59) are that exception firing. The rule previously existed in no spec, ADR,
+  or runbook — only in per-change `tasks.md` files — and was confidently re-derived **wrong twice in one
+  day**; ADR-0040 records the three flawed measurement methods by name so the next derivation
+  recognises them. Enforcement is **owed, not shipped**, and says so: the naive guard would have failed
+  PR #58's legitimate deferral.
+
 ## [0.1.38] - 2026-08-06
 
 ### Changed
