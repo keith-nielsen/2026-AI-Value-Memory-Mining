@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.39] - 2026-08-12
+
 ### Added
 - **Every ADR citation must resolve** (`enforce-adr-reference-integrity`, ADR-0039, PR #62).
   `spec-lint` gains two checks. **Contiguity** is now derived from the records present, replacing a
