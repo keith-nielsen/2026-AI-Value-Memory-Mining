@@ -13,6 +13,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 <!-- New entries are added here as changes land. -->
 
 ### Added
+- **Every ADR citation must resolve** (`enforce-adr-reference-integrity`, ADR-0039, PR #62).
+  `spec-lint` gains two checks. **Contiguity** is now derived from the records present, replacing a
+  `range(1, 9)` hardcode that validated **8 of 38** ADRs while passing regardless — measured: with
+  ADR-0037 *and* ADR-0039 both absent and ADR-0039 cited in `ci.yml`, the old check returned PASS.
+  **Reference integrity** requires every `ADR-NNNN` cited anywhere to resolve, reporting `file:line`;
+  unresolved citations are permitted **only** inside a live change directory, because a proposal is
+  forward-looking while specs, workflows, README and the archive are records.
+- **ADR-0039 written.** `.github/workflows/ci.yml` had cited ADR-0039 for the declared-scope gate's
+  Phase-B flip across nine merged pull requests while **no such record existed**; the originating change
+  never planned one. The ADR consolidates the decision from the workflow comment and that change's
+  proposal, including why the check context stays *unrequired* (whether a `skipped` conclusion satisfies
+  a required context cannot be dry-run on this plan — ADR-0034) and why the job name dropped ", burn-in"
+  while the context was still unrequired: the name **is** the check-context identity, and renaming a
+  required context deadlocks merges.
 - **The archive convention is written down** (`document-archive-convention`, ADR-0040). A change is
   archived **on its own feature branch, in the pull request that merges it** — moving
   `openspec/changes/<slug>/` into `archive/<date>-<slug>/`, applying the delta into `openspec/specs/`,
