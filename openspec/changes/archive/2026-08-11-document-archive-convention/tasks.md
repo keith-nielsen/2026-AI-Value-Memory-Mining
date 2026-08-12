@@ -45,8 +45,11 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 - [x] 5.4 Simulated archiving `enforce-adr-reference-integrity` with ADR-0040 present → **exit 0**.
       Its 9 previously-unresolved `ADR-0040` citations now resolve, so this change unblocks PR #62's
       owed archive. Both simulations restored; `git status` confirmed no residue
-- [ ] 5.5 `md-lint` / `link-check` — **NOT VERIFIABLE locally: `markdownlint-cli` is not installed.**
-      Deferred to CI; not ticked on inspection
+- [ ] 5.5 `md-lint` / `link-check` — **NOT VERIFIED, and NOT verifiable by deferring to CI.**
+      `markdownlint-cli` is not installed locally, AND the CI `md-lint` job ends its lint step with
+      `|| true`, so the **Markdown lint** context reports success regardless of findings. Deferring to
+      a check whose result is preordained is not verification — nothing in this repo currently verifies
+      markdown formatting. Logged to the hardening queue; left unticked and unclaimed
 
 ## 6. Archive — on this branch, per the rule this change documents
 
@@ -61,8 +64,12 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 ## 7. Gate 4 — human sign-off (not agent-delegatable)
 
 - [x] 7.1 **Approved** — Keith Nielsen, 2026-08-11, for ADR-0040 as written and this change archived on
-      its feature branch. Gate 3 complete; 5.5 (`md-lint`/`link-check`) deferred to CI for absent local
-      tooling and left unticked.
+      its feature branch. Gate 3 complete; 5.5 (`md-lint`/`link-check`) unverified and left unticked.
+
+      *Factual correction to this line, 2026-08-11 (the authorization is unchanged):* it originally read
+      "deferred to CI for absent local tooling". That was wrong — CI's `md-lint` ends in `|| true` and
+      cannot answer the question either. 5.5 is **unverified by anything**, not deferred. Corrected so
+      the approved record does not overstate its own coverage.
 
 ⚠ **Provenance note.** `pr-flow.py` will report this branch's approval as *"recorded in
 `openspec/changes/enforce-adr-reference-integrity/tasks.md`"* — **the wrong change**.
