@@ -43,6 +43,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -61,6 +62,7 @@ OPERATOR = "OPERATOR"
 
 CONSENT_LOCAL = "none needed — local only, nothing leaves this machine"
 CONSENT_ACT = "implicit in the act: you run it, so you authorize it"
+INVOCATION = None  # set once in main(): the argv that produced THIS run
 PLAN_TTL_SECONDS = 24 * 60 * 60  # industry practice: approvals expire so stale plans cannot apply
 
 # Why `gh` mutations stay with the operator. BOTH halves matter: if the reason reads as mere
@@ -256,7 +258,7 @@ def probe_consent(root, command):
 # --- emitters ------------------------------------------------------------------------------------
 
 def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None,
-         assert_args=None):
+         assert_args=None, branch=None):
     if plan:
         raise PlanStop("emit", step, command, runs, authority, consent, why)
     route.mark(step, "current")
@@ -273,7 +275,7 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     if approve:
         print("  approve:   " + approve)
     if runs == OPERATOR and root:
-        path = write_saved_plan(root, step, command, approve, assert_args)
+        path = write_saved_plan(root, step, command, approve, branch, assert_args)
         if path:
             print("")
             print(f"  Saved plan: {path}")
@@ -320,37 +322,99 @@ def not_ready(route, step, what, probe, plan=False):
     return EXIT_NEEDS_INPUT
 
 
-def write_saved_plan(root, step, command, approve, assert_args=None):
+def saved_plan_path(root):
+    """The saved plan. One place names it, so writer and cleaner cannot drift apart."""
+    return pathlib.Path(root) / ".git" / "pr-flow" / "next.sh"
+
+
+def verify_invocation(root):
+    """The driver invocation that produced this plan, PINNED at write time.
+
+    The tail used to be `--branch "${PR_FLOW_BRANCH:-$(git branch --show-current)}"`, which resolves
+    when the script RUNS while the mutation above it is literal text fixed when the script was
+    WRITTEN. Switch branches in between and the plan MUTATES ONE PULL REQUEST THEN VERIFIES ANOTHER.
+    Measured 2026-08-12: it re-merged #64 and then printed `REFUSED: no open PR` about
+    `release/v0.1.39` — a true statement about an object it had never touched, directly beneath
+    `"merged": true`. The reassuring line and the alarming line described different pull requests.
+
+    Reconstructing the caller's own argv pins the branch and carries `--base`, `--body-file` and
+    `--title` along with it, so the tail can actually reach the step it verifies instead of refusing
+    for want of arguments it was never handed.
+    """
+    argv = INVOCATION if INVOCATION is not None else [a for a in sys.argv[1:] if a != "--plan"]
+    return " ".join(shlex.quote(a) for a in [sys.executable, f"{root}/tools/pr-flow.py", *argv])
+
+
+def discard_saved_plan(root):
+    """Delete a spent plan. A plan that outlives its step is a loaded command left on the desk.
+
+    `write_saved_plan` fires only on OPERATOR-owned steps, so the file survives untouched across
+    every intervening AGENT-owned step (push, branch delete) while still holding the LAST operator
+    mutation. Deleting it once the lifecycle completes is the other half of the branch guard.
+    """
+    try:
+        p = saved_plan_path(root)
+        if p.exists():
+            p.unlink()
+            return p
+    except OSError:
+        pass
+    return None
+
+
+def write_saved_plan(root, step, command, approve, branch, assert_args=None):
     """Write the operator's command to disk so a SHORT line is what gets pasted.
 
     F14 and F26: the interactive paste channel corrupted two hand-offs and clobbered a repo file.
     The full text is printed for review; only a short invocation is typed. The file also carries
     the precondition assertion, which is what closes the TOCTOU window on an operator step.
+
+    It further records the BRANCH it was written for. The expiry and the precondition assertion both
+    guard against the STATE moving; neither guards against the caller standing at a different step
+    than the plan was written for. That is a distinct failure, and it is the one that fired.
     """
     try:
         d = pathlib.Path(root) / ".git" / "pr-flow"
         d.mkdir(parents=True, exist_ok=True)
-        path = d / "next.sh"
+        path = saved_plan_path(root)
         expiry = int(time.time()) + PLAN_TTL_SECONDS
         header = (
             ["# Consent was given for the state asserted below. If GitHub has moved, this aborts",
              "# WITHOUT mutating: approval does not transfer to a different state."]
             if assert_args else
             ["# NOTE: no live-state assertion is made here — this step has no pull request to",
-             "# assert against. The expiry below is the only staleness guard."]
+             "# assert against. The expiry and the branch guard below are the staleness guards."]
         )
         body = [
             "#!/usr/bin/env bash",
             f"# generated {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} by pr-flow.py"
-            f" — step '{step}'",
+            f" — step '{step}'" + (f", branch '{branch}'" if branch else ""),
             *header,
             "set -euo pipefail",
             f'if [ "$(date +%s)" -gt {expiry} ]; then',
             '  echo "saved plan EXPIRED — re-run tools/pr-flow.py to derive a current one" >&2',
             "  exit 1",
             "fi",
-            f"cd {root}",
         ]
+        if not branch:
+            # Never write an UNGUARDED plan. A guard that is silently absent is worse than none:
+            # the file still reads as safe while the protection is gone. `branch` is positional-
+            # required above so a call site cannot omit it by accident; this catches an empty value.
+            raise ValueError("write_saved_plan requires the branch the plan is written for")
+        if branch:
+            # The step guard. Consent was given for ONE step of ONE branch's lifecycle; running this
+            # file from somewhere else is not that step, however unchanged GitHub's state may be.
+            body += [
+                f"_want={shlex.quote(branch)}",
+                f'_have="$(git -C {shlex.quote(str(root))} branch --show-current)"',
+                'if [ "$_have" != "$_want" ]; then',
+                '  echo "saved plan was written for branch \'$_want\' (step '
+                f"{step}) but you are on '$_have'.\" >&2",
+                '  echo "Re-run tools/pr-flow.py to derive a plan for where you actually are." >&2',
+                "  exit 1",
+                "fi",
+            ]
+        body.append(f"cd {root}")
         if approve:
             body.append(f"# authorizing: {approve}")
         if assert_args:
@@ -358,9 +422,8 @@ def write_saved_plan(root, step, command, approve, assert_args=None):
             # a state that moved between emission and execution never reaches the command.
             body.append(f"python3 {root}/tools/pr-flow.py --assert-preconditions "
                         + " ".join(assert_args))
-        body += [command, "", "# verify the mutation actually landed:",
-                 f"python3 {root}/tools/pr-flow.py --branch \"${{PR_FLOW_BRANCH:-$(git branch "
-                 f"--show-current)}}\""]
+        body += [command, "", "# verify the mutation actually landed (invocation pinned at write",
+                 "# time — see verify_invocation): ", verify_invocation(root)]
         path.write_text("\n".join(body) + "\n")
         path.chmod(0o755)
         return path
@@ -718,13 +781,13 @@ def drive(args, root, route, plan=False):
                             CONSENT_LOCAL,
                             f"{branch} needs a rebase onto {base_ref}, but {current!r} is checked "
                             "out — a bare `git rebase` would rebase the WRONG branch.",
-                            plan=plan, root=root)
+                            plan=plan, root=root, branch=branch)
             return emit(route, "base", f"git -C {root} rebase {base_ref}", AGENT, AGENT,
                         CONSENT_LOCAL,
                         f"{branch} does not contain {base_ref}. Rebase BEFORE pushing or merging — "
                         "a PR opened on a stale base reports checks that are not about its own "
                         "change (F30: #50 was pushed before #49 merged).",
-                        plan=plan, root=root)
+                        plan=plan, root=root, branch=branch)
         route.mark("base", "ok", f"contains {base_ref}")
         out("base-current", f"{branch} contains {base_ref}")
 
@@ -759,7 +822,7 @@ def drive(args, root, route, plan=False):
                         approve=f"sends {ahead} commit(s) from {branch} to origin. The command "
                                 "carries an explicit -C target, so the guard resolves the repo "
                                 "and not the vault.",
-                        plan=plan, root=root)
+                        plan=plan, root=root, branch=branch)
         route.mark("pushed", "ok", f"origin == local ({local_sha[:7]})")
         out("pushed", f"origin/{branch} == local ({local_sha[:7]})")
 
@@ -821,7 +884,7 @@ def drive(args, root, route, plan=False):
         return emit(route, "pr", cmd, OPERATOR, OPERATOR, CONSENT_ACT, WHY_OPERATOR_RUNS_GH,
                     approve=f"opens a PR from {branch} onto {base}; body {args.body_file} carries "
                             "a scope block [verified].",
-                    plan=plan, root=root)
+                    plan=plan, root=root, branch=branch)
 
     if len(open_prs) > 1:
         return refuse(route, "pr",
@@ -858,7 +921,7 @@ def drive(args, root, route, plan=False):
                     "check reads the body from the event payload as of PUSH time — after this "
                     "PATCH the gate needs a PUSH, not a re-run.",
                     approve=f"replaces the body of PR #{number} with {args.body_file}.",
-                    plan=plan, root=root,
+                    plan=plan, root=root, branch=branch,
                     assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}"])
     route.mark("body", "ok", "declared-scope block present in the PR body")
 
@@ -958,7 +1021,7 @@ def drive(args, root, route, plan=False):
                     approve=f"merges PR #{number} ({pr['title'][:60]}) into {base} at "
                             f"{head_sha[:7]}; {total} checks green, {len(children)} stacked "
                             "children. Branch deletion is a separate, verified step.",
-                    plan=plan, root=root,
+                    plan=plan, root=root, branch=branch,
                     assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}",
                                  "failures=0", "pending=0", "children=0", "mergeable=ok"])
     return post_merge(root, slug, branch, number, foreign, route, plan)
@@ -991,7 +1054,7 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
                         "the merge did not delete the remote branch. Deletion is a separate step "
                         "here precisely so it is verified rather than assumed (F30).",
                         approve=f"deletes the merged branch {branch} from origin.",
-                        plan=plan, root=root)
+                        plan=plan, root=root, branch=branch)
     else:
         route.mark("remote-gone", "ok", "deleted")
         out("remote-branch", "deleted")
@@ -1003,10 +1066,11 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
             return emit(route, "local-gone", f"git -C {root} switch {pr['base']['ref']}",
                         AGENT, AGENT, CONSENT_LOCAL,
                         "the local branch cannot be deleted while it is checked out — this is "
-                        "exactly what made gh's --delete-branch half-fail.", plan=plan, root=root)
+                        "exactly what made gh's --delete-branch half-fail.",
+                        plan=plan, root=root, branch=branch)
         return emit(route, "local-gone", f"git -C {root} branch -D {branch}", AGENT, AGENT,
                     CONSENT_LOCAL, "local branch still present after the merge",
-                    plan=plan, root=root)
+                    plan=plan, root=root, branch=branch)
     route.mark("local-gone", "ok", "deleted")
     out("local-branch", "absent" if foreign else "deleted")
 
@@ -1014,6 +1078,10 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
     print(route.header())
     print("")
     print(f"LIFECYCLE COMPLETE: PR #{number} merged, remote and local branches cleaned.")
+    # The last operator step's plan is spent. Left on disk it outlives its step and stays runnable,
+    # which is how a stale plan re-issued a merge for an ALREADY-MERGED pull request (2026-08-12).
+    if root and discard_saved_plan(root):
+        print("  Saved plan discarded — its step is complete and it must not be re-run.")
     print("  Next, if this change ships a version: tools/ship-release.py vX.Y.Z")
     return EXIT_OK
 
@@ -1057,6 +1125,10 @@ def main(argv=None):
     ap.add_argument("--assert-preconditions", nargs="+", metavar="K=V",
                     help="re-assert the state consent was given for; exit 1 if it moved")
     args = ap.parse_args(argv)
+    # Pin the invocation that produced this run, so a saved plan verifies THIS lifecycle rather than
+    # whatever branch the caller happens to stand on when they run the file.
+    global INVOCATION
+    INVOCATION = [a for a in (argv if argv is not None else sys.argv[1:]) if a != "--plan"]
 
     r = git(["rev-parse", "--show-toplevel"])
     if r.returncode != 0:

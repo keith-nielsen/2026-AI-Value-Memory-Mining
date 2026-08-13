@@ -663,6 +663,7 @@ def test_saved_plan_asserts_preconditions_and_expires(work):
     and contained no assertion at all — only an expiry. A safety claim with no mechanism behind it
     is the class-9 defect inside the mechanism built to prevent it."""
     path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
+                                    "feat/x",
                                     assert_args=["pr=51", "head=abc123", "failures=0"])
     text = pathlib.Path(path).read_text()
     assert "set -euo pipefail" in text
@@ -675,11 +676,78 @@ def test_saved_plan_asserts_preconditions_and_expires(work):
 def test_saved_plan_never_claims_an_assertion_it_does_not_make(work):
     """When there is no pull request to assert against, the script must say so rather than inherit
     the reassuring header. Saying only what it does is the whole corrective."""
-    path = pr_flow.write_saved_plan(str(work), "pr", "gh pr create --title x", "opens a PR")
+    path = pr_flow.write_saved_plan(str(work), "pr", "gh pr create --title x", "opens a PR",
+                                    "feat/x")
     text = pathlib.Path(path).read_text()
     assert "--assert-preconditions" not in text
     assert "no live-state assertion is made here" in text
     assert "Consent was given for the state asserted below" not in text
+
+
+def test_saved_plan_pins_its_verification_target(work):
+    """The mutation is literal text fixed at WRITE time; the verification must be too.
+
+    It used to end `--branch "${PR_FLOW_BRANCH:-$(git branch --show-current)}"`, resolved at RUN
+    time. Switch branches in between and the plan MUTATES ONE PULL REQUEST THEN VERIFIES ANOTHER —
+    measured 2026-08-12, when a plan re-merged #64 and then reported `REFUSED: no open PR` about a
+    different branch, directly beneath `"merged": true`.
+    """
+    pr_flow.INVOCATION = ["--branch", "feat/pinned", "--base", "main"]
+    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
+                                    "feat/pinned")
+    tail = pathlib.Path(path).read_text().split("# verify")[1]
+    assert "$(git branch --show-current)" not in tail
+    assert "feat/pinned" in tail
+
+
+def test_saved_plan_refuses_to_run_from_a_different_branch(work):
+    """Consent was given for ONE step of ONE branch. The expiry and the precondition assertion both
+    guard the STATE moving; neither guards the caller standing somewhere else."""
+    path = pr_flow.write_saved_plan(str(work), "merge", "echo MUTATION-RAN", "merges PR #51",
+                                    "feat/written-for")
+    git(["switch", "-q", "-c", "some/other-branch"], cwd=work)
+    r = subprocess.run(["bash", str(path)], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "MUTATION-RAN" not in r.stdout          # the mutation must not have run
+    assert "feat/written-for" in r.stderr          # names what it was written for
+    assert "some/other-branch" in r.stderr         # names where you actually are
+
+
+def test_saved_plan_is_never_written_without_a_guard(work):
+    """A guard that is silently absent is worse than none: the file still reads as safe."""
+    with pytest.raises(ValueError):
+        pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51", "")
+
+
+def test_every_operator_step_supplies_the_branch_to_its_saved_plan():
+    """`body` and `merge` were missed when the guard was first wired — `merge` being the
+    irreversible step. A per-call-site audit is the only thing that catches an omission here."""
+    src = pathlib.Path(pr_flow.__file__).read_text()
+    missing = []
+    for m in re.finditer(r'emit\(route, "([a-z-]+)"', src):
+        s = m.start()
+        depth, i = 0, s
+        while i < len(src):
+            if src[i] == "(":
+                depth += 1
+            elif src[i] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        if "branch=" not in src[s:i + 1]:
+            missing.append(m.group(1))
+    assert not missing, f"emit() call sites missing branch=: {missing}"
+
+
+def test_discard_saved_plan_removes_a_spent_plan(work):
+    """A plan that outlives its step stays runnable. That is how a stale plan re-issued a merge."""
+    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
+                                    "feat/x")
+    assert pathlib.Path(path).exists()
+    assert pr_flow.discard_saved_plan(str(work))
+    assert not pathlib.Path(path).exists()
+    assert pr_flow.discard_saved_plan(str(work)) is None
 
 
 def test_assert_preconditions_compares_counts_exactly_not_by_prefix(work, monkeypatch, capsys):
