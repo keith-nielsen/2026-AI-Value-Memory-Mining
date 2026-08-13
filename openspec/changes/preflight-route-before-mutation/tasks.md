@@ -27,15 +27,20 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 
 ## 3. Tool — `tools/preflight.py`
 
-- [ ] 3.1 Step 7 `body` — declared scope vs the real merge-base diff, via the shipped scripts
-- [ ] 3.2 Step 8 `checks` — extract every stdlib heredoc from `ci.yml` and run it
-- [ ] 3.3 Step 9 `mergeable` — `git merge-tree` trial merge; report conflicting paths
-- [ ] 3.4 Step 11 `archive` — simulate the archive; judge with the archive-sensitive checks; name the
+⚠ **`[~]` = PROTOTYPE COMMITTED, NOT INTEGRATED.** `tools/preflight.py` exists and was measured
+(see proposal *Evidence*), but it is a standalone script: not wired into `pr-flow.py` (§4), no tests
+in `tests/` (§6), and its output format is not settled. Do not tick `[x]` on the strength of the
+prototype runs — they were ad hoc, not a suite.
+
+- [~] 3.1 Step 7 `body` — declared scope vs the real merge-base diff, via the shipped scripts
+- [~] 3.2 Step 8 `checks` — extract every stdlib heredoc from `ci.yml` and run it
+- [~] 3.3 Step 9 `mergeable` — `git merge-tree` trial merge; report conflicting paths
+- [~] 3.4 Step 11 `archive` — simulate the archive; judge with the archive-sensitive checks; name the
       blocking artifact
-- [ ] 3.5 Concurrency — report ordering when two live changes carry a delta on one capability spec
-- [ ] 3.6 **SKIP vs FAIL** — an unrunnable check is named as such and excluded from findings
-- [ ] 3.7 Steps held by the platform are reported as not locally decidable, never predicted
-- [ ] 3.8 Stdlib-only; no third-party code added to the trust ring
+- [~] 3.5 Concurrency — report ordering when two live changes carry a delta on one capability spec
+- [~] 3.6 **SKIP vs FAIL** — an unrunnable check is named as such and excluded from findings
+- [~] 3.7 Steps held by the platform are reported as not locally decidable, never predicted
+- [~] 3.8 Stdlib-only; no third-party code added to the trust ring
 
 ## 4. Driver — `tools/pr-flow.py`
 
