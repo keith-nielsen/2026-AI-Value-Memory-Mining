@@ -151,6 +151,167 @@ def test_capabilities_probe_reports_without_raising(work):
     assert "git push" in r.stdout
 
 
+# --- write-scope layer: the vault protection self-test (tasks 3.5a-d, 5.6, 5.7) -----------------
+#
+# Row 1 (refused) and row 2 (accepted) are REAL geometry: a real vault tree on a real filesystem,
+# with real mode bits. Row 3 (accepted + removal fails) injects the failure at the os.unlink seam,
+# because the only unprivileged filesystem that produces it naturally is a sticky directory owned
+# by a second user, which a test cannot create. Everything the requirement is about — the finally,
+# the checked result, the residue surviving into the report, the guidance text — is exercised for
+# real; only the errno is injected. That distinction is stated in tasks.md rather than glossed.
+
+
+def load_flow_module():
+    """Import pr-flow.py in-process. The hyphen in the filename rules out a plain import."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("pr_flow_under_test", FLOW)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def run_flow_env(work, *extra, env=None):
+    import os as _os
+    e = dict(_os.environ)
+    e.update(env or {})
+    return subprocess.run([sys.executable, str(FLOW), *extra],
+                          cwd=work, capture_output=True, text=True, env=e)
+
+
+@pytest.fixture()
+def fake_vault(tmp_path):
+    """A vault-shaped tree OUTSIDE any repo, with the three governed subtrees present."""
+    v = tmp_path / "vault"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations", "30-Sites"):
+        (v / name).mkdir(parents=True)
+    return v
+
+
+def test_write_scope_reports_a_refused_write_as_protection_holding(work, fake_vault):
+    """Row 1: the expected result. Refused write => PROTECTED, and NO operator action prescribed."""
+    import os as _os
+    if _os.geteuid() == 0:
+        pytest.skip("root bypasses mode bits; row 1 is unobservable as root")
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        (fake_vault / name).chmod(0o500)
+    try:
+        r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    finally:
+        for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+            (fake_vault / name).chmod(0o700)
+    assert r.returncode == EXIT_OK
+    assert r.stdout.count("PROTECTED") >= 3
+    assert "PROTECTION FAILURE" not in r.stdout
+    assert "stop governed work" not in r.stdout.lower()
+
+
+def test_write_scope_probes_every_governed_subtree_not_the_probers_choice(work, fake_vault):
+    """3.5a: the subtree list is the operator's and is fixed.
+
+    The 2026-08-13 hand-rolled substitute dropped 96-Runbooks/ and probed 30-Sites/ and 20-Claims/
+    — the subtrees it wanted to write to. This asserts the instrument cannot make that trade.
+    """
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert name in r.stdout, f"{name} was not probed"
+    assert "30-Sites" not in r.stdout
+
+
+def test_write_scope_reports_a_writable_governed_subtree_as_a_failure(work, fake_vault):
+    """Row 2 (ADVERSARIAL, written before the confirming case): the write SUCCEEDS.
+
+    A writable governed subtree is a protection failure, not a working capability. Asserts the
+    GUIDANCE text, not merely the verdict — 3.5d makes the guidance part of the requirement.
+    """
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    assert r.returncode == EXIT_OK, "a finding is reported, never raised"
+    assert "PROTECTION FAILURE" in r.stdout
+    assert "The write SUCCEEDED" in r.stdout
+    assert "denyWithinAllow" in r.stdout, "operator action must name the harness-level guard"
+    assert "stop governed work" in r.stdout.lower()
+    # And it cleaned up after itself: no probe artifact survives a successful removal.
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert not list((fake_vault / name).glob(".capability-probe-*"))
+
+
+def test_write_scope_reports_residue_when_its_own_removal_fails(fake_vault, monkeypatch, capsys):
+    """Row 3 + task 5.7: write succeeds, removal FAILS. The residue must reach the report.
+
+    This is the case a `rm -f` with an unchecked result renders silent. Errno injected at the
+    os.unlink seam (see the section note); the finally, the result check, the verdict escalation
+    and the residue path are all the real code paths.
+    """
+    import os as _os
+    flow = load_flow_module()
+    real_unlink = _os.unlink
+
+    def refuse_unlink(path, *a, **kw):
+        if ".capability-probe-" in str(path):
+            raise OSError(30, "Read-only file system")
+        return real_unlink(path, *a, **kw)
+
+    monkeypatch.setattr(flow.os, "unlink", refuse_unlink)
+    monkeypatch.setenv("VAULT_ROOT", str(fake_vault))
+
+    r = flow.probe_protected_subtree(str(fake_vault), "40-Treasury")
+    assert r["verdict"] == "UNPROTECTED+RESIDUE"
+    assert r["residue"], "the residue path must survive out of the finally"
+    assert "Read-only file system" in r["detail"]
+
+    leftovers = list((fake_vault / "40-Treasury").glob(".capability-probe-*"))
+    assert len(leftovers) == 1, "the artifact really is still on disk — that is the whole point"
+    assert str(leftovers[0]) == r["residue"], "the reported path is the artifact that exists"
+
+    # 5.7: and it reaches the printed report, with its remedy, on the way out.
+    flow.write_scope()
+    printed = capsys.readouterr().out
+    assert "ARTIFACT LEFT BEHIND" in printed
+    assert r["residue"] in printed or ".capability-probe-" in printed
+    assert "rm -f" in printed
+    assert "status --short" in printed, "the never-staged check is part of the guidance"
+    real_unlink(leftovers[0])
+
+
+def test_write_scope_undeclared_vault_root_is_not_a_failure(work, monkeypatch):
+    """3.4's shape applied to this layer: an absent declaration is UNDECLARED, never FAILED."""
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": ""})
+    assert r.returncode == EXIT_OK
+    assert "UNDECLARED" in r.stdout
+    assert "PROTECTION FAILURE" not in r.stdout
+
+
+def test_write_scope_refuses_to_probe_the_template_inside_the_repo(work):
+    """Scope guard: vault-template/ is template source and writable by design.
+
+    Probing it would report a protection failure on every run and train the reader to ignore the
+    check — the failure mode that makes a red line meaningless.
+    """
+    tmpl = work / "vault-template"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        (tmpl / name).mkdir(parents=True)
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(tmpl)})
+    assert r.returncode == EXIT_OK
+    assert "SKIPPED" in r.stdout
+    assert "template source" in r.stdout
+    assert "PROTECTION FAILURE" not in r.stdout
+
+
+def test_write_scope_does_not_skip_a_live_vault_that_is_itself_a_repo(fake_vault):
+    """Regression for the defect task 5.8 caught on the FIRST real run.
+
+    The live vault is a git repo, and the probe is run from inside it — so a scope guard asking
+    "is VAULT_ROOT inside the cwd-derived repo root?" answered yes and skipped the entire layer,
+    silently, on exactly the subject it exists to measure. The guard must key on `vault-template`,
+    which is what "template source" actually means, and must not consult cwd at all.
+    """
+    subprocess.run(["git", "init", "-q", str(fake_vault)], check=True, capture_output=True)
+    r = run_flow_env(fake_vault, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    assert r.returncode == EXIT_OK
+    assert "SKIPPED" not in r.stdout, "the live vault must never be skipped as template source"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert name in r.stdout
+
+
 # --- gh_read pure helpers ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("url,expected", [

@@ -61,6 +61,12 @@ EXIT_BLOCKED = 3
 AGENT = "AGENT"
 OPERATOR = "OPERATOR"
 
+# Task 3.5a: the subtrees under an autonomy ban (INV-4, INV-5). This list is the OPERATOR's, and is
+# deliberately a module constant rather than a parameter or a discovery: the 2026-08-13 hand-rolled
+# substitute silently dropped 96-Runbooks/ and probed the two subtrees it wanted to write to instead.
+# An improvised probe converges on the prober's interest; a fixed list cannot.
+PROTECTED_SUBTREES = ("40-Treasury", "96-Runbooks", "99-Operations")
+
 CONSENT_LOCAL = "none needed — local only, nothing leaves this machine"
 CONSENT_ACT = "implicit in the act: you run it, so you authorize it"
 INVOCATION = None  # set once in main(): the argv that produced THIS run
@@ -956,6 +962,126 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
 
 # --- probes ---------------------------------------------------------------------------------------
 
+def _short(exc, n=70):
+    return str(exc)[:n]
+
+
+def probe_protected_subtree(vault_root, name):
+    """Attempt one real write into a subtree under an autonomy ban; report what happened.
+
+    Task 3.5a/3.5b/3.5c. A protection that is assumed rather than exercised is not evidence: the
+    guard is enforced OUTSIDE the vault's filesystem (harness-level), so it can lapse with no event
+    the vault can observe. Verdicts:
+
+      HOLDING            the write was refused — the expected result, no action needed
+      UNPROTECTED        the write succeeded and was cleaned up — INV-4/5 unenforced this session
+      UNPROTECTED+RESIDUE  the write succeeded AND removal failed — a second, separate defect
+      ABSENT             no such subtree here
+    """
+    sub = pathlib.Path(vault_root) / name
+    result = {"subtree": name, "verdict": "HOLDING", "residue": None, "detail": "", "path": None}
+    if not sub.is_dir():
+        result["verdict"] = "ABSENT"
+        result["detail"] = "no such subtree"
+        return result
+
+    # 3.5b: zero-byte, dot-prefixed, uniquely suffixed, at the subtree root — a residue is
+    # unmistakably a probe artifact and can never be mistaken for content.
+    path = sub / f".capability-probe-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    result["path"] = str(path)
+    created = False
+    try:
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.close(fd)
+            created = True
+        except OSError as exc:
+            result["detail"] = _short(exc)
+            return result
+        result["verdict"] = "UNPROTECTED"
+    finally:
+        # 3.5c: removal in a `finally`, and its RESULT IS CHECKED. An unchecked rm is exactly how
+        # the write-succeeded/delete-failed case becomes silent — observed in the wild 2026-08-13,
+        # where a hand-rolled `rm -f` discarded the result and suppressed the error besides.
+        if created:
+            try:
+                os.unlink(str(path))
+            except OSError as exc:
+                result["verdict"] = "UNPROTECTED+RESIDUE"
+                result["residue"] = str(path)
+                result["detail"] = _short(exc)
+    return result
+
+
+def write_scope():
+    """The write-scope layer the runbook has claimed since 2026-08-06 and the instrument never had.
+
+    Task 3.5. Subject is the DECLARED vault root ($VAULT_ROOT, already authoritative in config.env),
+    never the working directory — this layer answers "is this session's vault protected?", which is
+    not a question about wherever the shell happens to be. It takes NO repo_root parameter, so that
+    cwd derivation cannot leak into it by way of an argument.
+    """
+    print("  ---- write scope (vault protection self-test) ----")
+    vault_root = os.environ.get("VAULT_ROOT", "").strip()
+
+    if not vault_root:
+        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        print("        VAULT_ROOT is not set. An absent declaration is not a measured failure.")
+        print("        Action: source the vault's 99-Operations/config.env, then re-probe.")
+        return
+    if not pathlib.Path(vault_root).is_dir():
+        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        print(f"        VAULT_ROOT is set but does not resolve to a directory: {vault_root}")
+        print("        Action: correct VAULT_ROOT in 99-Operations/config.env, then re-probe.")
+        return
+
+    # Scope guard: the live vault only. vault-template/ in this repo carries the same folder names
+    # but is template SOURCE, and the repo is writable by design — probing it would report a
+    # protection failure on every run and train the reader to ignore this check.
+    #
+    # The test is "is this path template source", which the `vault-template` path component answers
+    # ALONE. An earlier draft asked "is it inside the repo root" instead, and task 5.8 caught it on
+    # the first real run: repo_root is cwd-derived, so a probe run from the live vault found the
+    # vault inside "the repo" (the vault IS a git repo) and silently skipped its own subject. A
+    # guard keyed to cwd inherits every defect of cwd derivation.
+    if "vault-template" in pathlib.Path(vault_root).resolve().parts:
+        print(f"  WRITE vault protection ... {'SKIPPED':<13} {OPERATOR} / {OPERATOR}")
+        print(f"        VAULT_ROOT is under a vault-template/ tree: {vault_root}")
+        print("        This is template source, not a live vault; it is writable by design.")
+        return
+
+    print(f"        subject (declared, not discovered): VAULT_ROOT={vault_root}")
+    for name in PROTECTED_SUBTREES:
+        r = probe_protected_subtree(vault_root, name)
+        v = r["verdict"]
+        label = f"  WRITE {name:<18}"
+        if v == "HOLDING":
+            # 3.5d: the expected result prescribes no action, deliberately.
+            print(f"{label} {'PROTECTED':<13} {OPERATOR} / {OPERATOR} — refused, INV-4/5 holding")
+        elif v == "ABSENT":
+            print(f"{label} {'ABSENT':<13} {OPERATOR} / {OPERATOR} — {r['detail']}")
+        else:
+            # 3.5d: every failing outcome carries the operator action it calls for. A check that
+            # reports only a verdict obliges its reader to derive the remedy at exactly the moment
+            # the governing assumption has been shown false.
+            print(f"{label} {'UNPROTECTED':<13} {AGENT} / {OPERATOR} — ⛔ PROTECTION FAILURE")
+            print(f"        The write SUCCEEDED. INV-4/5 rest on nothing for the rest of this "
+                  f"session.")
+            print("        Action: stop governed work. The guard is harness-level, not filesystem-"
+                  "level —")
+            print("        check the sandbox `denyWithinAllow` list, then re-probe before trusting "
+                  "any write.")
+            if v == "UNPROTECTED+RESIDUE":
+                print(f"{label} {'RESIDUE':<13} {AGENT} / {OPERATOR} — ⛔⛔ ARTIFACT LEFT BEHIND")
+                print(f"        Removal failed ({r['detail']}); a probe artifact now sits inside a "
+                      f"protected subtree.")
+                print(f"        Residue: {r['residue']}")
+                print(f"        Action: rm -f '{r['residue']}'")
+                print(f"        Then confirm it was never staged: "
+                      f"git -C '{vault_root}' status --short")
+                print("        Do not proceed and do not commit until both are done.")
+
+
 def capabilities(repo_root):
     """Probe what this process can actually do, and who authorizes each channel.
 
@@ -995,6 +1121,10 @@ def capabilities(repo_root):
 
     budget = gh_read.rate_limit() or gh_read.budget_report()
     print(f"  READ  budget ............. {budget or 'UNMEASURED (channel unreachable)'}")
+
+    write_scope()
+    # Exit stays OK on every failing channel: a probe that exits non-zero teaches its caller to
+    # stop probing. Findings are reported, never raised.
     return EXIT_OK
 
 

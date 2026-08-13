@@ -231,6 +231,51 @@ residue is not), and it supplies task 5.6's adversarial rows with a real-world i
 they must construct. It also confirms 5.8's premise: the estate is reachable and the end-to-end run is
 cheap, so there is no excuse for stubbing it.
 
+## End-to-end run E1 — 2026-08-13, task 5.8, live estate
+
+Task 3.5 is built and tested. E1 is the run task 5.8 requires, and it is recorded here because of
+what happened on its **first** execution, before the fix below:
+
+```
+  ---- write scope (vault protection self-test) ----
+  WRITE vault protection ... SKIPPED       OPERATOR / OPERATOR
+        VAULT_ROOT resolves inside the framework repo: /home/administrator/Documents/Vault
+        This is template source, not a live vault; it is writable by design.
+```
+
+**Six unit tests passed and the layer did nothing.** The scope guard — which exists to keep the probe
+off `vault-template/`, correctly — asked *"is `VAULT_ROOT` inside the cwd-derived repo root?"* The
+live vault **is** a git repo, and the probe was run from inside it, so `repo_root` was the vault
+itself and the vault was trivially "inside the repo". The layer skipped the one subject it exists to
+measure, and said so in a line that reads like a correct decision.
+
+This is the change's own thesis arriving one level down: **a guard keyed to cwd inherits every defect
+of cwd derivation.** The fix is not a better comparison against `repo_root` — it is to stop consulting
+`repo_root` at all. "Is this template source" is answered by the `vault-template` path component
+alone, so `write_scope()` now takes **no** `repo_root` parameter, and cwd cannot leak in by way of an
+argument. Regression test: `test_write_scope_does_not_skip_a_live_vault_that_is_itself_a_repo`,
+observed failing against the pre-fix code.
+
+Post-fix, on the live vault:
+
+```
+  ---- write scope (vault protection self-test) ----
+        subject (declared, not discovered): VAULT_ROOT=/home/administrator/Documents/Vault
+  WRITE 40-Treasury        PROTECTED     OPERATOR / OPERATOR — refused, INV-4/5 holding
+  WRITE 96-Runbooks        PROTECTED     OPERATOR / OPERATOR — refused, INV-4/5 holding
+  WRITE 99-Operations      PROTECTED     OPERATOR / OPERATOR — refused, INV-4/5 holding
+```
+
+Zero residue in all three subtrees afterwards. Note `96-Runbooks/` — the subtree the 2026-08-13
+hand-roll dropped — is measured and protected. Its protection had never actually been verified.
+
+**The lesson task 5.8 was written to teach, now with an instance behind it:** the unit tests were not
+weak, and the defect was not subtle in hindsight. It was invisible to them *by construction*, because
+every one of them supplied `VAULT_ROOT` and cwd as independent fixtures, while the real estate makes
+them the same directory. A stubbed estate does not merely under-cover the real one — it can present
+geometry the real one never has. 5.8 is the only task in section 5 that could have caught this, and it
+caught it on the first run.
+
 ## Blast radius (swept 2026-08-11, re-runnable)
 
 ```

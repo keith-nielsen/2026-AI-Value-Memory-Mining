@@ -32,25 +32,36 @@ the real geometry, and cites its evidence. Never the same marker for built and t
       a **violation** naming the remote
 - [ ] 3.4 `FRAMEWORK_ROOT` unset → framework layers `UNDECLARED`, never `FAILED` (closes the residual
       named by `2026-08-06-bootstrap-capability-probe`)
-- [ ] 3.5 Write-scope layer — the layer the runbook has claimed since 2026-08-06 and the instrument has
+- [x] 3.5 Write-scope layer — the layer the runbook has claimed since 2026-08-06 and the instrument has
       never reported. Measure the permitted areas by attempted write. **Highest-priority item in
       section 3** (raised 2026-08-13): 3.6/3.7 are ugly but self-announcing; this gap is silent, and it
-      has now produced a hand-rolled substitute twice — see the proposal's reproduction log
-- [ ] 3.5a **Protection self-test** — attempt a real write into `40-Treasury/`, `96-Runbooks/`, and
+      has now produced a hand-rolled substitute twice — see the proposal's reproduction log.
+      **Built + tested 2026-08-13** (`write_scope()` / `probe_protected_subtree()`); 7 tests, each
+      observed FAILING against the unchanged instrument before the change went in. Subject is
+      `$VAULT_ROOT` — the function takes **no** `repo_root` parameter, so cwd derivation cannot leak
+      in by way of an argument. Scoped to the live vault: a `vault-template/` path component skips
+- [x] 3.5a **Protection self-test** — attempt a real write into `40-Treasury/`, `96-Runbooks/`, and
       `99-Operations/`; refused = protection holding, succeeded = protection failure (operator
       instruction 2026-08-11; supersedes the withdrawn "cite, don't write" draft). ⚠ The subtree list
       is the *operator's*, not the prober's: the 2026-08-13 hand-roll silently dropped `96-Runbooks/`
       and substituted the two subtrees it wanted to write to. The instrument's list is fixed and MUST
-      NOT be derived from the caller's interest
-- [ ] 3.5b Probe artifact is zero-byte, dot-prefixed, uniquely suffixed, written at the subtree root —
-      unmistakably a probe artifact, never mistaken for content
-- [ ] 3.5c Removal attempted in a `finally` **and its result checked** — an unchecked `rm` is exactly
+      NOT be derived from the caller's interest. **Done:** `PROTECTED_SUBTREES` is a module constant,
+      not a parameter and not a discovery; `test_write_scope_probes_every_governed_subtree_not_the_
+      probers_choice` asserts all three are probed and that `30-Sites` is not
+- [x] 3.5b Probe artifact is zero-byte, dot-prefixed, uniquely suffixed, written at the subtree root —
+      unmistakably a probe artifact, never mistaken for content. **Done:** `O_CREAT|O_EXCL|O_WRONLY`
+      then immediate close, named `.capability-probe-<pid>-<uuid8>` at the subtree root
+- [x] 3.5c Removal attempted in a `finally` **and its result checked** — an unchecked `rm` is exactly
       how the write-succeeded/delete-failed case becomes silent. **Field instance 2026-08-13:** the
       hand-rolled substitute used `rm -f` with the result discarded *and* errors suppressed by `-f`;
-      had a governed subtree been writable, it would have reported `WRITABLE` and left residue unnamed
-- [ ] 3.5d Each failing outcome prints its operator action: protection-gone → the harness
+      had a governed subtree been writable, it would have reported `WRITABLE` and left residue unnamed.
+      **Done:** removal is in a `finally`, its `OSError` escalates the verdict to
+      `UNPROTECTED+RESIDUE` and carries the path out
+- [x] 3.5d Each failing outcome prints its operator action: protection-gone → the harness
       `denyWithinAllow` list to check and "stop governed work"; residue-left → the **absolute path**,
-      the exact `rm`, and the `git status` check proving it was never staged
+      the exact `rm`, and the `git status` check proving it was never staged. **Done, and the tests
+      assert the guidance text itself**, not merely the verdict — 3.5d makes the guidance part of the
+      requirement, so a test that checks only the verdict would pass a probe that strands its reader
 - [ ] 3.6 Fix `:385-386` — the `else (None, None)` guard falls into the **success** print, so `{ch:<9}`
       formats `None` and the `TypeError` surfaces as a channel FAILED. Unresolved slug becomes a named
       precondition failure that skips the dependent channel
@@ -75,25 +86,39 @@ the real geometry, and cites its evidence. Never the same marker for built and t
       it **before** the confirming one
 - [ ] 5.4 Unresolved slug → named precondition failure, no `NoneType.__format__` text anywhere in output
 - [ ] 5.5 Exit code remains `0` on every failing channel — the predecessor's scenario must not regress
-- [ ] 5.6 **Protection self-test, all three rows.** Row 1 (refused) passes today, so a test covering
+- [x] 5.6 **Protection self-test, all three rows.** Row 1 (refused) passes today, so a test covering
       only it is the vacuous pass the Definition of Done names. Rows 2 and 3 must be built: a writable
       governed subtree, and a write that succeeds while removal fails. Assert the *guidance text* is
       present, not just the verdict — the guidance is the requirement. **Row 3's geometry is no longer
       hypothetical** — the 2026-08-13 hand-roll is a working instance of the silent-residue path
-      (proposal, reproduction log); model the test on it
-- [ ] 5.7 Assert the residue path reaches the report even when the probe is exiting
-- [ ] 5.8 End-to-end on the real estate at least once: run from the live vault, cold, and paste the
-      output into the change. A stubbed estate passes vacuously while reading as coverage
+      (proposal, reproduction log); model the test on it.
+      **Done, with one disclosure that must not be glossed:** rows 1 and 2 are fully real — a real
+      vault tree, real mode bits (`chmod 0o500`), a real accepted write. **Row 3 injects the errno**
+      at the `os.unlink` seam, because the only unprivileged filesystem that produces
+      write-succeeds/removal-fails naturally is a sticky directory owned by a *second user*, which a
+      test cannot create. The `finally`, the checked result, the verdict escalation, the residue path
+      and the guidance text are all real code paths; only the `OSError` is injected — and the test
+      asserts the artifact is genuinely still on disk and that the reported path is that artifact.
+      Row 1 is skipped when `geteuid()==0`, since root bypasses mode bits and would pass vacuously
+- [x] 5.7 Assert the residue path reaches the report even when the probe is exiting
+- [x] 5.8 End-to-end on the real estate at least once: run from the live vault, cold, and paste the
+      output into the change. A stubbed estate passes vacuously while reading as coverage.
+      **Done — and it earned its keep on the first run: it caught a defect all 6 unit tests missed.**
+      Output pasted in the proposal (*End-to-end run E1*); the defect and its fix are recorded there
 
 ## 6. Regression
 
 - [ ] 6.1 `openspec validate --all --strict` (CLI `1.6.0` == `package.json` pin — verified 2026-08-11)
 - [ ] 6.2 `runbook-lint` (CI job reproduced locally)
-- [ ] 6.3 `validate-scripts.sh` — `.py` touched, so this must run. ⚠ known `/tmp` defect in the
+- [x] 6.3 `validate-scripts.sh` — `.py` touched, so this must run. ⚠ known `/tmp` defect in the
       hardening queue may block it in a write-scoped sandbox; if so, say so and defer to CI rather
-      than ticking it
-- [ ] 6.4 `pytest` — existing `pr-flow` coverage, confirming `route` / `ready` / `assert-preconditions`
-      still derive from cwd (3.1 must not leak into them)
+      than ticking it. **Ran clean 2026-08-13: `VALIDATION OK`**, the `/tmp` defect did not bite this
+      time. Note the real path is `.github/scripts/validate-scripts.sh`, not `scripts/` as CI's job
+      name suggests — shellcheck was skipped (not installed locally), so that half defers to CI
+- [x] 6.4 `pytest` — existing `pr-flow` coverage, confirming `route` / `ready` / `assert-preconditions`
+      still derive from cwd (3.1 must not leak into them). **183 passed** 2026-08-13 (176 + 7 new);
+      no existing test modified. ⚠ Re-run when 3.1 lands — this run only proves 3.5 did not leak,
+      since 3.5 is not yet built on top of estate scoping
 
 ## 7. Document the archive rule (operator decision 2026-08-11)
 
