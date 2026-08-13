@@ -172,7 +172,64 @@ The runbook's step 3 enumerates **four** layers and names write scope first. The
 **zero** of it — the write-scope layer was specified and never built. On 2026-08-11 the agent supplied
 it by hand-rolling `touch` probes, which is exactly the "four worse probes were hand-rolled instead"
 failure the predecessor change catalogued. Either the instrument gains the layer or the runbook stops
-claiming it; this change chooses the former (task 3).
+claiming it; this change chooses the former (task 3). **Recurred 2026-08-13 — see the reproduction log
+below; it is a reflex the gap produces, not a one-off.**
+
+## Reproduction log
+
+The defects above were observed on 2026-08-11 during the sweep that opened this change. They are
+re-observed here because a defect seen once in the session that found it is weaker evidence than one
+that recurs, unprompted, in a session that was not looking for it.
+
+### R2 — 2026-08-13, cold start, independent of this change
+
+A `/vmm-session-rebooted` prime ran the runbook's step 3 from the vault, with no knowledge of this
+branch. Every symptom reproduced verbatim:
+
+```
+CAPABILITY PROBE (measured now, not recalled)
+  repo slug (from remote, not folder name): UNRESOLVED
+  channel .................. state ......... runs / authority
+  READ  github state ....... FAILED (unsupported format string passed to NoneType.__format__)
+  READ  git ls-remote ...... FAILED        AGENT / AGENT
+  WRITE git push ........... FAILED        OPERATOR / OPERATOR via the INV-14 ask
+        and the repository exists.
+  WRITE gh mutations ....... UNAVAILABLE   OPERATOR / OPERATOR
+  READ  budget ............. 39/60 reads remaining, resets in ~32 min
+```
+
+Confirmed still-live at `tools/pr-flow.py:385-386` (the `else (None, None)` guard falling into the
+success print) and `:399` (`splitlines()[-1]`, yielding the orphan `and the repository exists.`).
+Line numbers in tasks 3.6 / 3.7 are **unchanged** and need no re-anchoring.
+
+**New in R2 — the hand-roll recurred, and it was worse the second time.** The 2026-08-11 instance was
+recorded above as a one-off. It is not: given a runbook that claims a write-scope layer and an
+instrument that reports none, a second agent independently hand-rolled the same substitute —
+
+```bash
+for d in 40-Treasury 99-Operations 30-Sites 20-Claims; do p="$VAULT_ROOT/$d/.wprobe.$$"; \
+  if (touch "$p" 2>/dev/null); then echo "$d: WRITABLE (OS)"; rm -f "$p"; \
+  else echo "$d: DENIED (OS)"; fi; done
+```
+
+Two failures in that eleven-line substitute, both of which this change's tasks already predict, now
+with a field instance behind them rather than a design argument:
+
+| Predicted by | The hand-roll's actual behaviour |
+|---|---|
+| task 3.5c — *"an unchecked `rm` is exactly how the write-succeeded/delete-failed case becomes silent"* | `rm -f` — return value discarded, and `-f` suppresses the error besides. Had a governed subtree been writable **and** the removal failed, this probe would have printed `WRITABLE (OS)` and left residue in `40-Treasury/` with no mention of it. Row three of the write-scope table would have been silent, exactly as predicted |
+| task 3.5a — the self-test names `40-Treasury/`, `96-Runbooks/`, `99-Operations/` | `96-Runbooks/` was **not probed**. The hand-roll substituted `30-Sites/` and `20-Claims/` — the agent measured where it wanted to write, not what the operator instruction says to verify |
+
+The second row is the more instructive one. An improvised probe converges on the prober's own
+interest, not on the specification, because the specification lives in a runbook the improviser is
+mid-way through executing. This is the argument for 3.5 being *in the instrument*: a hand-roll cannot
+under-cover a layer it does not choose the scope of.
+
+**Bearing on the change:** no new requirement is owed — R2 lands inside the existing scope. It raises
+the priority of task 3.5 relative to 3.6/3.7 (the crashes are cosmetic to a careful reader; the silent
+residue is not), and it supplies task 5.6's adversarial rows with a real-world instance of the failure
+they must construct. It also confirms 5.8's premise: the estate is reachable and the end-to-end run is
+cheap, so there is no excuse for stubbing it.
 
 ## Blast radius (swept 2026-08-11, re-runnable)
 

@@ -33,14 +33,21 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 - [ ] 3.4 `FRAMEWORK_ROOT` unset → framework layers `UNDECLARED`, never `FAILED` (closes the residual
       named by `2026-08-06-bootstrap-capability-probe`)
 - [ ] 3.5 Write-scope layer — the layer the runbook has claimed since 2026-08-06 and the instrument has
-      never reported. Measure the permitted areas by attempted write
+      never reported. Measure the permitted areas by attempted write. **Highest-priority item in
+      section 3** (raised 2026-08-13): 3.6/3.7 are ugly but self-announcing; this gap is silent, and it
+      has now produced a hand-rolled substitute twice — see the proposal's reproduction log
 - [ ] 3.5a **Protection self-test** — attempt a real write into `40-Treasury/`, `96-Runbooks/`, and
       `99-Operations/`; refused = protection holding, succeeded = protection failure (operator
-      instruction 2026-08-11; supersedes the withdrawn "cite, don't write" draft)
+      instruction 2026-08-11; supersedes the withdrawn "cite, don't write" draft). ⚠ The subtree list
+      is the *operator's*, not the prober's: the 2026-08-13 hand-roll silently dropped `96-Runbooks/`
+      and substituted the two subtrees it wanted to write to. The instrument's list is fixed and MUST
+      NOT be derived from the caller's interest
 - [ ] 3.5b Probe artifact is zero-byte, dot-prefixed, uniquely suffixed, written at the subtree root —
       unmistakably a probe artifact, never mistaken for content
 - [ ] 3.5c Removal attempted in a `finally` **and its result checked** — an unchecked `rm` is exactly
-      how the write-succeeded/delete-failed case becomes silent
+      how the write-succeeded/delete-failed case becomes silent. **Field instance 2026-08-13:** the
+      hand-rolled substitute used `rm -f` with the result discarded *and* errors suppressed by `-f`;
+      had a governed subtree been writable, it would have reported `WRITABLE` and left residue unnamed
 - [ ] 3.5d Each failing outcome prints its operator action: protection-gone → the harness
       `denyWithinAllow` list to check and "stop governed work"; residue-left → the **absolute path**,
       the exact `rm`, and the `git status` check proving it was never staged
@@ -71,7 +78,9 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 - [ ] 5.6 **Protection self-test, all three rows.** Row 1 (refused) passes today, so a test covering
       only it is the vacuous pass the Definition of Done names. Rows 2 and 3 must be built: a writable
       governed subtree, and a write that succeeds while removal fails. Assert the *guidance text* is
-      present, not just the verdict — the guidance is the requirement
+      present, not just the verdict — the guidance is the requirement. **Row 3's geometry is no longer
+      hypothetical** — the 2026-08-13 hand-roll is a working instance of the silent-residue path
+      (proposal, reproduction log); model the test on it
 - [ ] 5.7 Assert the residue path reaches the report even when the probe is exiting
 - [ ] 5.8 End-to-end on the real estate at least once: run from the live vault, cold, and paste the
       output into the change. A stubbed estate passes vacuously while reading as coverage
