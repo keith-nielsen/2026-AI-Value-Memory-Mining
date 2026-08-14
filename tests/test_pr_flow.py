@@ -805,6 +805,146 @@ def test_after_mutation_clears_once_its_verified_step_is_confirmed(work, monkeyp
     assert rc == EXIT_NEEDS_INPUT
 
 
+def _drive_args(**over):
+    import argparse
+    base = dict(branch="feat/x", base="main", body_file=None, title=None, plan=False,
+                capabilities=False, lag_report=False, ready=None, sha=None, pr=None,
+                assert_preconditions=None, after_mutation=None, mutation_evidence=None)
+    base.update(over)
+    return argparse.Namespace(**base)
+
+
+def test_lag_retry_is_REACHED_through_the_real_entry_point(work, monkeypatch):
+    """Item 23 — REACHABILITY, asserted at `drive()`, never against `lag_tolerant` directly.
+
+    The helper's own unit tests all passed while the retry was DEAD CODE on every real invocation:
+    `prefetched` is a 2-tuple `(list, channel)`, so `if prefetched:` is truthy even when the list is
+    EMPTY — and empty is precisely the lag symptom. Measured on PR #68's own creation: the guard
+    suppressed the duplicate correctly, but `pulls_for_branch` was called exactly ONCE.
+
+    This is the class a unit test structurally cannot catch, because the unit test supplies the input
+    that production computes. The only question that catches it is *which real invocation reaches
+    this line?* — and the only way to answer it is to drive the real entry point.
+    """
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    calls = []
+
+    def fake_pulls(slug, branch, base, state="all"):
+        calls.append(branch)
+        return ([], "anon-rest")          # the mutation landed; the read view has not caught up
+
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch", fake_pulls)
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0))
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 60)
+
+    pr_flow.drive(_drive_args(after_mutation="pr"), str(work), pr_flow.Route())
+
+    # The prefetch IS the first attempt, so the ladder costs exactly one read per rung on top of it
+    # — the prefetch read is not wasted.
+    assert len(calls) == 1 + len(pr_flow.LAG_RETRY_DELAYS), (
+        f"prefetch + every rung must reach the read; got {len(calls)} call(s) — "
+        "an empty prefetch was consumed as an answer")
+
+
+def test_the_NO_LAG_case_is_observed_too(work, monkeypatch):
+    """The bias guard, asserted where it actually failed: at the call site, not in the helper.
+
+    Measured on PR #69's own creation. `lag_tolerant` logs every attempt — but the `pr` step
+    short-circuited to the prefetch and never called it, so a run where the read view KEPT UP
+    recorded nothing at all. A log holding only the lagging cases makes the ladder look more
+    necessary than it is, and is the exact bias the log was built to avoid.
+
+    The helper being correct is not the property that matters. What matters is that every real
+    invocation reaches it — which is a question about the call site, and answerable only from here.
+    """
+    import json as _json
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch",
+                        lambda slug, branch, base, state="all": (
+                            [{"number": 7, "state": "open", "draft": False, "title": "t",
+                              "head": {"sha": "x"}, "base": {"ref": "main"}}], "anon-rest"))
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+
+    pr_flow.drive(_drive_args(after_mutation="pr"), str(work), pr_flow.Route())
+
+    path = pr_flow.lag_log_path(str(work))
+    assert path.exists(), "a run with NO lag must still be recorded, or the log is biased"
+    recs = [_json.loads(x) for x in path.read_text().splitlines()]
+    assert recs[-1]["visible"] is True
+    assert recs[-1]["outcome"] == "visible"
+    assert recs[-1]["attempt"] == 0, "the prefetch is attempt 0, not a skipped observation"
+
+
+def test_ordinary_runs_still_reuse_the_prefetch_and_spend_no_extra_read(work, monkeypatch):
+    """The narrowing must not undo the F34 budget saving on a 60-reads/hour channel."""
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    calls = []
+
+    def fake_pulls(slug, branch, base, state="all"):
+        calls.append(branch)
+        return ([], "anon-rest")
+
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch", fake_pulls)
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)      # ordinary run, not a verify
+    pr_flow.drive(_drive_args(), str(work), pr_flow.Route())
+    assert len(calls) == 1, "an empty prefetch is still a usable answer outside a verify"
+
+
+def test_every_lag_attempt_is_logged_including_the_censored_one(work, monkeypatch):
+    """Operator, 2026-08-14: capture what we are failing with, so the next ladder is not invented.
+
+    Two properties matter more than the count. EVERY attempt is recorded — logging only the lagging
+    cases would bias the record toward lag. And a ladder that runs out is marked CENSORED, because a
+    lower bound silently treated as a measurement is how a too-short ladder justifies itself with its
+    own data.
+    """
+    import json as _json
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0))
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 60)
+
+    pr_flow.lag_tolerant(lambda: ({}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="pr=99")
+    recs = [_json.loads(x) for x in pr_flow.lag_log_path(str(work)).read_text().splitlines()]
+
+    assert len(recs) == 1 + len(pr_flow.LAG_RETRY_DELAYS), "every attempt is an observation"
+    assert recs[-1]["outcome"] == "censored-ladder-exhausted"
+    assert all(r["visible"] is False for r in recs)
+    assert len({r["series"] for r in recs}) == 1, "one mutation, one series"
+    assert recs[0]["subject"] == "pr=99"
+
+    # And the immediately-visible case is logged too, or the record over-represents lag.
+    pr_flow.lag_tolerant(lambda: ({"merged_at": "now"}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="pr=100")
+    recs = [_json.loads(x) for x in pr_flow.lag_log_path(str(work)).read_text().splitlines()]
+    assert recs[-1]["outcome"] == "visible" and recs[-1]["attempt"] == 0
+
+
+def test_lag_report_refuses_to_recommend_a_ladder(work, monkeypatch, capsys):
+    """The report stops at the evidence. Handing back a number is how the next guess gets adopted."""
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0,))
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 60)
+    pr_flow.lag_tolerant(lambda: ({}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="pr=99")
+    capsys.readouterr()
+
+    pr_flow.lag_report(str(work))
+    out = capsys.readouterr().out
+    assert "CENSORED" in out, "censoring must be visible in the summary, not buried"
+    assert "LOWER BOUND" in out
+    assert "not a distribution" in out
+    assert not re.search(r"(recommend|suggest|try|set)\w*\s+\(?\d+\s*s", out, re.I), \
+        "the report must not propose a delay"
+
+
 def test_confirm_mutation_only_clears_the_step_it_was_verifying(monkeypatch):
     """Confirming some OTHER step must not end post-mutation mode early.
 
