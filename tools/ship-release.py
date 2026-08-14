@@ -35,6 +35,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import gh_read  # noqa: E402  — the shared read layer; its sibling pr-flow.py already uses it
+
 EXIT_OK = 0
 EXIT_REFUSED = 1
 EXIT_NEEDS_INPUT = 2
@@ -119,29 +122,89 @@ def remote_version_tags(root):
     return sorted(tags, key=_semver_key)
 
 
-def gh_release(root, tag):
-    """Release JSON for the tag, or None when the release does not exist.
+def read_releases(root):
+    """Every release, the tag GitHub itself calls Latest, and the channel that answered.
 
-    `isLatest` is deliberately NOT requested here: live gh exposes it on
-    `release list` only — `release view --json` rejects the field (found by
-    dogfooding the driver on its own first ship).
+    Item 21. This used to shell out to `gh release view` / `gh release list`, which need the
+    operating-system keyring; from a confined session `gh` returns a misleading 401 and the driver
+    exited 3 BLOCKED on a READ — after both of its real guards had already passed. That violates a
+    shipped requirement (`maintenance` — *GitHub Reads Degrade To An Unauthenticated Channel*) and
+    made the release ceremony operator-only by defect rather than by design. Measured twice on
+    2026-08-14, mid-ceremony, on this repository's own v0.1.40 ship.
+
+    Three design notes, each load-bearing:
+
+    * **Existence comes from the LIST, never a per-tag endpoint.** `gh_read.get()` raises
+      `ReadError` when both channels fail and does not distinguish 404, so `/releases/tags/<tag>`
+      would turn "this release does not exist" — an ordinary, expected answer — into an error.
+      Reading the list has no 404 path at all.
+    * **`isLatest` is ASKED, never recomputed.** REST carries no per-release `isLatest`, and
+      "newest non-draft, non-prerelease by date" is *GitHub's* rule. Restating it here would fork
+      an acceptance criterion across two systems with no merge (F31, class 9), so `/releases/latest`
+      is queried and its `tag_name` compared.
+    * **Pagination matches the previous `--limit 200`**, so the contract does not quietly narrow.
+
+    Returns (releases, latest_tag, channel). Callers pass the result along rather than reading it
+    from module state: a cache here would be a module-level variable, which is a proposal-threshold
+    trigger in CONTRIBUTING, and explicit data flow is simpler anyway.
     """
-    r = _run(["gh", "release", "view", tag, "--json", "tagName,isDraft"],
-             cwd=str(root))
-    if r.returncode == 0:
-        return json.loads(r.stdout)
-    if "release not found" in (r.stdout + r.stderr).lower():
+    slug = gh_read.slug_from_remote(str(root))
+    if not slug:
+        _die_blocked("cannot resolve a GitHub owner/repo from origin")
+    items, channel = [], None
+    for page in (1, 2):  # 200 max, matching the previous --limit 200
+        try:
+            batch, channel = gh_read.get(f"/repos/{slug}/releases?per_page=100&page={page}")
+        except gh_read.ReadError as exc:
+            _die_blocked(f"cannot read releases for {slug}: {exc}")
+        items += batch
+        if len(batch) < 100:
+            break
+    try:
+        latest, _ = gh_read.get(f"/repos/{slug}/releases/latest")
+        latest_tag = latest.get("tag_name")
+    except gh_read.ReadError:
+        latest_tag = None  # no release yet, or none qualifies as Latest — not an error
+    return items, latest_tag, channel
+
+
+def gh_release(releases, tag):
+    """`{tagName, isDraft}` for the tag, or None when no release carries it.
+
+    ⚠ ANONYMOUS READS CANNOT SEE DRAFTS. GitHub hides draft releases from unauthenticated callers,
+    so on that channel `None` means *absent OR draft*, never simply *absent*. The caller must not
+    collapse those — emitting `gh release create` against an existing draft is the failure this
+    note exists to prevent. The release-object layer prints the caveat when it applies.
+    """
+    hit = next((r for r in releases if r.get("tag_name") == tag), None)
+    if hit is None:
         return None
-    _die_blocked(f"gh release view {tag} failed: {r.stderr.strip()}")
+    return {"tagName": hit["tag_name"], "isDraft": bool(hit.get("draft"))}
 
 
-def gh_release_list(root):
-    """[{tagName, isLatest}] for every release — the only surface carrying isLatest."""
-    r = _run(["gh", "release", "list", "--limit", "200",
-              "--json", "tagName,isLatest"], cwd=str(root))
-    if r.returncode != 0:
-        _die_blocked(f"gh release list failed: {r.stderr.strip()}")
-    return json.loads(r.stdout)
+def draft_caveat(release, channel, version):
+    """The absent-vs-draft ambiguity, stated when it applies and silent when it does not.
+
+    GitHub hides DRAFT releases from unauthenticated callers. So on the anonymous channel a missing
+    release means *absent OR draft*, and collapsing those would let the driver emit
+    `gh release create` against a draft that already exists. On the `gh` channel the caller is
+    authenticated and drafts ARE visible, so absence really is absence and no caveat is owed —
+    printing one anyway would be over-denial, which trains readers to skip warnings.
+
+    A separate function because that distinction is the whole content: inline it and it can only be
+    tested through whichever channel the harness happens to force.
+    """
+    if release is not None or channel != gh_read.CH_ANON:
+        return None
+    return ("        note: drafts are invisible to the anonymous channel — 'absent' here means "
+            "absent OR draft.\n"
+            f"        If a draft may exist, confirm with `gh release view {version}` first.")
+
+
+def gh_release_list(releases, latest_tag):
+    """[{tagName, isLatest}] — the shape the parity tally consumed from `gh release list`."""
+    return [{"tagName": r.get("tag_name"), "isLatest": r.get("tag_name") == latest_tag}
+            for r in releases]
 
 
 def main(argv):
@@ -194,14 +257,18 @@ def main(argv):
     # Layer reads — one line per layer, each named (GitHub is a stack, not an oracle: F21).
     local = local_tag_commit(root, version)
     remote = remote_tag_commit(root, version)
-    release = gh_release(root, version)
-    rel_list = gh_release_list(root) if release else []
-    latest_tag = next((x["tagName"] for x in rel_list if x.get("isLatest")), None)
+    releases, latest_tag, channel = read_releases(root)
+    release = gh_release(releases, version)
+    rel_list = gh_release_list(releases, latest_tag)
     print(f"layer [local-tag]: {version} " + (f"at {local[:12]}" if local else "absent"))
     print(f"layer [remote-tag]: {version} " + (f"at {remote[:12]}" if remote else "absent"))
     print(f"layer [release-object]: {version} "
           + (f"exists (draft={release['isDraft']}, latest={latest_tag == version})"
-             if release else "absent"))
+             if release else "absent")
+          + f"  [via {channel}]")
+    caveat = draft_caveat(release, channel, version)
+    if caveat:
+        print(caveat)
 
     # Stale-tag refusals name the true cause and both commits (F10 false-start 7: a guard
     # once mis-reported a leftover tag as "not merged").
