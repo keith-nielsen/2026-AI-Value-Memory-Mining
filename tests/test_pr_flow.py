@@ -773,6 +773,64 @@ def test_after_mutation_never_emits_an_outward_mutation(work, monkeypatch, capsy
         "a suppressed step must not leave a runnable plan behind"
 
 
+def test_after_mutation_clears_once_its_verified_step_is_confirmed(work, monkeypatch, capsys):
+    """Item 22 — measured in PRODUCTION on PR #67's own merge, one command after the fix landed.
+
+    The merge confirmed (`merged: PR #67 at 2026-08-14T10:13:11Z`) and the VERY NEXT step printed
+    `WAITING remote-gone: the read view does not yet show the merge mutation` — a claim the line
+    directly above it had already disproven — and suppressed a branch delete that genuinely needed
+    doing. Suppression was scoped to *"this run carried the flag"*; it must be scoped to *"the
+    verified mutation is still unconfirmed"*.
+
+    Over-denial is its own failure: `github-command-inventory-classification.md` §6 —
+    *"never regress into the corrosion of over-denial"*. A guard that blocks correct work trains its
+    reader to ignore it, costing exactly the protection it was added for.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    branch = "feat/confirmed"
+    commit_on(work, branch)
+    git(["push", "-u", "origin", branch], work)          # the remote branch really exists
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda slug, n: ({"number": n, "state": "closed",
+                                          "merged_at": "2026-08-14T10:13:11Z",
+                                          "base": {"ref": "main"}}, "anon-rest"))
+    route = pr_flow.Route()
+    rc = pr_flow.post_merge(str(work), "o/r", branch, 67, False, route)
+    printed = capsys.readouterr().out
+
+    assert "SUPPRESSED" not in printed, "the merge is confirmed — later steps are new work"
+    assert "push origin --delete" in printed, "remote-gone must emit its delete"
+    assert "does not yet show" not in printed, "a diagnosis contradicted on screen is worse than none"
+    assert pr_flow.AFTER_MUTATION is None, "post-mutation mode ends when its step is confirmed"
+    assert rc == EXIT_NEEDS_INPUT
+
+
+def test_confirm_mutation_only_clears_the_step_it_was_verifying(monkeypatch):
+    """Confirming some OTHER step must not end post-mutation mode early.
+
+    `post_merge()` pre-marks pr/body/checks/... `ok` before verifying anything, so a hook keyed to
+    'any step went ok' would clear on that loop and reopen the duplicate-emit hazard.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    pr_flow.confirm_mutation("pr")
+    assert pr_flow.AFTER_MUTATION == "merge", "another step's confirmation proves nothing"
+    pr_flow.confirm_mutation("merge")
+    assert pr_flow.AFTER_MUTATION is None
+
+
+def test_suppression_still_holds_while_the_verified_step_is_unconfirmed(work, monkeypatch, capsys):
+    """The narrowing must not reopen item 19's sharper instance (the duplicate-PR hazard)."""
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+    route = pr_flow.Route()
+    rc = pr_flow.emit(route, "pr", "cd /x && gh pr create --base main --head f "
+                                   '--title "T" --body-file b.md',
+                      pr_flow.OPERATOR, pr_flow.OPERATOR, pr_flow.CONSENT_ACT, "why",
+                      root=str(work), branch="f")
+    printed = capsys.readouterr().out
+    assert "SUPPRESSED" in printed
+    assert rc == EXIT_NEEDS_INPUT
+
+
 @pytest.mark.parametrize("command,mutating", [
     # THE SHAPES THE DRIVER ACTUALLY EMITS — lifted from its own f-strings, not hand-written.
     # An earlier version of this test used `git push -u origin feat/lag`, which this tool never
