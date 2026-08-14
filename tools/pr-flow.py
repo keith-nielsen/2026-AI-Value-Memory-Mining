@@ -477,7 +477,13 @@ def lag_tolerant(read, satisfied, root=None, subject=None, first=None):
         attempts.append({
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "series": series,
-            "step": AFTER_MUTATION or "(not-a-verify)",
+            # TWO INDEPENDENT FACTS, TWO FIELDS (item 25). They were collapsed: `step` carried the
+            # sentinel "(not-a-verify)" and `outcome` could itself BE "not-a-verify", entangling
+            # *was this a verify?* with *was the value visible?*. Measured on the real log — 26
+            # series, only 6 of them verifies, all reported together as "22 became visible". Sizing
+            # the ladder from that would average in twenty runs that were never waiting for anything.
+            "step": AFTER_MUTATION,          # None when this is not a post-mutation verify
+            "is_verify": bool(AFTER_MUTATION),
             "subject": subject,
             "attempt": attempt,
             "since_read_s": round(time.time() - t0, 2),
@@ -506,7 +512,10 @@ def lag_tolerant(read, satisfied, root=None, subject=None, first=None):
     ok = satisfied(value)
     note_attempt(0, ok, ch)
     if ok or not AFTER_MUTATION:
-        flush("visible" if ok else "not-a-verify")
+        # `not-visible` is a plain fact about a non-verify run, NOT a censored observation: nothing
+        # was being waited for, so it is not a lower bound on anything and must never reach a
+        # lag summary. That distinction is the whole reason these outcomes now partition.
+        flush("visible" if ok else "not-visible")
         return value, ch, 0
 
     tries = 0  # re-reads ACTUALLY made. Reporting the ladder length here would overstate the
@@ -534,6 +543,29 @@ def lag_tolerant(read, satisfied, root=None, subject=None, first=None):
     return value, ch, tries
 
 
+OUTCOMES = ("visible", "not-visible", "censored-ladder-exhausted", "abandoned-low-budget")
+
+
+def normalize_observation(rec):
+    """Upgrade a pre-partition record ON READ. The log is evidence and is never rewritten.
+
+    Item 25's migration question, which is why a schema change to existing on-disk state deserves
+    the same design pass as introducing it. Records written before the split carry
+    `step: "(not-a-verify)"` and can carry `outcome: "not-a-verify"`; both encode *is_verify* in a
+    field that is supposed to mean something else. Translating on read keeps every observation
+    already collected usable — and rewriting the file to "clean" it would destroy the only real
+    measurements this operation has of GitHub's read-after-write behaviour.
+    """
+    r = dict(rec)
+    if "is_verify" not in r:
+        r["is_verify"] = r.get("step") not in (None, "(not-a-verify)")
+    if r.get("step") == "(not-a-verify)":
+        r["step"] = None
+    if r.get("outcome") == "not-a-verify":
+        r["outcome"] = "not-visible"
+    return r
+
+
 def lag_report(root):
     """Print the RAW read-after-write observations. Reports; never recommends.
 
@@ -552,37 +584,63 @@ def lag_report(root):
     series = {}
     for line in path.read_text(errors="replace").splitlines():
         try:
-            rec = json.loads(line)
+            rec = normalize_observation(json.loads(line))
         except ValueError:
             continue
         series.setdefault(rec.get("series"), []).append(rec)
 
+    # Only VERIFY series can inform the ladder. An ordinary run was not waiting for anything, so its
+    # timing says nothing about read-after-write lag; folding the two together is how 20 unrelated
+    # runs came to sit inside a "22 became visible" tally.
+    verifies, ordinary = [], []
+    for sid, recs in sorted(series.items(), key=lambda kv: kv[1][0].get("ts", "")):
+        recs.sort(key=lambda r: r.get("attempt", 0))
+        (verifies if recs[-1].get("is_verify") else ordinary).append(recs)
+
     print(f"READ-AFTER-WRITE OBSERVATIONS  ({path})")
     print("  raw record only — this report deliberately recommends NO ladder")
     print("")
-    print(f"  {'step':<8} {'subject':<16} {'attempts':>8}  {'last seen at':>13}  outcome")
-    censored = visible = 0
-    for sid, recs in sorted(series.items(), key=lambda kv: kv[1][0].get("ts", "")):
-        recs.sort(key=lambda r: r.get("attempt", 0))
+    if not verifies:
+        print("  no post-mutation verifies recorded yet — nothing here bears on the ladder")
+    else:
+        print(f"  {'step':<9} {'subject':<28} {'attempts':>8}  {'visible at':>11}  outcome")
+    tally = {k: 0 for k in OUTCOMES}
+    unknown = 0
+    for recs in verifies:
         last = recs[-1]
         outcome = last.get("outcome", "(incomplete)")
-        if outcome == "visible":
-            visible += 1
-        elif outcome.startswith(("censored", "abandoned")):
-            censored += 1
-        when = f"{last.get('since_proc_start_s', '?')}s"
-        print(f"  {last.get('step', '?'):<8} {str(last.get('subject') or ''):<16} "
-              f"{len(recs):>8}  {when:>13}  {outcome}")
+        if outcome in tally:
+            tally[outcome] += 1
+        else:
+            unknown += 1
+        print(f"  {str(last.get('step') or '?'):<9} {str(last.get('subject') or ''):<28} "
+              f"{len(recs):>8}  {str(last.get('since_proc_start_s', '?')) + 's':>11}  {outcome}")
 
-    total = visible + censored
+    # The tally MUST partition the rows above it. A footer that disagrees with its own table is the
+    # defect this section was rewritten to remove — it previously printed "22 series" over 26 rows.
+    counted = sum(tally.values()) + unknown
     print("")
-    print(f"  {total} series — {visible} became visible, {censored} CENSORED")
+    print(f"  {len(verifies)} verify series — "
+          + ", ".join(f"{tally[k]} {k}" for k in OUTCOMES if tally[k])
+          + (f", {unknown} unrecognised" if unknown else ""))
+    if counted != len(verifies):
+        print(f"  ⚠ TALLY DOES NOT PARTITION: {counted} counted against {len(verifies)} rows — "
+              "treat this report as unreliable and fix the categories before using the data.")
+    print(f"  ({len(ordinary)} ordinary runs also recorded — excluded: they were not waiting "
+          "for a mutation)")
+
+    censored = tally["censored-ladder-exhausted"] + tally["abandoned-low-budget"]
     if censored:
-        print("  ⚠ A censored series is a LOWER BOUND on the lag, not a measurement of it.")
+        # Kept SHOUTING deliberately. This rewrite first listed outcomes in lowercase only, and a
+        # standing test caught the loss of prominence: censoring is the one fact a reader must not
+        # skim, because treating a lower bound as a measurement is how a short ladder self-justifies.
+        print(f"  ⚠ {censored} CENSORED")
+        print("    A censored series is a LOWER BOUND on the lag, not a measurement of it.")
         print("    Averaging only the visible ones understates the distribution — which is exactly")
         print("    how a too-short ladder gets justified by the data it produced.")
-    if total < 20:
-        print(f"  ⚠ {total} series is not a distribution. Do not resize the ladder from this yet.")
+    if len(verifies) < 20:
+        print(f"  ⚠ {len(verifies)} verify series is not a distribution. Do not resize the ladder "
+              "from this yet.")
     print("  Timing caveat: `since_proc_start_s` approximates time-since-write only for a saved")
     print("  plan's verify tail, where the process starts moments after the mutation.")
     return EXIT_OK
