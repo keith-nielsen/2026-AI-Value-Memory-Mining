@@ -273,6 +273,29 @@ def probe_consent(root, command):
 
 # --- emitters ------------------------------------------------------------------------------------
 
+def confirm_mutation(step):
+    """The mutation under verification has been OBSERVED to land — leave post-mutation mode.
+
+    Item 22, measured in production on PR #67's own merge. Suppression was scoped to *"this run was
+    invoked with the flag"*, so it kept firing after the merge was confirmed: the driver printed
+    `merged: PR #67 at 2026-08-14T10:13:11Z` and then suppressed the branch delete with
+    `WAITING remote-gone: the read view does not yet show the merge mutation` — a claim the line
+    directly above it had already disproven — blocking a step that genuinely needed doing.
+
+    The correct scope is *"the verified mutation is still unconfirmed"*. Once confirmed, every later
+    step is NEW work, not a re-emission, and must proceed normally. Over-denial is its own failure
+    mode, never a safe default: a guard that blocks correct work teaches its reader to ignore it,
+    costing exactly the protection it was added for.
+
+    Keyed to the SPECIFIC step, because `post_merge()` pre-marks pr/body/checks/... as `ok` before it
+    has verified anything — a hook keyed to "any step went ok" would clear on that loop and reopen
+    the duplicate-emit hazard.
+    """
+    global AFTER_MUTATION
+    if AFTER_MUTATION == step:
+        AFTER_MUTATION = None
+
+
 def is_outward_mutation(command):
     """Would running this command change state on GitHub? Classified by shape, not by step name.
 
@@ -1080,6 +1103,7 @@ def drive(args, root, route, plan=False):
                       f"({head_local_sha[:7]})", "re-read the PR; something pushed out of band",
                       plan)
     route.mark("pr", "ok", f"#{number}, open, not draft, head matches")
+    confirm_mutation("pr")  # item 22: the create is visible — stop suppressing later steps
 
     # --- body: the declared-scope block must be IN the PR, not merely in a local file ------------
     if not scope_block_in(pr.get("body"), root):
@@ -1097,6 +1121,7 @@ def drive(args, root, route, plan=False):
                     plan=plan, root=root, branch=branch,
                     assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}"])
     route.mark("body", "ok", "declared-scope block present in the PR body")
+    confirm_mutation("body")  # item 22: the PATCH is visible — stop suppressing later steps
 
     # --- checks -----------------------------------------------------------------------------------
     try:
@@ -1223,6 +1248,7 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
         return refuse(route, "merge", f"PR #{number} is not merged (state={pr.get('state')}) "
                                       f"[via {ch}]", None, plan)
     route.mark("merge", "ok", f"merged {pr['merged_at']}")
+    confirm_mutation("merge")  # item 22: observed to land — later steps are new work, not re-emits
     out("merged", f"PR #{number} at {pr['merged_at']}  [via {ch}]")
 
     r = git(["ls-remote", "origin", f"refs/heads/{branch}"], cwd=root)
