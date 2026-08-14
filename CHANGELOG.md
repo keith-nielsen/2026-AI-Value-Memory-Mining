@@ -12,6 +12,58 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.41] - 2026-08-15
+
+Two changes, both aimed at the same thing from opposite ends: the release ceremony stops being
+operator-only by defect, and the contribution rules stop being silently approximate.
+
+### Fixed
+
+- **Release reads degrade to the anonymous channel** (`fix/ship-release-anon-reads`, defect fix,
+  **no change directory**, PR #72). `ship-release.py` called `gh release view` / `gh release list`
+  directly. Both need the operating-system keyring, so from a confined session `gh` returns a
+  misleading 401 and the driver exited **`3 BLOCKED` on a read** — *after both of its real guards had
+  already passed*. Measured twice mid-ceremony during this repository's own v0.1.40 ship: the tag
+  could be pushed on the git channel, but the driver could not be re-run to advance or verify its own
+  success. This violated a shipped requirement (`maintenance` — *GitHub Reads Degrade To An
+  Unauthenticated Channel*), and the sibling `pr-flow.py` already complied, so the fix reuses that
+  layer rather than inventing one.
+
+  Three decisions came out of the design pass rather than out of a failure. Release **existence is
+  read from the list**, never a per-tag endpoint: `gh_read.get()` raises on a failed read and does not
+  distinguish 404, so `/releases/tags/<tag>` would turn *"this release does not exist"* — an ordinary,
+  expected answer — into an error. **`isLatest` is asked, never recomputed**: REST carries no
+  per-release `isLatest`, and *"newest non-draft, non-prerelease by date"* is GitHub's rule, so
+  restating it locally would fork an acceptance criterion across two systems with no merge.
+  And **draft releases are invisible to unauthenticated callers**, so on that channel a missing
+  release means *absent or draft*; the ambiguity is printed rather than assumed away, and stays
+  silent on the authenticated channel where drafts are visible and a warning would be over-denial.
+
+  Release **mutations remain operator-owned** — credential absence is the real INV-14 barrier. Only
+  the reads changed.
+
+### Changed
+
+- **The no-proposal exception is written down and bounded** (`docs/proposal-threshold-rule`,
+  docs-only, no spec delta, PR #71). `CONTRIBUTING.md` states that *every* change originates as an
+  OpenSpec proposal, while practice has exempted defect fixes to maintainer tools since PR #35 — an
+  exception that was real, load-bearing, and recorded nowhere. A documented absolute that practice
+  quietly contradicts teaches its readers that the document is approximate.
+
+  The exception is now stated **with edges**, because an unwritten one has none: it had been stretched
+  to cover a 204-line change that added a command-line flag, module-level state, a refusing guard and
+  new exit semantics, which then shipped three defects. A change may ship without a proposal only if
+  it is a defect fix to a maintainer tool **and** it adds no caller-visible surface, introduces no
+  persistent state, and changes no exit semantics. Recorded alongside are the three questions a design
+  pass exists to force — **state lifetime** (what is the exit condition?), **reachability** (which real
+  invocation reaches this line?) and **exhaustiveness** (do the categories partition?) — each mapped to
+  a defect that shipped for want of asking it.
+
+  The rule is **prose and unenforced**, and says so: nothing in continuous integration checks it, and
+  a requirement and its guard ship together or not at all. The candidate enforcement point is named
+  instead. Its first application was PR #72, where it changed the design — a module-level cache was
+  replaced by explicit data flow.
+
 ## [0.1.40] - 2026-08-14
 
 Four defect fixes to `tools/pr-flow.py`, none carrying an OpenSpec change directory (maintainer-tool
