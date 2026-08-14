@@ -1334,3 +1334,77 @@ def test_ready_requires_its_identifier_so_it_stays_one_request(work):
     r = run_flow(work, "--ready", "checks")
     assert r.returncode == EXIT_BLOCKED
     assert "--sha" in r.stderr
+
+
+# --- item 25: the observation record must PARTITION -------------------------------------------
+
+def test_verify_and_visibility_are_separate_fields(work, monkeypatch):
+    """Item 25. `is_verify` and `outcome` are independent facts and need independent fields.
+
+    They were collapsed: `step` carried the sentinel "(not-a-verify)" and `outcome` could itself BE
+    "not-a-verify". Measured on the real log — 26 series, only 6 of them verifies, all summarised
+    together as "22 became visible". Anyone sizing the ladder from that would have averaged in twenty
+    runs that were never waiting for anything.
+    """
+    import json as _json
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)          # an ORDINARY run
+    pr_flow.lag_tolerant(lambda: ({}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="branch=feat/x")
+    rec = _json.loads(pr_flow.lag_log_path(str(work)).read_text().splitlines()[-1])
+    assert rec["is_verify"] is False
+    assert rec["step"] is None, "the sentinel string is gone; absence is None"
+    assert rec["outcome"] == "not-visible", "a non-verify is not a censored observation"
+
+
+def test_outcomes_partition_and_the_footer_matches_its_own_table(work, monkeypatch, capsys):
+    """The footer must count exactly the rows it printed.
+
+    It previously reported '22 series' above 26 printed rows, because the tally recognised only
+    `visible` plus the censored family and silently dropped everything else. A summary that
+    disagrees with the table directly above it is the item-22 defect in another costume.
+    """
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0,))
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 60)
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    pr_flow.lag_tolerant(lambda: ({}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="pr=1")          # censored verify
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+    pr_flow.lag_tolerant(lambda: ({"x": 1}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="pr=2")          # visible verify
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)
+    pr_flow.lag_tolerant(lambda: ({}, "anon-rest"), lambda v: bool(v),
+                         root=str(work), subject="branch=x")      # ordinary, must be EXCLUDED
+    capsys.readouterr()
+
+    pr_flow.lag_report(str(work))
+    out = capsys.readouterr().out
+    assert "2 verify series" in out, "the ordinary run must not be counted as a verify"
+    assert "1 ordinary runs also recorded" in out
+    assert "TALLY DOES NOT PARTITION" not in out
+    # A DATA row, matched by its shape: step, subject, attempt count, elapsed, outcome. Matching on
+    # the word "visible" instead swept in the header and a caveat sentence — the filter must
+    # discriminate rows from prose, or it cannot check what it claims to check.
+    rows = [ln for ln in out.splitlines()
+            if re.match(r"^  \S+\s+\S+\s+\d+\s+[\d.]+s\s+\S+$", ln)]
+    assert len(rows) == 2, f"table must print exactly the 2 verify series, got {len(rows)}"
+
+
+def test_pre_partition_records_are_upgraded_on_read_not_rewritten(work):
+    """Migration. The log is EVIDENCE — the only real measurements of GitHub's read lag we have.
+
+    Old records encode `is_verify` inside fields meant for other things. They are translated on
+    READ; rewriting the file to 'clean' it would destroy the observations item 24 is waiting for.
+    """
+    old_verify = {"series": "a", "step": "merge", "outcome": "visible", "attempt": 0}
+    old_ordinary = {"series": "b", "step": "(not-a-verify)", "outcome": "not-a-verify", "attempt": 0}
+
+    up = pr_flow.normalize_observation(old_verify)
+    assert up["is_verify"] is True and up["step"] == "merge"
+
+    down = pr_flow.normalize_observation(old_ordinary)
+    assert down["is_verify"] is False
+    assert down["step"] is None
+    assert down["outcome"] == "not-visible", "the old outcome sentinel maps to the real outcome"
+
+    # and the originals are untouched — normalisation returns a copy
+    assert old_ordinary["step"] == "(not-a-verify)"
