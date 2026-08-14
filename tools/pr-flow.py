@@ -63,6 +63,22 @@ OPERATOR = "OPERATOR"
 CONSENT_LOCAL = "none needed — local only, nothing leaves this machine"
 CONSENT_ACT = "implicit in the act: you run it, so you authorize it"
 INVOCATION = None  # set once in main(): the argv that produced THIS run
+
+# Set once in main() from --after-mutation: the step whose mutation just ran, when this invocation
+# is the verify tail of a saved plan rather than an ordinary route derivation. Two things change in
+# that mode, and BOTH exist because GitHub's read view lags its own writes:
+#   1. an unconfirmed step is WAITING, not REFUSED — a red verdict under a successful irreversible
+#      mutation invites the one reaction that must never happen: re-running the mutation;
+#   2. no outward mutation may be emitted at all — see the guard in emit().
+AFTER_MUTATION = None
+MUTATION_EVIDENCE = None  # path to the mutation's captured output, so its own proof can be quoted
+
+# Bounded, budget-aware lag tolerance. Deliberately small: the anonymous REST channel allows 60
+# reads/hour and a full invocation already costs several, so a generous retry ladder would trade a
+# cosmetic problem for an exhausted budget. Two extra reads is enough to clear the lag observed on
+# #63/#64/#66 and cheap enough to spend on every operator step.
+LAG_RETRY_DELAYS = (2, 5)
+LAG_RETRY_MIN_BUDGET = 10  # below this many remaining reads, report once and stop spending
 PLAN_TTL_SECONDS = 24 * 60 * 60  # industry practice: approvals expire so stale plans cannot apply
 
 # Why `gh` mutations stay with the operator. BOTH halves matter: if the reason reads as mere
@@ -257,10 +273,53 @@ def probe_consent(root, command):
 
 # --- emitters ------------------------------------------------------------------------------------
 
+def is_outward_mutation(command):
+    """Would running this command change state on GitHub? Classified by shape, not by step name.
+
+    Keyed to the verbs the driver itself emits. A step-name allowlist would have to be revisited
+    every time a step is added, and the failure mode of forgetting is that a mutation escapes the
+    guard silently — the wrong direction to be wrong in.
+    """
+    c = " ".join(command.split())
+    # Matched with the verb SEPARATED from its program, because that is how the driver emits every
+    # one of them: `git -C <root> push …`, `cd <root> && gh api -X PUT …`. A literal "git push"
+    # substring test misses ALL FOUR push sites — measured end-to-end 2026-08-13, where the guard
+    # waved through the very push the driver had just emitted one line below it. The unit test that
+    # passed had used a hand-written `git push -u origin br`, a shape this tool never produces.
+    return any(re.search(p, c) for p in (
+        r"\bgit\b[^|;&]*\bpush\b",
+        r"\bgh\b[^|;&]*\bpr\s+(create|merge|edit|close|reopen|ready)\b",
+        r"\bgh\b[^|;&]*\bapi\b[^|;&]*(-X|--method)\s+(PUT|POST|PATCH|DELETE)\b",
+        r"\bgh\b[^|;&]*\brelease\s+(create|edit|delete|upload)\b",
+    ))
+
+
 def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None,
          assert_args=None, branch=None):
     if plan:
         raise PlanStop("emit", step, command, runs, authority, consent, why)
+
+    # THE guard for item 19's sharper instance. On #66 the verify tail read 0 PRs seconds after
+    # `gh pr create` succeeded, and re-emitted `gh pr create` — an instruction that, followed,
+    # opens a DUPLICATE pull request. The merge case was survivable only because GitHub answered
+    # idempotently; this one is not. A post-mutation verify exists to observe, so it may not
+    # instruct a mutation. Structural, not a caveat in the output prose: the emit cannot happen.
+    if AFTER_MUTATION and is_outward_mutation(command):
+        route.mark(step, "wait")
+        print("")
+        print(route.header())
+        print("")
+        print(f"WAITING {step}: the read view does not yet show the {AFTER_MUTATION} mutation, so "
+              "this step still looks unstarted.")
+        print(f"  evidence:  {mutation_proof()}")
+        print("  diagnosis: read-after-write lag. The route below would otherwise have told you to "
+              "run:")
+        print(f"    {command}")
+        print("  SUPPRESSED — running that after a successful mutation would duplicate it.")
+        print("  next:      re-run this driver WITHOUT --after-mutation once the read view "
+              "settles;")
+        print("             it will either advance or tell you what is genuinely missing.")
+        return EXIT_NEEDS_INPUT
     route.mark(step, "current")
     print("")
     print(route.header(next_owner=runs))
@@ -304,6 +363,90 @@ def refuse(route, step, why, fix=None, plan=False):
     return EXIT_REFUSED
 
 
+def mutation_proof():
+    """The mutation's own evidence, for quoting back when the read view contradicts it.
+
+    Under `set -euo pipefail` the verify tail only runs at all if the mutation exited 0 — that fact
+    alone is proof, and it holds even when no evidence file was captured. Where the file exists, the
+    platform's own response is far more persuasive to a worried operator than an inference.
+    """
+    exited_ok = "the mutation command exited 0 (set -e would have aborted this script otherwise)"
+    if not MUTATION_EVIDENCE:
+        return exited_ok
+    try:
+        text = pathlib.Path(MUTATION_EVIDENCE).read_text(errors="replace")
+    except OSError:
+        return exited_ok
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if isinstance(data, dict):
+        # Quote the fields that actually settle the question, not the whole payload.
+        facts = [f"{k}={data[k]}" for k in ("merged", "sha", "number", "state", "html_url")
+                 if k in data]
+        if facts:
+            return "the mutation reported " + ", ".join(facts)
+    snippet = " ".join(text.split())[:160]
+    return f"the mutation reported: {snippet}" if snippet else exited_ok
+
+
+def lag_tolerant(read, satisfied):
+    """Re-read a lagging condition a bounded number of times before believing the negative.
+
+    Item 19: on #64 the merge returned `{"merged": true}` and the very next read said
+    `state=open`; on #66 the `pr` step read 0 PRs seconds after `gh pr create` succeeded. Nothing
+    was wrong either time — GitHub's read view had not caught up with its own write. A single read
+    cannot distinguish that from a mutation that genuinely did not land; only elapsed time can.
+
+    Returns (value, channel, attempts). Spends nothing when not verifying a mutation, and stops
+    early when the read budget is too low to justify the spend — a probe that exhausts the channel
+    to polish a message has made things worse.
+    """
+    value, ch = read()
+    if satisfied(value) or not AFTER_MUTATION:
+        return value, ch, 0
+    tries = 0  # re-reads ACTUALLY made. Reporting the ladder length here would overstate the
+    for i, delay in enumerate(LAG_RETRY_DELAYS, start=1):  # effort on every budget-break path,
+        remaining = gh_read.BUDGET.get("remaining")        # which is the tools-that-report-a-
+        if remaining is not None and remaining < LAG_RETRY_MIN_BUDGET:  # non-result-as-a-result
+            note(f"lag re-read skipped — only {remaining} reads remain on this channel")  # class.
+            break
+        print(f"VERIFY  {AFTER_MUTATION}: not visible yet — re-reading "
+              f"({i}/{len(LAG_RETRY_DELAYS)}, +{delay}s)")
+        time.sleep(delay)
+        value, ch = read()
+        tries = i
+        if satisfied(value):
+            break
+    return value, ch, tries
+
+
+def waiting(route, step, what, probe, plan=False):
+    """The mutation succeeded; the read view has not caught up. NOT a refusal, and never red.
+
+    Item 19, measured twice. `refuse()` prints REFUSED and exits 1 directly beneath a successful
+    irreversible mutation, and the natural operator reaction to that is to run the mutation again.
+    The driver already owned the right vocabulary — `not_ready` and exit 2 mean "the platform has
+    not answered yet" everywhere else in this file; this path simply never used it.
+    """
+    if plan:
+        raise PlanStop("wait", step, why=what)
+    route.mark(step, "wait")
+    print("")
+    print(route.header())
+    print("")
+    print(f"WAITING {step}: {what}")
+    print(f"  evidence:  {mutation_proof()}")
+    print("  diagnosis: read-after-write lag on GitHub's own read view, not a failed mutation.")
+    print(f"  poll:      {probe}")
+    print(f"  DO NOT re-run the {step} mutation — it reported success. Poll the read view instead.")
+    budget = gh_read.budget_report()
+    if budget:
+        print(f"  budget:    {budget} (poll no faster than 60s)")
+    return EXIT_NEEDS_INPUT
+
+
 def not_ready(route, step, what, probe, plan=False):
     """Asynchronous platform state is NOT READY, which is not a verdict and not a failure."""
     if plan:
@@ -327,7 +470,7 @@ def saved_plan_path(root):
     return pathlib.Path(root) / ".git" / "pr-flow" / "next.sh"
 
 
-def verify_invocation(root):
+def verify_invocation(root, step=None):
     """The driver invocation that produced this plan, PINNED at write time.
 
     The tail used to be `--branch "${PR_FLOW_BRANCH:-$(git branch --show-current)}"`, which resolves
@@ -342,7 +485,15 @@ def verify_invocation(root):
     for want of arguments it was never handed.
     """
     argv = INVOCATION if INVOCATION is not None else [a for a in sys.argv[1:] if a != "--plan"]
-    return " ".join(shlex.quote(a) for a in [sys.executable, f"{root}/tools/pr-flow.py", *argv])
+    argv = [a for a in argv if a not in ("--after-mutation", "--mutation-evidence")]
+    if step:
+        # Pinned at write time, exactly like the branch: the tail must know it is verifying a
+        # mutation it just ran, because that is what licenses lag tolerance and forbids emitting
+        # another mutation. Derived at run time it would be guesswork.
+        argv += ["--after-mutation", step, "--mutation-evidence", "$_ev"]
+    quoted = " ".join(shlex.quote(a) for a in [sys.executable, f"{root}/tools/pr-flow.py", *argv])
+    # $_ev must reach bash unquoted to expand; everything else stays quoted.
+    return quoted.replace("'$_ev'", '"$_ev"')
 
 
 def discard_saved_plan(root):
@@ -422,8 +573,22 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
             # a state that moved between emission and execution never reaches the command.
             body.append(f"python3 {root}/tools/pr-flow.py --assert-preconditions "
                         + " ".join(assert_args))
-        body += [command, "", "# verify the mutation actually landed (invocation pinned at write",
-                 "# time — see verify_invocation): ", verify_invocation(root)]
+        body += [
+            # Capture the mutation's own response alongside showing it. When the read view lags,
+            # the platform's own "merged": true is what settles the operator's question — an
+            # inference from `set -e` is correct but far less convincing at the moment it matters.
+            '_ev="$(mktemp -t pr-flow-evidence.XXXXXX)"',
+            'trap \'rm -f "$_ev"\' EXIT',
+            "",
+            "# MUTATION — the step you authorized:",
+            f"{command} 2>&1 | tee \"$_ev\"",
+            "",
+            "# VERIFY — did it land? (invocation pinned at write time, see verify_invocation.)",
+            "# --after-mutation makes an unconfirmed read WAITING rather than REFUSED, and forbids",
+            "# this tail from emitting another mutation.",
+            f'echo "MUTATION {step}: command exited 0"',
+            verify_invocation(root, step),
+        ]
         path.write_text("\n".join(body) + "\n")
         path.chmod(0o755)
         return path
@@ -835,7 +1000,15 @@ def drive(args, root, route, plan=False):
         return EXIT_BLOCKED
     out("repo", slug)
     try:
-        prs, ch = prefetched or gh_read.pulls_for_branch(slug, branch, base, state="all")
+        # The `pr` step is where item 19's sharper instance fired: seconds after a successful
+        # `gh pr create`, this read returned 0 PRs. Give the read view a bounded chance to catch
+        # up before the route concludes the pull request does not exist.
+        if prefetched:
+            prs, ch = prefetched
+        else:
+            prs, ch, _ = lag_tolerant(
+                lambda: gh_read.pulls_for_branch(slug, branch, base, state="all"),
+                lambda found: bool(found))
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot read PRs — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
@@ -1033,11 +1206,20 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
         if route.state[sid] == "todo":
             route.mark(sid, "ok", "completed earlier in this lifecycle")
     try:
-        pr, ch = gh_read.pull_request(slug, number)
+        pr, ch, tries = lag_tolerant(lambda: gh_read.pull_request(slug, number),
+                                     lambda p: bool(p.get("merged_at")))
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot re-read PR #{number} — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
     if not pr.get("merged_at"):
+        # The merge is the irreversible step, so this is the worst possible place for a false
+        # alarm. When we are verifying our own mutation, an unconfirmed read is WAITING; when we
+        # are not, an unmerged PR at this point is a genuine refusal and keeps its old verdict.
+        if AFTER_MUTATION:
+            return waiting(route, "merge",
+                           f"PR #{number} is not merged in the read view yet "
+                           f"(state={pr.get('state')}) [via {ch}, {tries} re-read(s)]",
+                           f"python3 {root}/tools/pr-flow.py --ready merged --pr {number}", plan)
         return refuse(route, "merge", f"PR #{number} is not merged (state={pr.get('state')}) "
                                       f"[via {ch}]", None, plan)
     route.mark("merge", "ok", f"merged {pr['merged_at']}")
@@ -1124,11 +1306,19 @@ def main(argv=None):
     ap.add_argument("--pr", type=int, help="pull request number, for --ready / --assert")
     ap.add_argument("--assert-preconditions", nargs="+", metavar="K=V",
                     help="re-assert the state consent was given for; exit 1 if it moved")
+    ap.add_argument("--after-mutation", metavar="STEP",
+                    help="this run verifies STEP's mutation, which just succeeded: tolerate "
+                         "read-after-write lag, report WAITING not REFUSED, emit no mutation")
+    ap.add_argument("--mutation-evidence", metavar="PATH",
+                    help="file holding the mutation's own response, quoted back when the read "
+                         "view contradicts it")
     args = ap.parse_args(argv)
     # Pin the invocation that produced this run, so a saved plan verifies THIS lifecycle rather than
     # whatever branch the caller happens to stand on when they run the file.
-    global INVOCATION
+    global INVOCATION, AFTER_MUTATION, MUTATION_EVIDENCE
     INVOCATION = [a for a in (argv if argv is not None else sys.argv[1:]) if a != "--plan"]
+    AFTER_MUTATION = args.after_mutation
+    MUTATION_EVIDENCE = args.mutation_evidence
 
     r = git(["rev-parse", "--show-toplevel"])
     if r.returncode != 0:

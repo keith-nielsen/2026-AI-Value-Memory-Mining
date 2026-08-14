@@ -695,9 +695,179 @@ def test_saved_plan_pins_its_verification_target(work):
     pr_flow.INVOCATION = ["--branch", "feat/pinned", "--base", "main"]
     path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
                                     "feat/pinned")
-    tail = pathlib.Path(path).read_text().split("# verify")[1]
+    tail = pathlib.Path(path).read_text().split("# VERIFY")[1]
     assert "$(git branch --show-current)" not in tail
     assert "feat/pinned" in tail
+
+
+def test_saved_plan_tail_carries_the_after_mutation_flags(work):
+    """Item 19: the tail must KNOW it is verifying a mutation, pinned at write time like the branch.
+
+    Derived at run time it would be guesswork; pinned, it is the fact that licenses lag tolerance
+    and forbids emitting another mutation.
+    """
+    pr_flow.INVOCATION = ["--branch", "feat/lag", "--base", "main"]
+    path = pr_flow.write_saved_plan(str(work), "merge", "gh api -X PUT /x", "merges PR #51",
+                                    "feat/lag")
+    text = pathlib.Path(path).read_text()
+    tail = text.split("# VERIFY")[1]
+    assert "--after-mutation merge" in tail
+    assert "--mutation-evidence" in tail
+    assert '"$_ev"' in tail, "the evidence path must expand in bash, not arrive quoted"
+    assert 'tee "$_ev"' in text, "the mutation's own response must be captured as it is shown"
+
+
+def test_after_mutation_reports_waiting_not_refused_when_the_merge_is_not_visible(work, monkeypatch):
+    """Item 19, the original symptom: REFUSED, exit 1, directly beneath `"merged": true`.
+
+    Nothing was wrong — GitHub's read view had not caught up with its own write. The operator's
+    natural reaction to red-after-irreversible is to re-run the merge, which is the one thing that
+    must never happen here.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0))  # same code path, no wall-clock cost
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda slug, n: ({"number": n, "state": "open", "merged_at": None},
+                                         "anon-rest"))
+    route = pr_flow.Route()
+    rc = pr_flow.post_merge(str(work), "o/r", "feat/lag", 64, False, route)
+    assert rc == EXIT_NEEDS_INPUT, "waiting is exit 2, not the exit 1 of a refusal"
+
+
+def test_without_after_mutation_an_unmerged_pr_is_still_a_refusal(work, monkeypatch):
+    """The adversarial half: lag tolerance must not soften an ordinary run into a false pass.
+
+    Outside a post-mutation verify there is no successful mutation to contradict, so an unmerged PR
+    at this point is a genuine refusal and keeps its old verdict.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda slug, n: ({"number": n, "state": "open", "merged_at": None},
+                                         "anon-rest"))
+    route = pr_flow.Route()
+    rc = pr_flow.post_merge(str(work), "o/r", "feat/lag", 64, False, route)
+    assert rc == EXIT_REFUSED
+
+
+def test_after_mutation_never_emits_an_outward_mutation(work, monkeypatch, capsys):
+    """Item 19's SHARPER instance (PR #66) — the one that is not survivable.
+
+    Seconds after `gh pr create` succeeded, the verify tail read 0 PRs and re-emitted
+    `gh pr create`. Following that instruction opens a DUPLICATE pull request; the merge case was
+    survivable only because GitHub answered idempotently. The suppression is structural — the emit
+    cannot happen — rather than a caveat in the output prose.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+    route = pr_flow.Route()
+    rc = pr_flow.emit(route, "pr", "cd /x && gh pr create --base main --head feat/lag "
+                                   '--title "T" --body-file b.md',
+                      pr_flow.OPERATOR, pr_flow.OPERATOR, pr_flow.CONSENT_ACT, "why",
+                      root=str(work), branch="feat/lag")
+    printed = capsys.readouterr().out
+    assert rc == EXIT_NEEDS_INPUT
+    assert "SUPPRESSED" in printed
+    assert "NEXT COMMAND (run exactly this" not in printed, \
+        "the command must never be presented as an instruction to run"
+    assert "duplicate" in printed.lower()
+    assert not pr_flow.saved_plan_path(str(work)).exists(), \
+        "a suppressed step must not leave a runnable plan behind"
+
+
+@pytest.mark.parametrize("command,mutating", [
+    # THE SHAPES THE DRIVER ACTUALLY EMITS — lifted from its own f-strings, not hand-written.
+    # An earlier version of this test used `git push -u origin feat/lag`, which this tool never
+    # produces; all four real push sites interpose `-C <root>` and slipped straight through the
+    # guard. Caught end-to-end, not here. Copy from the emit site; do not compose from memory.
+    ("git -C /r push -u origin feat/lag", True),
+    ("git -C /r push origin feat/lag", True),
+    ("git -C /r push --force-with-lease origin feat/lag", True),
+    ("git -C /r push origin --delete feat/lag", True),
+    ("cd /r && gh pr create --base main --head feat/lag --title \"T\" --body-file b.md", True),
+    ("cd /r && gh api -X PATCH /repos/o/r/pulls/64 -f body=@b.md", True),
+    ("cd /r && gh api -X PUT /repos/o/r/pulls/64/merge -f sha=abc", True),
+    # Reads and local-only work must stay emittable — over-denial is its own failure.
+    ("python3 /r/tools/pr-flow.py --ready merged --pr 64", False),
+    ("git -C /r rebase origin/main", False),
+    ("git -C /r branch -D feat/lag", False),
+    ("cd /r && gh pr view 64", False),
+    ("cd /r && gh api /repos/o/r/pulls/64", False),
+])
+def test_outward_mutation_is_classified_by_shape_not_by_step_name(command, mutating):
+    """A step-name allowlist fails silently when a step is added; shape does not.
+
+    Note `git -C /r branch -D` is NOT outward: deleting a LOCAL branch changes nothing on GitHub,
+    and suppressing it would strand the lifecycle's last step.
+    """
+    assert pr_flow.is_outward_mutation(command) is mutating
+
+
+def test_every_command_the_driver_emits_is_classified(work):
+    """Guard against the classifier drifting from the emit sites it is supposed to cover.
+
+    The end-to-end miss happened because the test's idea of an emitted command and the driver's
+    actual f-string had diverged. This reads the source and fails if a push/gh-mutation emit site
+    appears that the classifier does not match.
+    """
+    src = (REPO / "tools" / "pr-flow.py").read_text()
+    emitted = re.findall(r'cmd = \(?f?"([^"]*(?:push|gh api -X|gh pr create)[^"]*)"', src)
+    assert emitted, "no emit sites found — the scrape pattern has gone stale, not the code"
+    for template in emitted:
+        concrete = (template.replace("{root}", "/r").replace("{branch}", "feat/lag")
+                            .replace("{base}", "main").replace("{slug}", "o/r")
+                            .replace("{number}", "64").replace("{args.title}", "T")
+                            .replace("{args.body_file}", "b.md"))
+        assert pr_flow.is_outward_mutation(concrete), \
+            f"driver emits this but the guard does not classify it as a mutation: {concrete}"
+
+
+def test_lag_tolerant_stops_spending_when_the_read_budget_is_low(monkeypatch):
+    """A probe that exhausts a 60/hour channel to polish a message has made things worse."""
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 3)
+    calls = []
+
+    def read():
+        calls.append(1)
+        return ({}, "anon-rest")
+
+    value, ch, tries = pr_flow.lag_tolerant(read, lambda v: False)
+    assert len(calls) == 1, "one read, then it stopped: the budget was below the floor"
+    assert tries == 0
+
+
+def test_lag_tolerant_returns_as_soon_as_the_read_view_catches_up(monkeypatch):
+    """The point is to stop paying the moment the answer arrives, not to burn the whole ladder."""
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0))
+    monkeypatch.setitem(pr_flow.gh_read.BUDGET, "remaining", 60)
+    seq = [{"merged_at": None}, {"merged_at": "2026-08-13T00:00:00Z"}, {"merged_at": None}]
+    value, ch, tries = pr_flow.lag_tolerant(lambda: (seq.pop(0), "anon-rest"),
+                                            lambda v: bool(v.get("merged_at")))
+    assert value["merged_at"] and tries == 1
+    assert len(seq) == 1, "it stopped at the first satisfying read"
+
+
+def test_lag_tolerant_spends_nothing_outside_a_post_mutation_verify(monkeypatch):
+    """Ordinary runs must cost exactly what they cost today — this is a 60-reads/hour channel."""
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)
+    calls = []
+    pr_flow.lag_tolerant(lambda: (calls.append(1), ({}, "anon-rest"))[1], lambda v: False)
+    assert len(calls) == 1
+
+
+def test_mutation_proof_quotes_the_platforms_own_response(tmp_path, monkeypatch):
+    """`"merged": true` from GitHub settles the question far better than an inference."""
+    ev = tmp_path / "ev.json"
+    ev.write_text('{"merged": true, "sha": "96e5d91", "message": "Pull Request merged"}')
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", str(ev))
+    proof = pr_flow.mutation_proof()
+    assert "merged=True" in proof and "96e5d91" in proof
+
+
+def test_mutation_proof_falls_back_to_the_set_e_inference(monkeypatch):
+    """No evidence file is not no evidence: under `set -e` the tail only runs if the mutation did."""
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", None)
+    assert "exited 0" in pr_flow.mutation_proof()
 
 
 def test_saved_plan_refuses_to_run_from_a_different_branch(work):
