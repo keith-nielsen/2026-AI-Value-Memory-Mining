@@ -451,7 +451,7 @@ def log_lag_observation(root, record):
         pass  # telemetry is never load-bearing
 
 
-def lag_tolerant(read, satisfied, root=None, subject=None):
+def lag_tolerant(read, satisfied, root=None, subject=None, first=None):
     """Re-read a lagging condition a bounded number of times before believing the negative.
 
     Item 19: on #64 the merge returned `{"merged": true}` and the very next read said
@@ -495,7 +495,14 @@ def lag_tolerant(read, satisfied, root=None, subject=None):
         for rec in attempts:
             log_lag_observation(root, rec)
 
-    value, ch = read()
+    # `first` is an answer the caller already paid for (the terminal-state prefetch). Passing it in
+    # rather than special-casing it at the call site buys two things that a branch there did not:
+    # the no-lag case is OBSERVED like any other, and the prefetch read is no longer wasted when the
+    # ladder does run. The first version of this change branched at the call site, so the fast path
+    # skipped `lag_tolerant` entirely and logged NOTHING — leaving a record containing only lagging
+    # cases, which is precisely the bias this log was built to avoid. Measured on PR #69's own
+    # creation: the read view kept up, and the observation file came back empty.
+    value, ch = first if first is not None else read()
     ok = satisfied(value)
     note_attempt(0, ok, ch)
     if ok or not AFTER_MUTATION:
@@ -1169,15 +1176,14 @@ def drive(args, root, route, plan=False):
         # always. Measured on PR #68's own creation: the guard suppressed the duplicate correctly,
         # but `pulls_for_branch` was called exactly once and no re-read ever happened.
         #
-        # An empty prefetch is not a usable answer while verifying a mutation. The
-        # `or not AFTER_MUTATION` clause preserves the F34 budget saving everywhere else — without
-        # it, every empty prefetch on an ordinary run would cost an extra read.
-        if prefetched and (prefetched[0] or not AFTER_MUTATION):
-            prs, ch = prefetched
-        else:
-            prs, ch, _ = lag_tolerant(
-                lambda: gh_read.pulls_for_branch(slug, branch, base, state="all"),
-                lambda found: bool(found), root=root, subject=f"branch={branch}")
+        # The prefetch is handed to `lag_tolerant` as its FIRST attempt rather than consumed by a
+        # branch here. One path, so every outcome is observed and the prefetch read is never wasted:
+        # when it already answers, `lag_tolerant` returns immediately having spent nothing extra;
+        # when it came back empty during a verify, the ladder continues from it.
+        prs, ch, _ = lag_tolerant(
+            lambda: gh_read.pulls_for_branch(slug, branch, base, state="all"),
+            lambda found: bool(found), root=root, subject=f"branch={branch}",
+            first=prefetched)
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot read PRs — {exc}", file=sys.stderr)
         return EXIT_BLOCKED

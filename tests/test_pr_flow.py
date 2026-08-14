@@ -842,12 +842,42 @@ def test_lag_retry_is_REACHED_through_the_real_entry_point(work, monkeypatch):
 
     pr_flow.drive(_drive_args(after_mutation="pr"), str(work), pr_flow.Route())
 
-    # 1 prefetch + lag_tolerant's own first read + one per rung. The prefetch read is SPENT AND
-    # DISCARDED in the lag case — that is the honest cost of the fix, one extra read, and only when
-    # a mutation is being verified and its result is not yet visible.
-    assert len(calls) == 2 + len(pr_flow.LAG_RETRY_DELAYS), (
-        f"prefetch + first read + every rung must reach the read; got {len(calls)} call(s) — "
+    # The prefetch IS the first attempt, so the ladder costs exactly one read per rung on top of it
+    # — the prefetch read is not wasted.
+    assert len(calls) == 1 + len(pr_flow.LAG_RETRY_DELAYS), (
+        f"prefetch + every rung must reach the read; got {len(calls)} call(s) — "
         "an empty prefetch was consumed as an answer")
+
+
+def test_the_NO_LAG_case_is_observed_too(work, monkeypatch):
+    """The bias guard, asserted where it actually failed: at the call site, not in the helper.
+
+    Measured on PR #69's own creation. `lag_tolerant` logs every attempt — but the `pr` step
+    short-circuited to the prefetch and never called it, so a run where the read view KEPT UP
+    recorded nothing at all. A log holding only the lagging cases makes the ladder look more
+    necessary than it is, and is the exact bias the log was built to avoid.
+
+    The helper being correct is not the property that matters. What matters is that every real
+    invocation reaches it — which is a question about the call site, and answerable only from here.
+    """
+    import json as _json
+    commit_on(work, "feat/x")
+    git(["push", "-u", "origin", "feat/x"], work)
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch",
+                        lambda slug, branch, base, state="all": (
+                            [{"number": 7, "state": "open", "draft": False, "title": "t",
+                              "head": {"sha": "x"}, "base": {"ref": "main"}}], "anon-rest"))
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "pr")
+
+    pr_flow.drive(_drive_args(after_mutation="pr"), str(work), pr_flow.Route())
+
+    path = pr_flow.lag_log_path(str(work))
+    assert path.exists(), "a run with NO lag must still be recorded, or the log is biased"
+    recs = [_json.loads(x) for x in path.read_text().splitlines()]
+    assert recs[-1]["visible"] is True
+    assert recs[-1]["outcome"] == "visible"
+    assert recs[-1]["attempt"] == 0, "the prefetch is attempt 0, not a skipped observation"
 
 
 def test_ordinary_runs_still_reuse_the_prefetch_and_spend_no_extra_read(work, monkeypatch):
