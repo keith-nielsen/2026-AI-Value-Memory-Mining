@@ -5,7 +5,8 @@
 
 This repository is governed by OpenSpec SDD. **Every change — bug fix, enhancement,
 new capability — originates as an OpenSpec change proposal.** There are no drive-by
-edits to `vault-template/` or `openspec/specs/`.
+edits to `vault-template/` or `openspec/specs/`. **One bounded exception exists** and is
+stated below — see *When a change ships without a proposal*.
 
 ### Standard contribution flow
 
@@ -35,6 +36,59 @@ never commit subjects.** A dedicated `archive(<slug>)` commit does **not** imply
 usually sits on the feature branch inside one PR. And use `--no-renames`: a directory *moved* into
 `archive/` records as a rename, so `--diff-filter=A` silently omits every deferred archive. Both traps
 produced confidently wrong answers on 2026-08-11 — see ADR-0040.
+
+### When a change ships without a proposal
+
+The rule above says *every* change originates as a proposal. Practice has not matched it: defect fixes
+to maintainer tools in `tools/` have shipped with **no change directory** since PR #35 (also #39, #49,
+#66–#69). That exception was real, load-bearing, and **written down nowhere** — which is the same shape
+as the enforcement claims this repo has had to retract before: a documented absolute that practice
+quietly contradicts teaches its readers that the document is approximate.
+
+So the exception is stated here, and bounded. **The bound is the point** — an unwritten exception has
+no edges, and on 2026-08-14 it was stretched to cover a 204-line change that added a command-line flag,
+a module-level state variable, a new guard and new exit semantics (PR #67). That change shipped three
+defects, all of which a proposal's design pass would have surfaced on paper.
+
+**A change may ship without a proposal only if it is a defect fix to a maintainer tool AND none of
+these is true.** Any single trigger means it takes a proposal:
+
+| Trigger | Why it disqualifies |
+|---|---|
+| Adds or changes a **command-line flag** or any other caller-visible surface | callers bind to it; removing it later is a breaking change |
+| Introduces **persistent state** — a module-level variable, an on-disk file, anything outliving one call | state has a lifetime, and a lifetime has an *exit* condition that must be designed, not discovered |
+| Changes **exit semantics**, or adds a guard that can **refuse** work | the caller's control flow changes; a guard that over-denies costs more than the defect it prevents |
+
+Fixing wrong behaviour in existing code, with no new surface, no new state and no new refusal, is a
+defect fix. Everything else is a capability change wearing a defect fix's clothes.
+
+Applied to the four pull requests of 2026-08-14, the test sorts them: **#66 and #68 ship bare**
+(behaviour corrections within existing structure); **#67 and #69 take a proposal** (both added flags
+and module state; #67 added a refusing guard).
+
+#### The three questions a proposal is for
+
+The design pass is not paperwork. These three questions are answerable **on paper, before any code**,
+and each maps to a defect that shipped for want of asking it:
+
+1. **State lifetime — what is the exit condition?** A new state variable was given an entry condition
+   and no exit, so a post-mutation guard kept suppressing after the mutation it verified had been
+   confirmed, blocking correct work (PR #68 fixed it).
+2. **Reachability — which real invocation reaches this line?** Answer it by tracing call sites, not by
+   intent. A retry sat behind a branch no real invocation took and was dead code from the day it
+   shipped (PR #69 fixed it). Its own unit tests passed throughout, because a unit test supplies the
+   input that production computes.
+3. **Exhaustiveness — do the categories partition?** A tally counted two of three outcome values, so a
+   report's footer contradicted the table above it.
+
+#### Status of this rule
+
+**Prose, unenforced.** Nothing in continuous integration checks it, and this repo's own record is that
+a rule which cannot refuse does not bind. It is written here because that is where it is read at the
+moment it applies; it is not written as a spec requirement because a requirement and its guard ship
+together or not at all. The candidate enforcement point, if this proves worth mechanising, is the
+driver's `approval` step: a diff that adds a flag, a module-level assignment or an exit-code change
+while carrying no change directory is the case to flag.
 
 ### Landing a change (branch → PR → merge → cleanup)
 
