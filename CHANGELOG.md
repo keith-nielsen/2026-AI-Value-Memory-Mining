@@ -12,6 +12,73 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.40] - 2026-08-14
+
+Four defect fixes to `tools/pr-flow.py`, none carrying an OpenSpec change directory (maintainer-tool
+fixes, per the precedent of PRs #35, #39 and #49). Every one was found by **running the driver**, not
+by the tests written for it, and three of the four surfaced in production on the driver's own pull
+requests — recorded here because the pattern is more useful than the individual defects.
+
+### Fixed
+
+- **A saved plan can no longer replay the previous step's mutation** (`fix/pr-flow-saved-plan-pinning`,
+  defect fix, **no change directory**, PR #66). `next.sh` is written only for operator-owned steps, so
+  it survived untouched across agent-owned steps while still holding the last operator mutation:
+  running it at the wrong moment re-issued a merge for the previous pull request. Measured 2026-08-12,
+  when it replayed PR #64's merge. The mutation was baked in as literal text at write time while the
+  branch it verified resolved at run time, so a plan could **mutate one pull request and verify
+  another** — producing `"merged": true` immediately followed by `REFUSED: no open PR`, two lines
+  describing different objects. The plan now pins its verification target and arguments at write time,
+  records the branch it was written for and refuses to run from anywhere else, and deletes itself once
+  its step completes.
+
+- **A post-mutation verify tolerates read-after-write lag instead of refusing**
+  (`fix/pr-flow-post-mutation-lag`, defect fix, **no change directory**, PR #67). The verify tail
+  re-derived the route immediately after the mutation and treated *"GitHub's read view has not caught
+  up"* as *"the mutation did not happen"*. Two sites, one cause: `post_merge()` printed
+  `REFUSED: PR #64 is not merged (state=open)` at exit 1 directly beneath the mutation's own
+  `"merged": true`; and the `pr` step read 0 pull requests seconds after `gh pr create` succeeded and
+  **re-emitted that same command**, an instruction that opens a duplicate pull request if followed. The
+  driver already owned the right vocabulary — `not_ready()` and exit 2 mean *"the platform has not
+  answered yet"* everywhere else in the file — so an unconfirmed read is now `WAITING`, quoting the
+  mutation's own response, and no outward mutation may be emitted while a verify is unconfirmed.
+  **Both halves confirmed in production**: duplicate suppression on PR #69's creation, false-refusal
+  prevention on #67's own merge.
+
+- **Post-mutation suppression is scoped to the unconfirmed step** (`fix/pr-flow-suppression-scope`,
+  defect fix, **no change directory**, PR #68). The guard above shipped over-denying: it suppressed
+  **every** later step, not only the one it was verifying. Measured on PR #67's own merge — the driver
+  printed `merged: PR #67 at 2026-08-14T10:13:11Z` and then refused the branch deletion with *"the read
+  view does not yet show the merge mutation"*, a diagnosis the line directly above it had already
+  disproven, blocking work that genuinely needed doing. Suppression was scoped to *"this run carried
+  the flag"* and is now scoped to *"the verified mutation is still unconfirmed"*, keyed to the specific
+  step because `post_merge()` pre-marks earlier steps `ok` before verifying anything. Over-denial is
+  its own failure mode: a guard that blocks correct work teaches its reader to ignore it.
+
+- **The lag retry is reachable** (`fix/pr-flow-lag-observations`, defect fix, **no change directory**,
+  PR #69). The retry added in PR #67 was **dead code on every real invocation**: `prefetched` is a
+  two-tuple, so `if prefetched:` was truthy even when the list was empty — and empty is precisely the
+  lag symptom — leaving the lag-tolerant read in an unreachable `else`. Measured on PR #68's own
+  creation, where the suppression guard fired correctly but the read happened exactly once. The
+  prefetch is now passed into the retry as its first attempt, so one path serves both cases, every
+  outcome is observed, and the prefetch read is never wasted.
+
+### Added
+
+- **Read-after-write observations are recorded** (same pull request). The retry ladder was chosen from
+  taste rather than measurement, and the live record refuted the comment justifying it: PR #67 cleared
+  on the last rung, #68 exceeded the ladder entirely, #69 cleared on the last rung again. Nothing in
+  this repository recorded what GitHub's read view actually does, so every future adjustment would have
+  been another guess wearing a number. `.git/pr-flow/lag-observations.jsonl` now holds one raw record
+  per read attempt, and `--lag-report` prints them. Three properties decide whether that data can be
+  trusted: **every** attempt is logged, including immediately-visible ones, because a record of only
+  the lagging cases makes the ladder look more necessary than it is; an exhausted ladder is marked
+  **censored**, because that series is a lower bound and averaging only the visible ones is how a
+  too-short ladder justifies itself with the data its own shortness produced; and the report
+  **refuses to propose a delay**, asserted by test, because a tool that hands back a number is one the
+  number gets adopted from. The ladder constants are marked provisional in-source until the log holds
+  enough observations to size them from evidence.
+
 ## [0.1.39] - 2026-08-12
 
 ### Added
