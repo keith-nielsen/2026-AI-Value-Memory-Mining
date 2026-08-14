@@ -48,6 +48,7 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import gh_read  # noqa: E402
@@ -73,12 +74,22 @@ INVOCATION = None  # set once in main(): the argv that produced THIS run
 AFTER_MUTATION = None
 MUTATION_EVIDENCE = None  # path to the mutation's captured output, so its own proof can be quoted
 
-# Bounded, budget-aware lag tolerance. Deliberately small: the anonymous REST channel allows 60
-# reads/hour and a full invocation already costs several, so a generous retry ladder would trade a
-# cosmetic problem for an exhausted budget. Two extra reads is enough to clear the lag observed on
-# #63/#64/#66 and cheap enough to spend on every operator step.
+# Bounded, budget-aware lag tolerance. Small because the anonymous REST channel allows 60 reads/hour
+# and a full invocation already costs several.
+#
+# ⚠ THESE NUMBERS ARE NOT MEASURED. They were chosen from taste — inside a fix for a measurement
+# problem — and the live record already indicts them: of the two merges where the ladder actually
+# ran, #67 cleared on the LAST rung (~7s) and #68 exceeded it entirely. A ladder sitting at the
+# median stalls roughly half the time. The earlier claim here that "two extra reads is enough to
+# clear the lag observed on #63/#64/#66" was an assertion, not an observation, and #68 refuted it.
+#
+# They stay provisional until `--lag-report` holds enough real observations to size them from data.
+# DO NOT retune them by feel — inventing a more pleasing constant is the defect, not the fix.
 LAG_RETRY_DELAYS = (2, 5)
 LAG_RETRY_MIN_BUDGET = 10  # below this many remaining reads, report once and stop spending
+
+PROC_START = time.time()   # for the saved plan's verify tail, ~the moment the mutation finished
+LAG_LOG_NAME = "lag-observations.jsonl"
 PLAN_TTL_SECONDS = 24 * 60 * 60  # industry practice: approvals expire so stale plans cannot apply
 
 # Why `gh` mutations stay with the operator. BOTH halves matter: if the reason reads as mere
@@ -414,7 +425,33 @@ def mutation_proof():
     return f"the mutation reported: {snippet}" if snippet else exited_ok
 
 
-def lag_tolerant(read, satisfied):
+def lag_log_path(root):
+    """One place names the observation log, so writer and reporter cannot drift apart."""
+    return pathlib.Path(root) / ".git" / "pr-flow" / LAG_LOG_NAME
+
+
+def log_lag_observation(root, record):
+    """Append ONE raw observation. Raw only — never a summary, never a recommendation.
+
+    Why this exists (operator, 2026-08-14): *"I just want to be sure that we're capturing the
+    information that we're failing with so that subsequent fixes are grounded in observations and not
+    creating random aesthetically pleasing ladders."* The retry ladder above was invented. Nothing in
+    this repo recorded what GitHub's read view actually does, so every future adjustment would have
+    been another guess wearing a number.
+
+    Writes into `.git/` deliberately: it is per-clone operational telemetry, not source. It must
+    never fail the driver — a logger that can abort a merge verification is worse than no logger.
+    """
+    try:
+        p = lag_log_path(root)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("a") as fh:
+            fh.write(json.dumps(record, sort_keys=True) + "\n")
+    except (OSError, TypeError, ValueError):
+        pass  # telemetry is never load-bearing
+
+
+def lag_tolerant(read, satisfied, root=None, subject=None):
     """Re-read a lagging condition a bounded number of times before believing the negative.
 
     Item 19: on #64 the merge returned `{"merged": true}` and the very next read said
@@ -426,23 +463,122 @@ def lag_tolerant(read, satisfied):
     early when the read budget is too low to justify the spend — a probe that exhausts the channel
     to polish a message has made things worse.
     """
+    series = uuid.uuid4().hex[:8]  # ties one mutation's attempts together in the log
+    t0 = time.time()
+
+    # EVERY attempt is recorded, including an immediately-visible one: logging only the lagging
+    # cases would bias the record toward lag and make the ladder look more necessary than it is.
+    # Attempts are held until the series ends so that exactly ONE record — the last — carries the
+    # outcome. Writing a separate terminal record would double-count the final read as two
+    # observations, which is the same over-counting defect as reporting attempts never made.
+    attempts = []
+
+    def note_attempt(attempt, seen, chan):
+        attempts.append({
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "series": series,
+            "step": AFTER_MUTATION or "(not-a-verify)",
+            "subject": subject,
+            "attempt": attempt,
+            "since_read_s": round(time.time() - t0, 2),
+            # For the saved plan's verify tail the process starts right after the mutation, so this
+            # is the closer proxy for true time-since-write. It over-reads on an ordinary manual run.
+            "since_proc_start_s": round(time.time() - PROC_START, 2),
+            "visible": bool(seen),
+            "channel": chan,
+            "budget_remaining": gh_read.BUDGET.get("remaining"),
+        })
+
+    def flush(outcome):
+        if attempts:
+            attempts[-1]["outcome"] = outcome
+        for rec in attempts:
+            log_lag_observation(root, rec)
+
     value, ch = read()
-    if satisfied(value) or not AFTER_MUTATION:
+    ok = satisfied(value)
+    note_attempt(0, ok, ch)
+    if ok or not AFTER_MUTATION:
+        flush("visible" if ok else "not-a-verify")
         return value, ch, 0
+
     tries = 0  # re-reads ACTUALLY made. Reporting the ladder length here would overstate the
     for i, delay in enumerate(LAG_RETRY_DELAYS, start=1):  # effort on every budget-break path,
         remaining = gh_read.BUDGET.get("remaining")        # which is the tools-that-report-a-
         if remaining is not None and remaining < LAG_RETRY_MIN_BUDGET:  # non-result-as-a-result
             note(f"lag re-read skipped — only {remaining} reads remain on this channel")  # class.
-            break
+            flush("abandoned-low-budget")
+            return value, ch, tries
         print(f"VERIFY  {AFTER_MUTATION}: not visible yet — re-reading "
               f"({i}/{len(LAG_RETRY_DELAYS)}, +{delay}s)")
         time.sleep(delay)
         value, ch = read()
         tries = i
-        if satisfied(value):
-            break
+        ok = satisfied(value)
+        note_attempt(i, ok, ch)
+        if ok:
+            flush("visible")
+            return value, ch, tries
+    # CENSORED: the ladder ran out before the read view caught up. This series is a LOWER BOUND on
+    # the true lag, not a measurement of it. Any summary that treats it as an observed value — or
+    # drops it because it has no end time — underestimates the distribution, which is exactly how a
+    # too-short ladder gets justified by the data its own shortness produced.
+    flush("censored-ladder-exhausted")
     return value, ch, tries
+
+
+def lag_report(root):
+    """Print the RAW read-after-write observations. Reports; never recommends.
+
+    The ladder in this file was invented, and the only defence against inventing the next one is a
+    record of what GitHub actually did. So this deliberately stops at the evidence: it shows every
+    series, marks the censored ones, and does NOT compute a suggested delay. A tool that hands you a
+    number is a tool you will adopt the number from, and a number derived from 4 observations with 2
+    censored is the same guess wearing a decimal point.
+    """
+    path = lag_log_path(root)
+    if not path.exists():
+        print(f"no observations yet — {path}")
+        print("  The log fills as post-mutation verifies run (saved plans with --after-mutation).")
+        return EXIT_OK
+
+    series = {}
+    for line in path.read_text(errors="replace").splitlines():
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        series.setdefault(rec.get("series"), []).append(rec)
+
+    print(f"READ-AFTER-WRITE OBSERVATIONS  ({path})")
+    print("  raw record only — this report deliberately recommends NO ladder")
+    print("")
+    print(f"  {'step':<8} {'subject':<16} {'attempts':>8}  {'last seen at':>13}  outcome")
+    censored = visible = 0
+    for sid, recs in sorted(series.items(), key=lambda kv: kv[1][0].get("ts", "")):
+        recs.sort(key=lambda r: r.get("attempt", 0))
+        last = recs[-1]
+        outcome = last.get("outcome", "(incomplete)")
+        if outcome == "visible":
+            visible += 1
+        elif outcome.startswith(("censored", "abandoned")):
+            censored += 1
+        when = f"{last.get('since_proc_start_s', '?')}s"
+        print(f"  {last.get('step', '?'):<8} {str(last.get('subject') or ''):<16} "
+              f"{len(recs):>8}  {when:>13}  {outcome}")
+
+    total = visible + censored
+    print("")
+    print(f"  {total} series — {visible} became visible, {censored} CENSORED")
+    if censored:
+        print("  ⚠ A censored series is a LOWER BOUND on the lag, not a measurement of it.")
+        print("    Averaging only the visible ones understates the distribution — which is exactly")
+        print("    how a too-short ladder gets justified by the data it produced.")
+    if total < 20:
+        print(f"  ⚠ {total} series is not a distribution. Do not resize the ladder from this yet.")
+    print("  Timing caveat: `since_proc_start_s` approximates time-since-write only for a saved")
+    print("  plan's verify tail, where the process starts moments after the mutation.")
+    return EXIT_OK
 
 
 def waiting(route, step, what, probe, plan=False):
@@ -1026,12 +1162,22 @@ def drive(args, root, route, plan=False):
         # The `pr` step is where item 19's sharper instance fired: seconds after a successful
         # `gh pr create`, this read returned 0 PRs. Give the read view a bounded chance to catch
         # up before the route concludes the pull request does not exist.
-        if prefetched:
+        #
+        # ITEM 23: `prefetched` is a 2-TUPLE `(list, channel)`, so a bare `if prefetched:` is truthy
+        # even when the list is EMPTY — and an empty list is precisely the lag symptom. The retry
+        # below was therefore unreachable on every real invocation where the slug resolves, i.e.
+        # always. Measured on PR #68's own creation: the guard suppressed the duplicate correctly,
+        # but `pulls_for_branch` was called exactly once and no re-read ever happened.
+        #
+        # An empty prefetch is not a usable answer while verifying a mutation. The
+        # `or not AFTER_MUTATION` clause preserves the F34 budget saving everywhere else — without
+        # it, every empty prefetch on an ordinary run would cost an extra read.
+        if prefetched and (prefetched[0] or not AFTER_MUTATION):
             prs, ch = prefetched
         else:
             prs, ch, _ = lag_tolerant(
                 lambda: gh_read.pulls_for_branch(slug, branch, base, state="all"),
-                lambda found: bool(found))
+                lambda found: bool(found), root=root, subject=f"branch={branch}")
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot read PRs — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
@@ -1232,7 +1378,8 @@ def post_merge(root, slug, branch, number, foreign, route, plan=False):
             route.mark(sid, "ok", "completed earlier in this lifecycle")
     try:
         pr, ch, tries = lag_tolerant(lambda: gh_read.pull_request(slug, number),
-                                     lambda p: bool(p.get("merged_at")))
+                                     lambda p: bool(p.get("merged_at")),
+                                     root=root, subject=f"pr={number}")
     except gh_read.ReadError as exc:
         print(f"BLOCKED: cannot re-read PR #{number} — {exc}", file=sys.stderr)
         return EXIT_BLOCKED
@@ -1335,6 +1482,8 @@ def main(argv=None):
     ap.add_argument("--after-mutation", metavar="STEP",
                     help="this run verifies STEP's mutation, which just succeeded: tolerate "
                          "read-after-write lag, report WAITING not REFUSED, emit no mutation")
+    ap.add_argument("--lag-report", action="store_true",
+                    help="print the raw read-after-write observations, then exit")
     ap.add_argument("--mutation-evidence", metavar="PATH",
                     help="file holding the mutation's own response, quoted back when the read "
                          "view contradicts it")
@@ -1354,6 +1503,8 @@ def main(argv=None):
 
     if args.capabilities:
         return capabilities(root)
+    if args.lag_report:
+        return lag_report(root)
     if args.ready:
         return ready(args)
     if args.assert_preconditions:
