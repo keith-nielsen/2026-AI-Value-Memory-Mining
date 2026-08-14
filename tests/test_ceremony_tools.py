@@ -50,6 +50,19 @@ def serve(path, default=None):
         raise SystemExit(0)
     raise SystemExit(1)
 
+if args[:1] == ["api"]:
+    # The shared read layer's fallback channel (item 21). Paths are the ones ship-release asks
+    # for; anything else is an unhandled case and must fail loudly rather than answer emptily.
+    path = args[1]
+    if "/releases/latest" in path:
+        serve(d / "latest.json")            # absent file => exit 1, i.e. no Latest release
+    if "/releases" in path:
+        if "page=2" in path:          # the fixtures never exceed one page
+            sys.stdout.write("[]")
+            raise SystemExit(0)
+        serve(d / "releases.json", "[]")
+    sys.stderr.write("gh-stub: unhandled api path: %r\\n" % (path,))
+    raise SystemExit(1)
 if args[:2] == ["release", "view"]:
     # live gh exposes isLatest on `release list` only; `view --json` rejects it —
     # the stub mirrors that so the field split stays covered (caught on the first
@@ -81,7 +94,14 @@ class Ceremony:
     """A work clone + bare origin + gh stub; the handle every test drives."""
 
     def __init__(self, tmp_path):
-        self.origin = tmp_path / "origin.git"
+        # The bare origin lives at a PATH that parses as a GitHub URL, so `slug_from_remote` — which
+        # reads `git remote get-url origin` and matches `github.com/<owner>/<repo>` — resolves a real
+        # slug while every git operation stays local and offline. Note `insteadOf` does NOT work for
+        # this: `git remote get-url` applies the rewrite and reports the local path, defeating the
+        # split it appears to give.
+        self.slug = "vmm-test/ceremony"
+        self.origin = tmp_path / "github.com" / "vmm-test" / "ceremony.git"
+        self.origin.parent.mkdir(parents=True)
         self.work = tmp_path / "work"
         self.stub_dir = tmp_path / "gh-stub"
         self.stub_dir.mkdir()
@@ -93,6 +113,13 @@ class Ceremony:
         self.env = dict(os.environ)
         self.env["PATH"] = f"{bindir}{os.pathsep}{self.env['PATH']}"
         self.env["GH_STUB_DIR"] = str(self.stub_dir)
+        # STILL OFFLINE after ship-release moved to the shared read layer (item 21). `gh_read.get()`
+        # tries the anonymous REST channel first and falls back to `gh api`; pointing the proxy at a
+        # closed port makes the anonymous attempt fail immediately with URLError, so the faked `gh`
+        # serves — deterministically, with no packet leaving the machine. These tests therefore
+        # exercise the FALLBACK channel; the anonymous path is covered by running the real tool
+        # against the real repository, which is where it has to work anyway.
+        self.env["https_proxy"] = self.env["HTTPS_PROXY"] = "http://127.0.0.1:1"
 
         subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(self.origin)],
                        check=True, capture_output=True)
@@ -183,8 +210,9 @@ def test_ship_full_ceremony_walk(ceremony):
     assert "--notes-file" in next_cmd
 
     # The caller creates the release; the stub now knows it.
-    ceremony.stub("release-v0.1.31.json", {"tagName": "v0.1.31", "isDraft": False})
-    ceremony.stub("releases.json", [{"tagName": "v0.1.31", "isLatest": True}])
+    # Fixtures are REST-shaped, because that is what the read layer actually receives.
+    ceremony.stub("releases.json", [{"tag_name": "v0.1.31", "draft": False}])
+    ceremony.stub("latest.json", {"tag_name": "v0.1.31"})
 
     # Step 3: release verified, parity tally closes the ship.
     r = ceremony.run_tool(SHIP, "v0.1.31")
@@ -223,8 +251,8 @@ def test_ship_parity_tally_flags_release_gap(ceremony):
     for tag in ("v0.1.30", "v0.1.31"):
         ceremony.git("tag", "-a", tag, "-m", tag, target)
         ceremony.git("push", "-q", "origin", f"refs/tags/{tag}")
-    ceremony.stub("release-v0.1.31.json", {"tagName": "v0.1.31", "isDraft": False})
-    ceremony.stub("releases.json", [{"tagName": "v0.1.31", "isLatest": True}])
+    ceremony.stub("releases.json", [{"tag_name": "v0.1.31", "draft": False}])
+    ceremony.stub("latest.json", {"tag_name": "v0.1.31"})
     r = ceremony.run_tool(SHIP, "v0.1.31")
     assert r.returncode == EXIT_REFUSED
     assert "parity-miss [release-object]: tag v0.1.30 has no Release" in r.stdout
@@ -310,3 +338,66 @@ def test_pr_state_names_disagreeing_layers(ceremony):
     assert r.returncode == EXIT_OK
     assert "LAYERS-DISAGREE:" in r.stdout
     assert "FAILURE: scope-review" in r.stdout
+
+
+def test_ship_reads_do_not_require_gh_at_all(ceremony):
+    """Item 21 — THE defect. Measured twice mid-ceremony on this repo's own v0.1.40 ship.
+
+    `gh release view` / `gh release list` need the operating-system keyring; a confined session gets
+    a misleading 401 and the driver exited `3 BLOCKED` on a READ, after both real guards had passed.
+    That violates the shipped `maintenance` requirement *GitHub Reads Degrade To An Unauthenticated
+    Channel* and made the whole release ceremony operator-only by defect.
+
+    The strongest available statement of "reads no longer need `gh`" is to remove `gh` from PATH
+    entirely and require the driver to still answer. The anonymous channel is unreachable here (the
+    proxy points at a closed port), so with no `gh` either, BOTH channels are gone — the driver must
+    then BLOCK on a named read failure rather than on `gh` being absent, and must never claim a
+    release state it could not observe.
+    """
+    env = dict(ceremony.env)
+    env["PATH"] = "/usr/bin:/bin"          # the stub is gone; real gh is not on this PATH either
+    r = subprocess.run([sys.executable, str(SHIP), "v0.1.31"],
+                       cwd=str(ceremony.work), env=env, capture_output=True, text=True)
+    assert r.returncode == EXIT_BLOCKED
+    assert "cannot read releases" in r.stdout, \
+        "a failed read must be named as a read failure, not as a missing binary"
+    assert "gh release view" not in r.stdout, "the tool must no longer shell out to gh for reads"
+
+
+def test_ship_names_the_channel_that_answered(ceremony):
+    """The same requirement's second half: report the channel alongside the data.
+
+    A read that does not say which channel answered is a bare assertion — the caller cannot tell a
+    measured state from a defaulted one.
+    """
+    ceremony.stub("releases.json", [{"tag_name": "v0.1.31", "draft": False}])
+    ceremony.stub("latest.json", {"tag_name": "v0.1.31"})
+    ceremony.git("tag", "-a", "v0.1.31", "-m", "t", ceremony.head())
+    ceremony.git("push", "-q", "origin", "refs/tags/v0.1.31")
+    r = ceremony.run_tool(SHIP, "v0.1.31")
+    assert "layer [release-object]:" in r.stdout
+    assert "[via " in r.stdout, "the release-object layer must name its channel"
+
+
+def test_absent_vs_draft_is_stated_on_anon_and_silent_on_gh():
+    """Exhaustiveness, tested at the seam because the channel decides the answer.
+
+    GitHub hides DRAFT releases from unauthenticated callers, so on `anon-rest` a missing release
+    means *absent OR draft* and the driver must say so — emitting `gh release create` against an
+    existing draft is the failure. On `gh-api` the caller is authenticated, drafts ARE visible, and
+    the caveat must stay SILENT: printing it anyway is over-denial, which teaches readers to skip
+    warnings. Found by the design pass rather than by a failure, which is the point of doing one.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ship_under_test", SHIP)
+    ship = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ship)
+
+    anon = ship.draft_caveat(None, ship.gh_read.CH_ANON, "v0.1.31")
+    assert anon and "absent OR draft" in anon
+
+    assert ship.draft_caveat(None, ship.gh_read.CH_GH, "v0.1.31") is None, \
+        "authenticated reads see drafts — no caveat is owed"
+    assert ship.draft_caveat({"tagName": "v0.1.31", "isDraft": False},
+                             ship.gh_read.CH_ANON, "v0.1.31") is None, \
+        "a release that WAS found carries no ambiguity"
