@@ -12,7 +12,72 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
-## [0.1.43] - 2026-08-15
+## [0.1.44] - 2026-08-16
+
+### Added
+
+- **A local route pre-flight — one command before the push** (`preflight-route-before-mutation`,
+  ADR-0041, PR #80). `tools/preflight.py` reproduces **12 of the 15 continuous-integration jobs**
+  locally and additionally models the route steps continuous integration cannot judge at all:
+  declared scope against the real merge-base diff, a trial merge, and a **simulated archive**.
+
+  It exists because of a diagnosis, not a wish. The recent error record was not made of *missing*
+  rules — it was made of rules applied too late. Citation integrity was written down **and**
+  mechanically enforced, and still cost a push, a pull request and a red check before anyone learned
+  of it; the same checker ran locally in about two seconds once extracted from `ci.yml` by hand. The
+  lever is **latency**, not coverage. Before this change, zero jobs were reproducible by one command
+  and four were run separately from memory.
+
+  Three properties are load-bearing. It **runs the shipped check** — steps are extracted from
+  `ci.yml` and executed, so the local answer cannot drift from the remote one, and a pre-flight that
+  reimplemented the logic would rot silently while being believed. A check that could not run is
+  **`SKIP`, never `PASS`** — an environment limitation is named as one and excluded from findings.
+  And **coverage is reported and must partition**: every declared job is accounted for as reproduced,
+  unrunnable-with-reason, or not-reproduced-with-reason, and anything else prints `⚠ UNACCOUNTED` and
+  fails the run. Without that last property, a job added later would silently shrink what the tool
+  covers while the verdict kept reading `CLEAR` — which is precisely how a green check comes to mean
+  nothing.
+
+  **Its known bound is measured, not assumed.** Run against a tree that predates the citation checker,
+  where a dangling `ADR-0039` reference sat undetected for nine pull requests, the pre-flight reports
+  `CLEAR`. It runs the shipped check, so it **moves a finding earlier and never adds one**. Verified
+  true positives on real historical trees: PR #79's citation-that-dangles-only-once-archived, and the
+  archive pull request that declared only the destination side of a rename.
+
+  Deliberately **not** a gate — nothing consumes its exit code until a false-positive rate has been
+  measured, since a control that blocks correct work trains its reader to bypass it. And deliberately
+  a *single* entry point: a `--preflight` flag on the lifecycle driver was proposed and declined,
+  because a second thing to remember is the control that already failed.
+
+  ADR-0041 also **discharges ADR-0040's deferred follow-on**: the concurrency exception is decidable
+  from repository state, since a change that cannot archive cleanly is one that must defer.
+
+### Fixed
+
+- **The terminal-state guard no longer loses a race between two GitHub read endpoints**
+  (`trust-write-evidence-over-stale-read`, PR #79). On PR #76's own merge the mutation returned
+  `{"merged": true}` and the verify tail then emitted **`git rebase origin/main` for a branch whose
+  pull request had merged seconds earlier**. Every earlier defect in this family printed a false
+  *alarm*; this printed a false *instruction*.
+
+  It was not a missing retry. On PR #77 both reads were captured in a single run and **disagreed
+  about the same fact by fourteen seconds** — the pull-request *list* endpoint saw `merged_at` at
+  ~3s while the *single* pull-request endpoint did not until 17.13s. The driver routed on the one it
+  never retried, and lost that race roughly one time in three.
+
+  The governing principle is the end-to-end argument (Saltzer, Reed & Clark, 1984): the merge
+  interface's response is the answer of the endpoint that performed the work, and an
+  eventually-consistent read is a weaker, later signal that must not overrule it. The driver was
+  holding the authoritative answer and believing the read.
+
+  Three layers: routing on the mutation's own response, keyed to the **specific** claim rather than to
+  the command having exited zero; a read outcome that distinguishes *no answer* from *no merge*; and a
+  structural refusal to emit any pre-merge step while a merge is being verified. That last one closed
+  a gap in the earlier guard, which keyed on outward mutations — and a rebase is local.
+
+  **Confirmed on its own merge**, which hit the stale-read side of the race: the driver routed on the
+  evidence, confirmed at the second retry rung, and emitted no rebase.
+
 
 ### Fixed
 
