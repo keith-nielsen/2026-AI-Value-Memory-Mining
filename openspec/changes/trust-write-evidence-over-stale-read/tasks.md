@@ -72,55 +72,93 @@ offline local path.
 
 ## 2. Tests FIRST — each observed to fail before the change
 
-- [ ] 2.1 **Adversarial, written first (item 22 regression):** a *confirmed* merge must still emit its
-      `remote-gone` cleanup. Proves L3's exit condition works before L3 is trusted at all.
-- [ ] 2.2 **L3, the real geometry:** `--after-mutation merge`, evidence absent, **both** reads stale.
-      Assert the driver reports WAITING and that `git rebase` appears **nowhere** in the output.
-      Must be observed to fail first — today it emits the rebase.
-- [ ] 2.3 **L1:** evidence asserts merged, list read empty → routes to `post_merge`, no pre-merge
-      guard runs, and the read spend is unchanged (no extra call before the ladder).
-- [ ] 2.4 **L2:** an empty read and a failed read are distinguishable in the routing decision; assert
+- [x] 2.1 **Adversarial, checked first (item 22 regression):** a *confirmed* merge must still emit its
+      `remote-gone` cleanup. **Already covered** by
+      `test_after_mutation_clears_once_its_verified_step_is_confirmed` — so rather than duplicate it,
+      it became the guard L3 had to not break. Verified passing after L3: `AFTER_MUTATION is None`
+      once confirmed, and `push origin --delete` still emitted. L3 is also safe here by
+      construction, since `remote-gone` is *after* merge and so not in `PRE_MERGE_STEPS`.
+- [x] 2.2 **L3, the real geometry:** `--after-mutation merge`, evidence absent, both reads stale.
+      Assert the driver reports WAITING and never presents the rebase as an instruction.
+      **Assertion corrected during the work:** the first version banned the string `rebase`
+      anywhere, which also banned quoting the refused command under `SUPPRESSED`. The property that
+      matters is that it is not *instructed* — the production defect printed
+      `NEXT COMMAND (run exactly this…)` above it — so the assertion now matches the item-19 sibling.
+- [x] 2.3 **L1:** evidence asserts merged, read shows the pull request still `open` → routes to
+      `post_merge`, no pre-merge guard runs, no extra read spent.
+      **Fixture corrected during the work:** it first used an EMPTY list, which is the extreme case
+      and never reaches L1 — with no pull request in the read there is no number to verify against.
+      The realistic stale shape is the pull request present but reading `open`.
+- [x] 2.4 **L2:** an empty read and a failed read are distinguishable in the routing decision; assert
       on the branch taken, not on the printed text.
-- [ ] 2.5 **Scoping / anti-over-denial:** outside `--after-mutation`, an unmerged branch behind its
+- [x] 2.5 **Scoping / anti-over-denial:** outside `--after-mutation`, an unmerged branch behind its
       base still gets its rebase emitted. Pins that L3 did not become a general suppression.
-- [ ] 2.6 **The lost observation:** after the fix, a merge whose list read is stale produces a verify
+- [x] 2.6 **The lost observation:** after the fix, a merge whose list read is stale produces a verify
       series in the lag log. Today it produces none.
-- [ ] 2.7 Table coverage: one test per **row**, asserting the routed branch for each read category.
+- [x] 2.7 Table coverage: one test per **row**, asserting the routed branch for each read category.
 
 ## 3. Implementation
 
-- [ ] 3.1 Evidence accessor — a structured reader beside `mutation_proof()` that answers *does the
+- [x] 3.1 Evidence accessor — a structured reader beside `mutation_proof()` that answers *does the
       evidence assert this step landed?* rather than returning prose. `mutation_proof()` keeps its
       current job (quoting for humans); the two must not be conflated.
       ⚠ **Keyed to the SPECIFIC claim (`merged: true`), never to "the mutation exited 0".** Under a
       merge queue (queue item 2) the response asserts *queued*, not *merged* — conflating the two
       would break silently at exactly the moment we adopt the queue. Test the queue-shaped payload
       now, while it costs nothing.
-- [ ] 3.6 Write L3 to be **easy to delete.** The regression check found it is scaffolding around a
+- [x] 3.2 L1 routing in the F34 block, keyed to `AFTER_MUTATION`.
+- [x] 3.3 L2 — replace the bare `if prefetched:` with the three-way distinction.
+- [x] 3.4 L3 — extend `emit()`'s suppression axis so that under `AFTER_MUTATION == "merge"` a
+      pre-merge step is refused, not merely an outward command. Keep `is_outward_mutation()` intact;
+      this is a second, orthogonal condition, not a replacement.
+- [x] 3.5 Re-run the class sweep for bare truthiness on `(value, channel)` tuples and record the
+      result in the commit body — measured, not assumed, exactly as it was for this proposal.
+- [x] 3.6 Write L3 to be **easy to delete.** The regression check found it is scaffolding around a
       derivation defect: under a level-triggered driver a correctly-derived `merged` marks the
       pre-merge steps `na` and no suppression is needed. Keep it one condition in one place, not a
       concept threaded through the module.
-- [ ] 3.2 L1 routing in the F34 block, keyed to `AFTER_MUTATION`.
-- [ ] 3.3 L2 — replace the bare `if prefetched:` with the three-way distinction.
-- [ ] 3.4 L3 — extend `emit()`'s suppression axis so that under `AFTER_MUTATION == "merge"` a
-      pre-merge step is refused, not merely an outward command. Keep `is_outward_mutation()` intact;
-      this is a second, orthogonal condition, not a replacement.
-- [ ] 3.5 Re-run the class sweep for bare truthiness on `(value, channel)` tuples and record the
-      result in the commit body — measured, not assumed, exactly as it was for this proposal.
 
 ## 4. Docs
 
-- [ ] 4.1 Update the F34 anchor comment: it states the principle correctly and was not enforced.
+- [x] 4.1 Update the F34 anchor comment: it states the principle correctly and was not enforced.
       Say what now enforces it.
-- [ ] 4.2 Record in the commit body that this is logged as the **last edge-triggered patch** to this
+- [x] 4.2 Record in the commit body that this is logged as the **last edge-triggered patch** to this
       driver, and that the reconciliation question is deliberately held rather than folded in.
 
 ## 5. Ceremony
 
-- [ ] 5.1 `openspec validate --all --strict` — check `openspec --version` against the `package.json`
+- [x] 5.1 `openspec validate --all --strict` — check `openspec --version` against the `package.json`
       pin before treating any failure as a corpus defect.
-- [ ] 5.2 Full suite + `validate-scripts.sh`.
+- [x] 5.2 Full suite + `validate-scripts.sh`.
 - [ ] 5.3 Gate 4 — operator sign-off recorded here.
 - [ ] 5.4 Archive on this branch, in this pull request (ADR-0040). No concurrent change carries a
       `maintenance` delta at time of writing — **re-check immediately before archiving.**
 - [ ] 5.5 Close hardening-queue item 26.
+
+## 6. Evidence
+
+- **Tests observed to FAIL before the change**, with the final assertions, by stashing
+  `tools/pr-flow.py`: 5 failed, 1 passed. The one that passes is 2.5, the anti-over-denial pin —
+  correct, since it must hold both before and after.
+- **The production defect reproduces deterministically in a test.** It is 1-in-3 in the wild; the
+  fixture forces the geometry rather than waiting for it.
+- ⚠ **Two defects in the tests themselves, found by running them** — both the traps this project
+  keeps hitting:
+  1. `commit_on(work, "main")` moved LOCAL main only. The base guard compares against
+     `origin/main`, so the rebase never triggered and **the test passed vacuously against broken
+     code**. Fixed by pushing. *A stubbed state that passes while reading as coverage.*
+  2. The evidence file was written inside the work repo, dirtying the worktree, so the run was
+     REFUSED at step 2 before reaching anything under test.
+- ⚠ **The first fixture used an EMPTY pull-request list** — the extreme case. The realistic stale
+  shape is the pull request present but still reading `open`, which is what exercises L1. With only
+  the extreme fixtured, L1 was never reached. Task 5.8's lesson again: a stub can present geometry
+  reality never has.
+- **First assertion was wrong in an instructive way.** It banned the string `rebase` anywhere, which
+  also banned quoting the command under `SUPPRESSED`. The property that matters is that it is never
+  presented as an instruction — the production defect printed
+  `NEXT COMMAND (run exactly this…)` above it. Assertion now matches the item-19 sibling.
+- **Class sweep (3.5), measured not assumed:** no live bare truthiness test on a `(value, channel)`
+  tuple remains; the only three matches are comments describing the hazard. Every call site unpacks
+  immediately or routes through `read_outcome` / `lag_tolerant`.
+- Suite **227 passed**; `validate-scripts.sh` `VALIDATION OK`; `openspec validate --all --strict`
+  7 passed, 0 failed.

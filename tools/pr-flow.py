@@ -334,6 +334,70 @@ def confirm_mutation(step):
         AFTER_MUTATION = None
 
 
+READ_OUTCOMES = ("merged", "no-merge", "empty", "failed")
+
+
+def read_outcome(prefetched):
+    """Classify a `pulls_for_branch` result into FOUR outcomes that partition. Item 26, fault 2.
+
+    `pulls_for_branch` returns a 2-TUPLE `(list, channel)`, so `if prefetched:` is true even when the
+    list is empty — it was written to ask *did I get an answer?* and can never be false. A stale
+    empty result therefore became an assertion that no merged pull request exists.
+
+    `:1271` documents this exact hazard for the sibling call site (item 23) while the bare form
+    survived ~80 lines above it: class 9, the fix applied to the sighting rather than the class. A
+    sweep found this to be the only remaining instance — every other call site unpacks immediately.
+
+    `empty` and `failed` are kept apart from `no-merge` because during a post-mutation verify they
+    mean *no answer yet*, and only `no-merge` is a real negative.
+    """
+    if prefetched is None:
+        return "failed"
+    prs = prefetched[0]
+    if not prs:
+        return "empty"
+    merged = [p for p in prs if p.get("merged_at")]
+    still_open = [p for p in prs if p.get("state") == "open"]
+    return "merged" if (merged and not still_open) else "no-merge"
+
+
+# Which mutation each step's landing is asserted by, in the mutation's OWN response. Keyed to the
+# SPECIFIC claim, never to "the command exited 0" — under a merge queue (queue item 2) the response
+# asserts *queued* and the merge happens later, asynchronously and possibly batched. An accessor
+# keyed to success would read that as a landed merge and skip the wait, breaking silently at exactly
+# the moment the queue lands.
+EVIDENCE_CLAIM = {"merge": "merged"}
+
+
+def evidence_asserts(step):
+    """Does the mutation's captured response ASSERT that this step landed? Item 26, layer 1.
+
+    The end-to-end argument (Saltzer, Reed & Clark, 1984): a correctness check belongs at the
+    endpoint that knows the answer. The merge API's response is that endpoint's answer; a later read
+    of an eventually-consistent view is a weaker signal. The driver was holding the authoritative
+    answer and believing the read instead — and on PR #77 the two reads it could have consulted
+    disagreed with each other by 14 seconds about the same fact.
+
+    Deliberately conservative: anything other than an explicit positive claim is `False`, so an
+    unparseable, silent or absent evidence file degrades to reading state rather than guessing.
+    Distinct from `mutation_proof()`, which renders prose for a human; conflating "quote this" with
+    "decide on this" is how a persuasive string becomes a control-flow input.
+    """
+    key = EVIDENCE_CLAIM.get(step)
+    if not key or not MUTATION_EVIDENCE:
+        return False
+    try:
+        data = json.loads(pathlib.Path(MUTATION_EVIDENCE).read_text(errors="replace"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(data, dict) and data.get(key) is True
+
+
+# Steps that precede the merge. While a merge is being verified these describe a state the branch
+# has already left, so emitting one is never correct — see `emit()`.
+PRE_MERGE_STEPS = tuple(sid for sid, _ in STEPS[:[s for s, _ in STEPS].index("merge")])
+
+
 def is_outward_mutation(command):
     """Would running this command change state on GitHub? Classified by shape, not by step name.
 
@@ -365,6 +429,36 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     # opens a DUPLICATE pull request. The merge case was survivable only because GitHub answered
     # idempotently; this one is not. A post-mutation verify exists to observe, so it may not
     # instruct a mutation. Structural, not a caveat in the output prose: the emit cannot happen.
+    # ITEM 26, LAYER 3 — the backstop, and deliberately ONE condition in ONE place so it is easy to
+    # delete. Under a level-triggered driver a correctly-derived `merged` marks the pre-merge steps
+    # `na` and no suppression is needed at all: this is scaffolding around a derivation that can be
+    # wrong, not a permanent guard. Do not thread the concept through the module, and do not defend
+    # it once the derivation is trustworthy.
+    #
+    # The guard below keys on `is_outward_mutation`, and `git rebase` is LOCAL — correctly built,
+    # scoped to the wrong axis for this failure. Measured on PR #76: a merge returned `merged: true`
+    # and the verify tail emitted `git rebase origin/main` for the merged branch. Every earlier
+    # defect in this family printed a false ALARM; that printed a false INSTRUCTION.
+    #
+    # Scoped to `merge` alone, where "the pre-merge guards are moot" is definitionally true. Wider
+    # scoping would be over-denial (RC-E), and item 22 is what a suppression without a tight scope
+    # and a named exit costs. The exit is `confirm_mutation("merge")`, pinned by
+    # `test_after_mutation_clears_once_its_verified_step_is_confirmed`.
+    if AFTER_MUTATION == "merge" and step in PRE_MERGE_STEPS:
+        route.mark(step, "wait")
+        print("")
+        print(route.header())
+        print("")
+        print(f"WAITING {step}: the merge is being verified, so this pre-merge step describes a "
+              "state the branch has already left.")
+        print(f"  evidence:  {mutation_proof()}")
+        print("  diagnosis: the read view has not caught up with the merge. The route would "
+              "otherwise have told you to run:")
+        print(f"    {command}")
+        print("  SUPPRESSED — a pre-merge step cannot be correct once the pull request has merged.")
+        print("  next:      poll the read view; do NOT re-run the merge, which reported success.")
+        return EXIT_NEEDS_INPUT
+
     if AFTER_MUTATION and is_outward_mutation(command):
         route.mark(step, "wait")
         print("")
@@ -1189,17 +1283,43 @@ def drive(args, root, route, plan=False):
                 prefetched = gh_read.pulls_for_branch(early_slug, branch, base, state="all")
             except gh_read.ReadError:
                 prefetched = None
-            if prefetched:
-                seen = prefetched[0]
-                done = [p for p in seen if p.get("merged_at")]
-                still_open = [p for p in seen if p["state"] == "open"]
-                if done and not still_open:
-                    for sid in ("base", "commits", "pushed"):
-                        route.mark(sid, "na", "pull request already merged — pre-merge guard moot")
-                    out("lifecycle", f"PR #{done[-1]['number']} is already merged — pre-merge "
-                                     "guards skipped; verifying the merge and cleanup instead")
-                    return post_merge(root, early_slug, branch, done[-1]["number"], foreign,
-                                      route, plan)
+            # ITEM 26 — this lookup used to be `if prefetched:`, a bare test on a 2-tuple that is
+            # true even when the list is empty, so a STALE read became an assertion that nothing had
+            # merged. Two independently-lagging endpoints answer this question and they disagree:
+            # measured on PR #77's single run, the LIST saw `merged_at` at ~3s while the SINGLE
+            # pull-request endpoint did not until 17.13s. Routing on whichever one we happen to
+            # consult first is a race, and it was lost on #76 (1-in-3 observed).
+            outcome = read_outcome(prefetched)
+            seen = prefetched[0] if prefetched else []
+            done = [p for p in seen if p.get("merged_at")]
+
+            # LAYER 1 — route on the mutation's OWN response; the read is then only confirmation.
+            # Costs no extra read, and unlike a longer ladder it removes the race instead of
+            # out-waiting it. `post_merge()` already confirms with bounded lag tolerance and reports
+            # WAITING if the read never catches up, so the wait stays bounded either way.
+            #
+            # Requires a pull-request NUMBER to verify against, and the merge response does not
+            # carry one (`{"sha": …, "merged": true, "message": …}`). So this routes only when the
+            # read gave us a pull request to name — which is the common stale shape, where the list
+            # shows the pull request still `open`. When the read is empty or failed there is nothing
+            # to verify against and the honest answer is to wait; LAYER 3 stops the bad emit in that
+            # case, which is exactly why the backstop is not redundant with this layer.
+            if outcome != "merged" and evidence_asserts("merge") and seen:
+                for sid in ("base", "commits", "pushed"):
+                    route.mark(sid, "na", "the merge mutation reported success — pre-merge guard moot")
+                out("lifecycle", "the merge mutation asserts it landed; the read view has not caught "
+                                 "up — verifying against the merge, not the pre-merge guards")
+                return post_merge(root, early_slug, branch, seen[-1]["number"], foreign, route, plan)
+
+            # LAYER 2 — `empty` and `failed` are NO ANSWER, never a negative. Only `no-merge` is a
+            # real negative, and only it may fall through to the pre-merge guards.
+            if outcome == "merged":
+                for sid in ("base", "commits", "pushed"):
+                    route.mark(sid, "na", "pull request already merged — pre-merge guard moot")
+                out("lifecycle", f"PR #{done[-1]['number']} is already merged — pre-merge "
+                                 "guards skipped; verifying the merge and cleanup instead")
+                return post_merge(root, early_slug, branch, done[-1]["number"], foreign,
+                                  route, plan)
 
         current = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=root).stdout.strip()
         base_sha = git(["rev-parse", base_ref], cwd=root).stdout.strip()
