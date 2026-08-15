@@ -680,6 +680,14 @@ def waiting(route, step, what, probe, plan=False):
     irreversible mutation, and the natural operator reaction to that is to run the mutation again.
     The driver already owned the right vocabulary — `not_ready` and exit 2 mean "the platform has
     not answered yet" everywhere else in this file; this path simply never used it.
+
+    Item 24(b): it borrowed the exit code but not the INSTRUCTION. `not_ready` tells an agent to
+    escalate — *poll that with Monitor, do NOT sleep in the foreground* — while this path, reached
+    only once the retry ladder is EXHAUSTED, printed a probe and stopped. So the driver contradicted
+    its own sibling at the one place the wait is known to be long: the ladder ran out precisely
+    because the lag outlived it. Stopping there converts a resolvable wait into a dead lifecycle,
+    and the measured merge lag (~11.2s against a 7s ladder) makes that the expected outcome, not the
+    unlucky one. The ladder expiring is a statement about the LADDER, never about the mutation.
     """
     if plan:
         raise PlanStop("wait", step, why=what)
@@ -690,7 +698,12 @@ def waiting(route, step, what, probe, plan=False):
     print(f"WAITING {step}: {what}")
     print(f"  evidence:  {mutation_proof()}")
     print("  diagnosis: read-after-write lag on GitHub's own read view, not a failed mutation.")
+    print(f"             the retry ladder ({', '.join(f'+{d}s' for d in LAG_RETRY_DELAYS)}) is "
+          "exhausted — that bounds what this process would spend, not how long the lag runs.")
     print(f"  poll:      {probe}")
+    print("  agent:     ESCALATE — poll that with Monitor; do NOT sleep in the foreground, and do")
+    print("             NOT treat ladder expiry as the end of the lifecycle.")
+    print("  human:     re-run it; it prints the state each time.")
     print(f"  DO NOT re-run the {step} mutation — it reported success. Poll the read view instead.")
     budget = gh_read.budget_report()
     if budget:
