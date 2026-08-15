@@ -130,8 +130,10 @@ offline local path.
 - [x] 5.1 `openspec validate --all --strict` — check `openspec --version` against the `package.json`
       pin before treating any failure as a corpus defect.
 - [x] 5.2 Full suite + `validate-scripts.sh`.
-- [x] 5.3 Gate 4 — **approved by Keith Nielsen, 2026-08-15**, on review of `proposal.md` and
-      `tasks.md` (including the recorded regression check and the corrections made during the work).
+- [x] 5.3 Gate 4 — recorded in its own section below, per convention. **The driver caught this:**
+      the sign-off was first written here under *Ceremony*, and `approval_state()` correctly reported
+      `Gate 4 UNSIGNED` because it requires a ticked item inside a section named **Gate 4**. The gate
+      was right and the record was in the wrong place. Fixed by relocating, never by loosening.
 - [x] 5.4 Archive on this branch, in this pull request (ADR-0040). **Re-checked immediately before
       archiving, and the earlier note was WRONG**: two in-flight branches DO carry live `maintenance`
       deltas — `feat/preflight-route-before-mutation` and `feat/estate-scoped-capability-probe`.
@@ -180,3 +182,13 @@ offline local path.
   immediately or routes through `read_outcome` / `lag_tolerant`.
 - Suite **227 passed**; `validate-scripts.sh` `VALIDATION OK`; `openspec validate --all --strict`
   7 passed, 0 failed.
+
+## 7. Gate 4 — human sign-off (not agent-delegatable)
+
+- [x] 7.1 **Approved** — Keith Nielsen, 2026-08-15. Reviewed `proposal.md` and `tasks.md`, including
+      the regression check against the recorded defect history and against known future work, the two
+      stated limits (L1 cannot route without a pull-request number; L3 is scaffolding for the
+      reconciliation turn), the merge-queue shelf life on L1, and the corrections made during the
+      work. Gate 3 complete: tests written first and five observed to fail before the change, the
+      production defect reproducing deterministically, 227 passed, `validate-scripts.sh` OK,
+      `openspec validate --all --strict` clean.
