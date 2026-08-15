@@ -12,6 +12,41 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.42] - 2026-08-15
+
+### Fixed
+
+- **Read-after-write observations now partition** (`fix/lag-report-partition`, defect fix,
+  **no change directory**, PR #74). The observation log recorded two independent facts in one place:
+  `step` carried the sentinel `"(not-a-verify)"`, and `outcome` could itself **be** `"not-a-verify"`,
+  entangling *was this a post-mutation verify?* with *was the value visible?*
+
+  Measured on the real log, this was not a formatting problem. **26 series were printed under a footer
+  claiming 22, and only 6 of the 26 were verifies** — so the summary folded twenty ordinary driver
+  runs, which had never been waiting for anything, into a *"became visible"* tally. Anyone sizing the
+  retry ladder from that number would have been averaging unrelated runs: the defect was corrupting
+  the dataset the ladder is meant to be derived from, not merely mis-rendering it. The footer
+  disagreeing with its own table was the second, lesser symptom of the same cause.
+
+  `is_verify` is now its own field, `step` is `None` when a run is not a verify, and outcomes
+  partition — `visible`, `not-visible`, `censored-ladder-exhausted`, `abandoned-low-budget`. A
+  non-verify that saw nothing is `not-visible` and explicitly **not** censored: nothing was being
+  waited for, so it is a lower bound on nothing and must never reach a lag summary. The report
+  separates verify series from ordinary runs, counts exactly the rows it prints, and raises an
+  explicit alarm if the tally ever stops partitioning.
+
+  **Records written before the split are upgraded on read, never rewritten.** That file holds the only
+  real measurements this operation has of GitHub's read-after-write behaviour, so "cleaning" it would
+  destroy the evidence it exists to collect. Verified in production against a mixed log — 40
+  pre-partition records and 6 post-partition records read together without loss.
+
+  With the record legible, a shape appears that the conflated report had hidden: **merge visibility
+  clusters at ~11.2s across six observations spanning 0.19s**, against a retry ladder that waits about
+  7s. That is consistent with every merge on record — one exceeded the ladder, the rest cleared on its
+  final rung. **No constant is changed here.** Eleven verify series is not a distribution, the report
+  still declines to recommend a ladder, and choosing a better-looking number from eleven points is
+  precisely the defect that made the ladder worth measuring in the first place.
+
 ## [0.1.41] - 2026-08-15
 
 Two changes, both aimed at the same thing from opposite ends: the release ceremony stops being
