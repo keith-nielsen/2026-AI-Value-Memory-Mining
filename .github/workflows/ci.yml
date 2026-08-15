@@ -494,23 +494,32 @@ jobs:
         with:
           fetch-depth: 0   # --history walks the whole object DB; a shallow clone hides it
 
+      # A bare /tmp is READ-ONLY under a write-scoped sandbox, so these three steps were the one job
+      # an agent could never run: broken precisely where it would be checked before a push, and green
+      # in CI where /tmp happens to be writable. `$RUNNER_TEMP` is set and stable across steps on a
+      # runner; `$TMPDIR` is the sandbox's writable equivalent; `/tmp` stays the last resort. All
+      # three steps therefore resolve the SAME directory in every environment.
       - name: Extract the scanner from its literate note
         run: |
           python3 - << 'EOF'
-          import pathlib, re
+          import os, pathlib, re
+          tmp = pathlib.Path(os.environ.get("RUNNER_TEMP") or os.environ.get("TMPDIR") or "/tmp")
           note = pathlib.Path("vault-template/99-Operations/scripts/secret-scan-script.md")
           blocks = re.findall(r"^```python\n(.*?)^```", note.read_text(), re.S | re.M)
           assert len(blocks) == 1, f"expected exactly 1 python fence, found {len(blocks)}"
-          pathlib.Path("/tmp/vault_secrets.py").write_text(blocks[0])
+          (tmp / "vault_secrets.py").write_text(blocks[0])
           EOF
 
       - name: Selftest the instrument (a scan that cannot fail proves nothing)
-        run: python3 /tmp/vault_secrets.py --selftest
+        run: |
+          T="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+          python3 "$T/vault_secrets.py" --selftest
 
       - name: Scan the full object database, including unreachable blobs
         run: |
-          python3 /tmp/vault_secrets.py --history . | tee /tmp/scan.out
-          grep -qE "^HIGH \(object database, incl\. unreachable\): 0 match" /tmp/scan.out
+          T="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+          python3 "$T/vault_secrets.py" --history . | tee "$T/scan.out"
+          grep -qE "^HIGH \(object database, incl\. unreachable\): 0 match" "$T/scan.out"
 
   validate-scripts:
     name: Validate scripts (py ${{ matrix.python }})

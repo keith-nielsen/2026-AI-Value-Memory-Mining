@@ -44,7 +44,15 @@ LOCAL_JOBS = [
 # close, so the accounting must PARTITION.
 NOT_LOCAL = {
     "md-lint": "markdownlint-cli is not installed locally; the CI job is also advisory (`|| true`)",
-    "secret-scan": "the job writes its scanner to a hardcoded /tmp path, read-only under a sandbox",
+    # The hardcoded /tmp path that used to block this job is FIXED — it now runs locally in ~4s.
+    # It is still not reproduced here, for a better reason found by running it: `--history` scans
+    # UNREACHABLE objects on purpose (to catch a secret committed and then amended away), and
+    # unreachable objects are per-clone garbage. A fresh CI checkout has none; this working clone
+    # carries 103, including old copies of the scanner's OWN test fixtures, which match as
+    # `private-key-block` and report 2 HIGH findings that do not exist on the remote.
+    # Running it here would cry wolf on every developer machine, so it stays CI's job.
+    "secret-scan": "`--history` scans unreachable objects, which are per-clone garbage — it reports "
+                   "false HIGHs against any working clone and is only meaningful on a fresh checkout",
     "scope-review": "reproduced by STEP 7 below, against the real merge-base diff",
     "push": "not a job — a workflow trigger",
 }
