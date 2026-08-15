@@ -96,7 +96,14 @@ The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of th
 it; do not hand-compose the sequence:
 
 ```
-0. tools/pr-flow.py --plan --branch BR     # THE WHOLE ROUTE FIRST — 14 steps, each with its
+0. tools/preflight.py . [--body-file PATH] # RUN THIS BEFORE THE FIRST PUSH (ADR-0041). ONE command
+                                           # reproducing 12 of 15 CI jobs locally, plus the route
+                                           # steps CI cannot judge: declared scope against the real
+                                           # merge-base diff, a trial merge, and a SIMULATED archive.
+                                           # It prints its own coverage — what it ran, what it could
+                                           # not run, and what it does not reproduce. A clear result
+                                           # is NOT a promise the remote will be green.
+   tools/pr-flow.py --plan --branch BR     # THE WHOLE ROUTE FIRST — 14 steps, each with its
                                            # executor, its authority, and whether the guard was
                                            # MEASURED or is only PROJECTED. Do this before writing
                                            # a plan of your own; that is what it is for.
