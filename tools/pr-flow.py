@@ -1505,9 +1505,21 @@ def drive(args, root, route, plan=False):
     if failures:
         for name in failures:
             print(f"  FAILING: {name}")
-        fix = ("fix them. Note this repo's `main` ruleset has NO required_status_checks "
-               "(ADR-0034 follow-on pending), so a merge would SUCCEED over a red check — "
-               "the gate here is this driver, not the server.")
+        # This line used to say the ruleset had NO required_status_checks, so a merge would
+        # succeed over a red check and "the gate here is this driver, not the server". That was
+        # true when written and became false on 2026-08-06, when the rule was PATCHed to 16
+        # contexts (queue item 2). Verified live on the anonymous channel before this edit —
+        # ruleset 19666243, enforcement `active`, 16 required contexts — because correcting one
+        # stale claim from another recollection is how the first one got here.
+        #
+        # Two caveats survive the correction and are the reason this is not simply deleted:
+        # `Scope review` is NOT among the required contexts, and
+        # `strict_required_status_checks_policy` is FALSE, so a branch can still merge green on a
+        # stale base.
+        fix = ("fix them. This repo's `main` ruleset DOES require status checks (16 contexts, "
+               "ADR-0034), so the server will refuse a merge on a red required check — but "
+               "`Scope review` is not among them and the strict-up-to-date policy is off, so a "
+               "stale base can still merge green. This driver is the gate for those two.")
         if any("scope" in n.lower() or "body" in n.lower() for n in failures):
             fix += (" A body-derived gate reads the pull_request event payload, which is a "
                     "SNAPSHOT as of push time: re-running the job replays the STALE body. "
