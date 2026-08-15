@@ -12,6 +12,63 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.43] - 2026-08-15
+
+### Fixed
+
+- **The read-after-write retry ladder is now sized from the record**
+  (`fix/pr-flow-lag-ladder-sized-from-data`, defect fix, **no change directory**, PR #76).
+  `LAG_RETRY_DELAYS` moves from `(2, 5)` — chosen from taste, inside a fix for a measurement
+  problem — to **`(5, 8, 13)`**, derived from the 13 verify series `--lag-report` had by then
+  collected.
+
+  The two steps sharing this one ladder turned out to have **disjoint arrival bands**: the `pr` step's
+  answer arrives 2.1–4.6s after the mutation, the `merge` step's at 11.0–11.3s. So `+2s` was never a
+  bad number — it is the *productive* rung on `pr`, catching four of six. It is structurally incapable
+  of answering `merge`, and so was `+5s`: **zero hits in thirteen series**, two reads spent per merge
+  against a 60/hour channel on probes that had never once returned an answer, each printing a
+  `not visible yet` line that reads like a fault. The old ladder cleared a merge at all only because
+  rung 2 stacked onto rung 1's elapsed time and landed at ~11.2s — *on* the arrival point. A coin
+  flip, which PR #75 duly lost and which stands as the one censored series on record.
+
+  The argument for resizing is a **0-for-13 hit rate — structural**, not an average taken over a few
+  samples, which is why it does not violate the standing rule against retuning this constant by feel.
+  `--lag-report` still refuses to recommend a ladder below 20 series and **that refusal is untouched**:
+  the tool declined to hand over a number, and the operator decided from the raw record instead.
+
+  A method note ships with the change. The tight ~11.2s cluster was first read as a possible
+  *artifact* — simply where the last rung lands. **PR #71 refutes that**: its process started later, so
+  its rung 1 landed at 11.26s instead of 5.8s, and it cleared *there* — a different rung, the same
+  wall-clock point. Arrival is pinned to the clock, not to the driver's read schedule.
+
+  Two guards ship with it, both observed to fail against `(2, 5)`: every rung must be able to succeed
+  against the measured bands (pinned as `MEASURED_ARRIVAL_S`, so a later edit cannot quietly move a
+  rung back inside a dead window), and rungs must **grow** — the adversarial half, since `(30, 1, 1)`
+  satisfies the first while probing three times in two seconds. The accepted cost is stated in source:
+  the 5–11s window is no longer sampled, so a GitHub *speedup* will go unnoticed.
+
+  **Validated on the very next merge.** Rung placement was predicted before PR #77's merge and observed
+  within 0.1s — miss at 3.24s, miss at 8.68s, hit at **17.13s** — clearing the arrival point with a
+  rung still unspent.
+
+- **`WAITING` escalates instead of stopping at ladder expiry**
+  (`fix/pr-flow-waiting-escalates-to-monitor`, defect fix, **no change directory**, PR #77).
+  `waiting()` had borrowed `not_ready()`'s exit code but not its **instruction**: the sibling tells an
+  agent to *poll that with Monitor — do NOT sleep in the foreground*, while this path printed a probe
+  and stopped. The driver therefore contradicted itself about what a caller should do when the platform
+  has not answered yet.
+
+  It is the worse of the two places to omit it, because `waiting()` is reached **only once the retry
+  ladder is exhausted** — the one moment the wait is known to have outlived the driver's patience. At
+  the lag measured above, expiry was the *expected* outcome rather than the unlucky one, so the driver
+  was routinely ending a lifecycle that was about to resolve on its own. Ladder expiry is now stated as
+  a fact about the **ladder**, never about the mutation, and the `DO NOT re-run the mutation` line is
+  retained — escalation must not displace the one line that keeps an irreversible step from repeating.
+
+  Two tests, both observed to fail before the change: one drives the real `post_merge` path rather than
+  the helper in isolation, and one pins `waiting` and `not_ready` **together**, so the pair cannot
+  drift again in either direction.
+
 ## [0.1.42] - 2026-08-15
 
 ### Fixed
