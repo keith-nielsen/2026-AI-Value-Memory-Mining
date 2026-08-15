@@ -148,8 +148,17 @@ offline local path.
       earlier one, silently dropping it. That requires archiving from a **stale base**, which the
       lifecycle's `base` guard structurally prevents — neither branch can merge without containing
       `origin/main`, which will carry this archive. Deferring would instead leave `openspec/specs/`
-      describing a state the repo has left, for as long as those branches take (one owes ADR-0041,
-      the other most of its tasks) — the precise harm the archive rule exists to prevent.
+      describing a state the repo has left, for as long as those branches take (one owes an
+      architecture decision record not yet written, the other most of its tasks) — the precise harm
+      the archive rule exists to prevent.
+
+      ⚠ **`Spec lint` failed on the first push and was right.** That owed record was originally cited
+      by number. A forward citation is permitted inside a **live** change directory and not inside
+      the **archive**, because an archived change is a *record* and a record must resolve — so the
+      act of archiving is what converted a legitimate forward reference into a dangling one. The
+      number is therefore deliberately not written here. This is `enforce-adr-reference-integrity`
+      (PR #62) catching exactly the case it was built for, on a change that had already passed
+      `openspec validate --all --strict`: the two checks are not substitutes.
 - [x] 5.5 Hardening-queue item 26 closed (operator memory, 2026-08-15), recording: the L1
       merge-queue shelf life, that L3 is scaffolding to be deleted at the reconciliation turn, that
       L1 cannot route without a pull-request number and so does not make L3 redundant, and the two
