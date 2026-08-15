@@ -9,6 +9,8 @@ The cases are weighted toward the ORDERING and POSTCONDITION defects recorded in
 those are what the driver exists to prevent: advancing on a stale base, pushing over a divergent
 remote without a lease, and treating a half-finished rebase as settled state.
 """
+import argparse
+import json
 import pathlib
 import re
 import subprocess
@@ -982,6 +984,207 @@ def test_lag_report_refuses_to_recommend_a_ladder(work, monkeypatch, capsys):
     assert "not a distribution" in out
     assert not re.search(r"(recommend|suggest|try|set)\w*\s+\(?\d+\s*s", out, re.I), \
         "the report must not propose a delay"
+
+
+# ---------------------------------------------------------------------------
+# Item 26 — the F34 terminal-state guard loses a race between two GitHub read
+# endpoints. Measured on PR #76's own merge: the merge returned merged=true and
+# the verify tail then emitted `git rebase origin/main` for the merged branch.
+# Intermittent (1-in-3: wrong on #76, correct on #77 and #78), so every test
+# here FORCES the stale-read geometry rather than waiting to catch it.
+# ---------------------------------------------------------------------------
+
+
+def _stale_everywhere(monkeypatch, branch):
+    """#76's ACTUAL geometry: BOTH endpoints behind, not an idealised one-behind case.
+
+    Task 5.8's lesson: a stub does not merely under-cover reality, it can present geometry reality
+    never has. On #77 the list endpoint was fresh at ~3s while the single-pull-request endpoint was
+    stale until 17.13s; on #76 both were behind. The dangerous case is both, so that is what is
+    fixtured — an idealised fixture where only one lags would pass against the broken code.
+    """
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow.gh_read, "pulls_for_branch",
+                        lambda slug, br, base=None, state="open": (
+                            [{"number": 76, "state": "open", "merged_at": None,
+                              "base": {"ref": "main"}}], "anon-rest"))
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda slug, n: ({"number": n, "state": "open", "merged_at": None},
+                                         "anon-rest"))
+
+
+def test_verifying_a_merge_never_emits_a_rebase_for_the_merged_branch(work, monkeypatch, capsys):
+    """Item 26, the measured symptom. L3.
+
+    Observed on PR #76: `{"merged": true, "sha": "d538905…"}` and then
+    `git -C <root> rebase origin/main` — for a branch whose pull request had merged seconds earlier.
+
+    Every earlier defect in this family printed a false ALARM; this printed a false INSTRUCTION,
+    which is a different severity: an alarm invites a bad reaction, an instruction supplies one.
+
+    Item 19's guard did not catch it because it keys on `is_outward_mutation()` and a rebase is
+    LOCAL — correctly built, scoped to the wrong axis for this failure.
+    """
+    branch = "feat/raced"
+    commit_on(work, branch)
+    git(["checkout", "main"], work)
+    (work / "moved.md").write_text("base moved\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "base advances"], work)
+    git(["push", "origin", "main"], work)        # ORIGIN/main must move, not just local
+    git(["checkout", branch], work)
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0, 0))
+    _stale_everywhere(monkeypatch, branch)
+
+    args = argparse.Namespace(branch=branch, base="main", body_file=None, title=None,
+                              sha=None, pr=None, ready=None, plan=False)
+    rc = pr_flow.drive(args, str(work), pr_flow.Route())
+    printed = capsys.readouterr().out
+
+    assert "NEXT COMMAND (run exactly this" not in printed, \
+        "item 26: the production defect presented `git rebase origin/main` as the next command " \
+        "to run, for a branch whose pull request had already merged"
+    assert "SUPPRESSED" in printed, "quoting the refused command is fine; instructing it is not"
+    assert rc == EXIT_NEEDS_INPUT, "the honest answer is WAITING, not an instruction"
+
+
+def test_evidence_asserting_the_merge_routes_past_the_stale_read(work, monkeypatch, capsys):
+    """L1 — route on the write's own response; use the read only to confirm.
+
+    End-to-end argument (Saltzer, Reed & Clark 1984): the merge API's response is the answer of the
+    endpoint that did the work. An eventually-consistent read is a weaker, later signal and must not
+    overrule it. The driver was holding the authoritative answer and believing the read.
+    """
+    branch = "feat/evidenced"
+    commit_on(work, branch)
+    ev = pathlib.Path(work).parent / "evidence.json"
+    ev.write_text(json.dumps({"sha": "d538905", "merged": True,
+                              "message": "Pull Request successfully merged"}))
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", str(ev))
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0, 0))
+    _stale_everywhere(monkeypatch, branch)
+
+    assert pr_flow.evidence_asserts("merge") is True, \
+        "the evidence plainly says merged=true; the accessor must say so"
+
+    args = argparse.Namespace(branch=branch, base="main", body_file=None, title=None,
+                              sha=None, pr=None, ready=None, plan=False)
+    rc = pr_flow.drive(args, str(work), pr_flow.Route())
+    printed = capsys.readouterr().out
+    assert "NEXT COMMAND (run exactly this" not in printed
+    assert "pre-merge guards" in printed, "L1 must route on the evidence, naming why it did so"
+    assert rc == EXIT_NEEDS_INPUT
+
+
+def test_evidence_accessor_keys_on_the_claim_not_on_the_command_succeeding(work, monkeypatch):
+    """The MERGE QUEUE guard, written now while it costs nothing.
+
+    Under a merge queue the driver enqueues rather than merging: the response asserts *queued*, and
+    the merge happens later, asynchronously, possibly batched. An accessor keyed to "the mutation
+    exited 0" would read that as a landed merge and skip the wait — breaking silently at exactly the
+    moment queue item 2 lands. So it keys on the SPECIFIC claim.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    ev = pathlib.Path(work).parent / "queued.json"
+
+    ev.write_text(json.dumps({"queued": True, "position": 3, "message": "added to merge queue"}))
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", str(ev))
+    assert pr_flow.evidence_asserts("merge") is False, \
+        "queued is NOT merged — this is the merge-queue collision the regression check found"
+
+    ev.write_text(json.dumps({"merged": False, "message": "Base branch was modified"}))
+    assert pr_flow.evidence_asserts("merge") is False, "an explicit false is not an assertion"
+
+    ev.write_text("not json at all <html>502</html>")
+    assert pr_flow.evidence_asserts("merge") is False, "unparseable is unknown, never a yes"
+
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", None)
+    assert pr_flow.evidence_asserts("merge") is False, "absent is unknown, never a yes"
+
+
+def test_an_empty_read_is_not_evidence_that_nothing_merged(work, monkeypatch):
+    """L2 — the three read outcomes must be distinguishable at the point of decision.
+
+    `pulls_for_branch` returns a 2-TUPLE `(list, channel)`, so the bare `if prefetched:` that guarded
+    this block was true even when the list was empty: it was meant to ask *did I get an answer?* and
+    could never be false. A stale empty result therefore became an assertion that no merged pull
+    request exists.
+
+    Note `:1271` documents this exact hazard for the sibling call site (item 23) while the bare form
+    survived ~80 lines above it — class 9, the fix applied to the sighting rather than the class.
+    """
+    assert pr_flow.read_outcome(None) == "failed"
+    assert pr_flow.read_outcome(([], "anon-rest")) == "empty"
+    assert pr_flow.read_outcome(([{"state": "open", "merged_at": None}], "anon-rest")) == "no-merge"
+    assert pr_flow.read_outcome(([{"state": "closed", "merged_at": "t"}], "anon-rest")) == "merged"
+    assert pr_flow.read_outcome(([{"state": "open", "merged_at": None},
+                                  {"state": "closed", "merged_at": "t"}], "anon-rest")) == "no-merge", \
+        "a merged pull request alongside an open one is the stacked case, not a clean terminal state"
+
+    outcomes = {pr_flow.read_outcome(v) for v in
+                (None, ([], "c"), ([{"state": "open", "merged_at": None}], "c"),
+                 ([{"state": "closed", "merged_at": "t"}], "c"))}
+    assert outcomes == set(pr_flow.READ_OUTCOMES), \
+        "the categories must PARTITION — item 25 shipped because a tally covered two of three values"
+
+
+def test_outside_a_post_mutation_verify_a_stale_branch_still_gets_its_rebase(work, monkeypatch,
+                                                                             capsys):
+    """The adversarial half — anti-over-denial, and the reason L3 is scoped to ONE mutation type.
+
+    Queue item 22 was a guard given an entry condition and no exit, which then blocked correct work;
+    `github-command-inventory-classification.md` §6 warns against *"the corrosion of over-denial"*.
+    L3 is structurally the same kind of object, so this pins that it did NOT become a general
+    suppression: with no merge under verification, a branch behind its base must still be told to
+    rebase.
+    """
+    branch = "feat/genuinely-stale"
+    commit_on(work, branch)
+    git(["checkout", "main"], work)
+    (work / "moved.md").write_text("base moved\n")
+    git(["add", "-A"], work)
+    git(["commit", "-m", "base advances"], work)
+    git(["push", "origin", "main"], work)
+    git(["checkout", branch], work)
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", None)
+    _stale_everywhere(monkeypatch, branch)
+
+    args = argparse.Namespace(branch=branch, base="main", body_file=None, title=None,
+                              sha=None, pr=None, ready=None, plan=False)
+    pr_flow.drive(args, str(work), pr_flow.Route())
+    printed = capsys.readouterr().out
+    assert "rebase" in printed, \
+        "no mutation is being verified, so the pre-merge guards are meaningful and must still fire"
+
+
+def test_a_stale_list_read_still_records_a_lag_observation(work, monkeypatch):
+    """The fourth consequence: the FAILURE path currently records nothing.
+
+    When the F34 lookup misses, `post_merge()` never runs, so no verify series is logged for that
+    merge. PR #76 produced zero — its four records are later manual re-invocations at
+    `attempt 0, visible=True`. The log silently drops exactly the failure cases, which is the mirror
+    of the bias item 23 fixed, inside the dataset item 24 depends on.
+    """
+    branch = "feat/logged"
+    commit_on(work, branch)
+    ev = pathlib.Path(work).parent / "ev.json"
+    ev.write_text(json.dumps({"merged": True, "sha": "abc1234"}))
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "MUTATION_EVIDENCE", str(ev))
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0, 0))
+    _stale_everywhere(monkeypatch, branch)
+
+    args = argparse.Namespace(branch=branch, base="main", body_file=None, title=None,
+                              sha=None, pr=None, ready=None, plan=False)
+    pr_flow.drive(args, str(work), pr_flow.Route())
+
+    log = pr_flow.lag_log_path(str(work))
+    assert log.exists(), "a merge whose read view lagged must leave an observation"
+    verifies = [json.loads(l) for l in log.read_text().splitlines()]
+    assert any(r.get("is_verify") and r.get("step") == "merge" for r in verifies), \
+        "the observation must be recorded as a merge verify, not an ordinary run"
 
 
 def test_confirm_mutation_only_clears_the_step_it_was_verifying(monkeypatch):
