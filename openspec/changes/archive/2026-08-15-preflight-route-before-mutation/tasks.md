@@ -61,11 +61,11 @@ prototype runs — they were ad hoc, not a suite.
 
 - [x] 6.1 **Archive simulation, observed failing first**: at `507fe2f` it must report `MUST DEFER`
       naming ADR-0040. Prototype already measured this; re-assert against the shipped tool
-- [ ] 6.2 Concurrency: two live changes on one capability spec → ORDERED, both named. Build the
+- [x] 6.2 Concurrency: two live changes on one capability spec → ORDERED, both named. Build the
       fixture — this state has never occurred naturally, so it cannot be observed, only constructed
 - [x] 6.3 Scope: a **rename** whose source path is undeclared → FAIL naming the removed side. This is
       PR #64's exact geometry
-- [ ] 6.4 Trial merge: two branches appending to the same spec file → conflict predicted
+- [x] 6.4 Trial merge: two branches appending to the same spec file → conflict predicted
 - [x] 6.5 **SKIP vs FAIL**: a check that cannot run (the `/tmp` write in the secret-scan job) is
       reported SKIP and does **not** fail the pre-flight. Adversarial case — write it before 6.6
 - [x] 6.6 A clean branch → pre-flight passes with no findings
@@ -73,20 +73,32 @@ prototype runs — they were ad hoc, not a suite.
 
 ## 7. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 7.1 **Approved** — _<operator>, YYYY-MM-DD_ · pending
+- [x] 7.1 **Approved** — Keith Nielsen, 2026-08-16. Reviewed ADR-0041 and this task file, including
+      the declined §4 recorded as a decision, the coverage-accounting design, and the three defects
+      found by running the tool rather than by its tests.
 
 ## 8. Archive — on this branch, per ADR-0040
 
-- [ ] 8.1 Move to `openspec/changes/archive/<date>-preflight-route-before-mutation/`
-- [ ] 8.2 Apply the delta into `openspec/specs/maintenance/spec.md`; CHANGELOG entry
+- [x] 8.1 Moved to `openspec/changes/archive/2026-08-15-preflight-route-before-mutation/`
+      by `openspec archive`; delta applied (`+ 1 added` to `maintenance`).
+- [x] 8.2 Apply the delta into `openspec/specs/maintenance/spec.md`. **CHANGELOG deferred to the
+      release**, not written here: measured across the history, `CHANGELOG.md` is touched only by
+      `release(...)` commits, and `openspec archive` does not stamp it despite `CONTRIBUTING.md`
+      saying it does. That mismatch is hardening-queue item 27; do not "fix" it by inventing a
+      per-change entry that no precedent has.
 - [x] 8.3 **Run the pre-flight on itself before archiving.** It should report `MUST DEFER` until
       ADR-0041 exists (this change cites it), then `CAN ARCHIVE`. The tool proving itself on its own
       change is the strongest available end-to-end
-- [ ] 8.4 Confirm the concurrency exception does not apply at merge time
+- [x] 8.4 Re-checked at merge time, not recalled: the only other in-flight change with a live
+      `maintenance` delta is `estate-scoped-capability-probe`, and it is **ADDED-only** with
+      two requirements this change does not touch. Both ADDED, disjoint names — the
+      exception does not fire, and the base-current guard prevents a stale-base rebuild.
 
 ## 9. Ship
 
-- [ ] 9.1 PR body declares the full scope — including **both** sides of every rename (item 18)
+- [x] 9.1 PR body declares the full scope. **No rename in this diff** — the live change dir was
+      created and archived within this branch, so against `origin/main` the archive path is
+      purely an addition. Checked rather than assumed (item 18's failure mode is silent).
 - [ ] 9.2 Land via `tools/pr-flow.py --plan --branch BR` first, then the driven route
 
 ## 10. Explicitly out of scope

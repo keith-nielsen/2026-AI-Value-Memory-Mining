@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0041 — Pre-flight the route locally: move the checks we already have from continuous integration to the keyboard
 
-**Status:** **Accepted** (human sign-off: pending)
+**Status:** **Accepted** (human sign-off: Keith Nielsen, 2026-08-16)
 **Date:** 2026-08-16
 **Change:** `preflight-route-before-mutation`
 **Relates:** **ADR-0040** (archive on the feature branch — this **discharges its deferred follow-on**,
