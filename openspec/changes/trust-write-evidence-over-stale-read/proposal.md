@@ -123,6 +123,61 @@ The three design questions the proposal exists to force are answered in `tasks.m
 code**, including the full evidence × read decision table, whose exhaustiveness is the specific thing
 that went wrong in queue item 25.
 
+## Regression check against the record, and against known future work
+
+Run at the operator's challenge, before implementation. The result changed one design note.
+
+### Backward — would this have caught our own history?
+
+| Defect | Verdict |
+|---|---|
+| **item 19** — `REFUSED` printed under a successful merge | **Yes.** L1 routes on the evidence, so the contradiction never arises. Cheaper than the retry ladder that actually fixed it. |
+| **item 23** — retry dead behind a bare 2-tuple test | **Yes, as a class.** L2 is the same defect at the sibling call site. |
+| **item 26** — this one | Yes, by construction. |
+| **F34** — terminal state resolved after pre-terminal guards | Hardens F34's own block; F34 was right and unenforced. |
+| **item 22** — suppression not cleared after its mutation confirmed | ⚠ **No — and L3 is the same shape as the bug.** See below. |
+| **item 16** — orphaned check-run strands the driver | **No.** It stalls at step 8 (`checks`), which is pre-merge and outside any post-mutation verify. L3 does not reach it. |
+| **item 20** — stale `next.sh` replays a mutation | No. Unrelated mechanism. |
+| **item 17** — change state unkeyed to the branch | No. Unrelated mechanism. |
+
+**Three of eight, one actively in the risk class, four untouched.** Recording the score rather than
+only the wins: this is a targeted fix, not a general hardening, and it should not be described as one.
+
+⚠ **L3 is a new suppression with an entry condition — structurally the same object that caused item
+22.** That is the strongest argument against it. It is mitigated three ways: the exit condition is
+named (`confirm_mutation("merge")`), the adversarial exit test is written **first** (task 2.1), and
+the scope is one mutation type rather than all of them. But the risk is real and is the reason L3 is
+scoped as narrowly as it is.
+
+### Forward — does it collide with work we know is coming?
+
+**1. Merge queue (queue item 2) — a real collision, and L1 has a shelf life.**
+
+Under a merge queue the driver does not `PUT /merge`; it **enqueues**. The mutation's response then
+asserts *queued*, not *merged*, and the merge happens later, asynchronously, possibly **batched with
+other pull requests**. L1's central premise — *the write response asserts the terminal state* — stops
+holding.
+
+This does not block the change: an evidence file that does not assert `merged` is row **E2** of the
+decision table, which already routes to WAIT. But two consequences follow, and both are adopted here:
+
+- The evidence accessor SHALL be keyed to the **specific claim** (`merged: true`), never to "the
+  mutation exited 0". Conflating those is what would break silently under a queue.
+- **L1's value is bounded by how long we keep merging directly.** Worth knowing before treating it as
+  permanent architecture.
+
+**2. The reconciliation turn — L3 becomes redundant, by design.**
+
+Under a properly level-triggered driver, a route that correctly derives *merged* marks the pre-merge
+steps `na` and never emits them; no suppression is needed. **L3 exists only because the derivation can
+be wrong.** It is scaffolding around a derivation defect, not a permanent guard — so it should be
+written to be easy to delete, and it should not be defended once the derivation is trustworthy.
+
+**3. `feat/preflight-route-before-mutation`** models route steps by running the shipped check. If
+`emit()` gains a second refusal axis, that model must track it. Coupling, not collision.
+
+**4. `feat/estate-scoped-capability-probe`** — no interaction.
+
 ## Impact
 
 - `tools/pr-flow.py` — F34 block, `emit()` suppression axis, evidence parsing.

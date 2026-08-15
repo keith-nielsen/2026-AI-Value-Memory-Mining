@@ -92,6 +92,14 @@ offline local path.
 - [ ] 3.1 Evidence accessor — a structured reader beside `mutation_proof()` that answers *does the
       evidence assert this step landed?* rather than returning prose. `mutation_proof()` keeps its
       current job (quoting for humans); the two must not be conflated.
+      ⚠ **Keyed to the SPECIFIC claim (`merged: true`), never to "the mutation exited 0".** Under a
+      merge queue (queue item 2) the response asserts *queued*, not *merged* — conflating the two
+      would break silently at exactly the moment we adopt the queue. Test the queue-shaped payload
+      now, while it costs nothing.
+- [ ] 3.6 Write L3 to be **easy to delete.** The regression check found it is scaffolding around a
+      derivation defect: under a level-triggered driver a correctly-derived `merged` marks the
+      pre-merge steps `na` and no suppression is needed. Keep it one condition in one place, not a
+      concept threaded through the module.
 - [ ] 3.2 L1 routing in the F34 block, keyed to `AFTER_MUTATION`.
 - [ ] 3.3 L2 — replace the bare `if prefetched:` with the three-way distinction.
 - [ ] 3.4 L3 — extend `emit()`'s suppression axis so that under `AFTER_MUTATION == "merge"` a
