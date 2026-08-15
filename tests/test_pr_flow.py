@@ -734,6 +734,45 @@ def test_after_mutation_reports_waiting_not_refused_when_the_merge_is_not_visibl
     assert rc == EXIT_NEEDS_INPUT, "waiting is exit 2, not the exit 1 of a refusal"
 
 
+def test_waiting_escalates_to_monitor_when_the_ladder_is_exhausted(work, monkeypatch, capsys):
+    """Item 24(b): `waiting()` borrowed `not_ready()`'s exit code but not its INSTRUCTION.
+
+    This path is reached ONLY after the retry ladder runs out, i.e. at the one moment the wait is
+    known to have outlived the driver's patience — and it printed a probe and stopped. Measured lag
+    on this estate is ~11.2s against a 7s ladder, so expiry is the expected case, not the unlucky
+    one, and stopping there ends a lifecycle that was about to resolve on its own.
+    """
+    monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
+    monkeypatch.setattr(pr_flow, "LAG_RETRY_DELAYS", (0, 0))
+    monkeypatch.setattr(pr_flow.gh_read, "pull_request",
+                        lambda slug, n: ({"number": n, "state": "open", "merged_at": None},
+                                         "anon-rest"))
+    rc = pr_flow.post_merge(str(work), "o/r", "feat/lag", 64, False, pr_flow.Route())
+    outp = capsys.readouterr().out
+    assert rc == EXIT_NEEDS_INPUT
+    assert "Monitor" in outp, "an agent told only to 'poll' will foreground-sleep or give up"
+    assert "exhausted" in outp, "expiry must be stated as a fact about the ladder, not the mutation"
+    assert f"DO NOT re-run the merge mutation" in outp, \
+        "escalation must not displace the one line that keeps an irreversible step from repeating"
+
+
+def test_both_wait_paths_tell_an_agent_to_escalate(monkeypatch, capsys):
+    """The two siblings drifted once; pin them together so they cannot drift again.
+
+    `waiting` and `not_ready` mean the same thing — the platform has not answered yet — and an
+    agent's correct response is identical in both. Testing only the path that was broken would
+    leave the pair free to diverge in the other direction next time.
+    """
+    monkeypatch.setattr(pr_flow.gh_read, "budget_report", lambda: "")
+    seen = []
+    for fn in (pr_flow.waiting, pr_flow.not_ready):
+        fn(pr_flow.Route(), "merge", "not visible", "probe-cmd")
+        seen.append(capsys.readouterr().out)
+    for text, name in zip(seen, ("waiting", "not_ready")):
+        assert "Monitor" in text, f"{name} must name the instrument, not just say 'poll'"
+        assert "foreground" in text, f"{name} must forbid the foreground sleep explicitly"
+
+
 def test_without_after_mutation_an_unmerged_pr_is_still_a_refusal(work, monkeypatch):
     """The adversarial half: lag tolerance must not soften an ordinary run into a false pass.
 
