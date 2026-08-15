@@ -148,7 +148,10 @@ offline local path.
       `origin/main`, which will carry this archive. Deferring would instead leave `openspec/specs/`
       describing a state the repo has left, for as long as those branches take (one owes ADR-0041,
       the other most of its tasks) — the precise harm the archive rule exists to prevent.
-- [ ] 5.5 Close hardening-queue item 26.
+- [x] 5.5 Hardening-queue item 26 closed (operator memory, 2026-08-15), recording: the L1
+      merge-queue shelf life, that L3 is scaffolding to be deleted at the reconciliation turn, that
+      L1 cannot route without a pull-request number and so does not make L3 redundant, and the two
+      test defects found by running them.
 
 ## 6. Evidence
 
