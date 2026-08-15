@@ -1018,6 +1018,43 @@ def test_every_command_the_driver_emits_is_classified(work):
             f"driver emits this but the guard does not classify it as a mutation: {concrete}"
 
 
+def test_every_ladder_rung_can_actually_succeed(monkeypatch):
+    """Item 24: no rung may land inside a window where nothing has ever been observed to arrive.
+
+    The old `(2, 5)` ladder spent its first two reads at ~3.3s and ~5.8s on the `merge` step, where
+    arrival is 11.0-11.3s: a 0-for-13 hit rate across the whole record. Those probes could not
+    succeed, cost a read each against a 60/hour channel, and printed a 'not visible yet' line that
+    reads like a fault. This pins the property that convicted them, not the specific numbers.
+    """
+    cumulative, total = [], 0
+    for d in pr_flow.LAG_RETRY_DELAYS:
+        total += d
+        cumulative.append(total + pr_flow.MEASURED_FIRST_READ_S)
+
+    assert cumulative[0] > pr_flow.MEASURED_ARRIVAL_S["pr"], (
+        "the FIRST retry must be able to answer the fast step; a rung that lands before the `pr` "
+        "band closes is spending a read on a question that cannot yet have an answer")
+    assert any(t > pr_flow.MEASURED_ARRIVAL_S["merge"] for t in cumulative[:-1]), (
+        "a rung BEFORE the last must clear the `merge` band — a ladder whose final rung sits on the "
+        "arrival point is a coin flip, which is exactly how #75 came to be censored")
+    assert cumulative[-1] > 2 * pr_flow.MEASURED_ARRIVAL_S["merge"], (
+        "the last rung is the tail probe: past it the right conclusion is 'something is wrong', so "
+        "it must sit well clear of ordinary lag rather than just past it")
+
+
+def test_lag_ladder_rungs_are_monotonic(monkeypatch):
+    """Adversarial half: the property above is satisfiable by a ladder that is nonsense in shape.
+
+    `(30, 1, 1)` passes every assertion in the test above while probing three times in two seconds
+    after a half-minute of silence. Growth is what makes a rung's failure informative — each one
+    must buy meaningfully more time than the last, or the extra reads tell you nothing new.
+    """
+    delays = pr_flow.LAG_RETRY_DELAYS
+    assert len(delays) >= 2, "one rung cannot distinguish slow from stuck"
+    assert all(b > a for a, b in zip(delays, delays[1:])), \
+        f"rungs must grow: {delays} probes again before the platform has had more time to answer"
+
+
 def test_lag_tolerant_stops_spending_when_the_read_budget_is_low(monkeypatch):
     """A probe that exhausts a 60/hour channel to polish a message has made things worse."""
     monkeypatch.setattr(pr_flow, "AFTER_MUTATION", "merge")
