@@ -130,9 +130,24 @@ offline local path.
 - [x] 5.1 `openspec validate --all --strict` — check `openspec --version` against the `package.json`
       pin before treating any failure as a corpus defect.
 - [x] 5.2 Full suite + `validate-scripts.sh`.
-- [ ] 5.3 Gate 4 — operator sign-off recorded here.
-- [ ] 5.4 Archive on this branch, in this pull request (ADR-0040). No concurrent change carries a
-      `maintenance` delta at time of writing — **re-check immediately before archiving.**
+- [x] 5.3 Gate 4 — **approved by Keith Nielsen, 2026-08-15**, on review of `proposal.md` and
+      `tasks.md` (including the recorded regression check and the corrections made during the work).
+- [x] 5.4 Archive on this branch, in this pull request (ADR-0040). **Re-checked immediately before
+      archiving, and the earlier note was WRONG**: two in-flight branches DO carry live `maintenance`
+      deltas — `feat/preflight-route-before-mutation` and `feat/estate-scoped-capability-probe`.
+
+      **Archived anyway; the exception does not fire.** Both are **ADDED-only** and introduce
+      requirements this change does not touch (*The Route Is Pre-Flighted Before A Mutation*; *The
+      Capability Probe Measures A Declared Estate*; *A Probe Reports Diagnoses, Not Internal
+      Errors*). This change is the only `MODIFIED`, against *Asynchronous Platform State Is Awaited,
+      Never Assumed*. Same file, disjoint requirements.
+
+      The hazard ADR-0040 guards is a later archive rebuilding the spec from a base that predates an
+      earlier one, silently dropping it. That requires archiving from a **stale base**, which the
+      lifecycle's `base` guard structurally prevents — neither branch can merge without containing
+      `origin/main`, which will carry this archive. Deferring would instead leave `openspec/specs/`
+      describing a state the repo has left, for as long as those branches take (one owes ADR-0041,
+      the other most of its tasks) — the precise harm the archive rule exists to prevent.
 - [ ] 5.5 Close hardening-queue item 26.
 
 ## 6. Evidence
