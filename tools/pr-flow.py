@@ -77,15 +77,42 @@ MUTATION_EVIDENCE = None  # path to the mutation's captured output, so its own p
 # Bounded, budget-aware lag tolerance. Small because the anonymous REST channel allows 60 reads/hour
 # and a full invocation already costs several.
 #
-# ⚠ THESE NUMBERS ARE NOT MEASURED. They were chosen from taste — inside a fix for a measurement
-# problem — and the live record already indicts them: of the two merges where the ladder actually
-# ran, #67 cleared on the LAST rung (~7s) and #68 exceeded it entirely. A ladder sitting at the
-# median stalls roughly half the time. The earlier claim here that "two extra reads is enough to
-# clear the lag observed on #63/#64/#66" was an assertion, not an observation, and #68 refuted it.
+# SIZED FROM THE RECORD (operator's call, 2026-08-15) — the previous `(2, 5)` was chosen from taste
+# inside a fix for a measurement problem, and 13 verify series in `--lag-report` convicted it. The
+# two steps that use this ladder have DISJOINT arrival bands:
 #
-# They stay provisional until `--lag-report` holds enough real observations to size them from data.
-# DO NOT retune them by feel — inventing a more pleasing constant is the defect, not the fix.
-LAG_RETRY_DELAYS = (2, 5)
+#   step     first read at   arrival observed   old-ladder hit rate
+#   pr       ~2.1s           2.1 – 4.6s         attempt 0: 2/6 · rung +2s: 4/6
+#   merge    ~3.3s           11.0 – 11.3s       attempt 0: 0/7 · rung +2s: 0/6 · rung +5s: 6/7
+#
+# So `+2s` was not a bad number — it is the PRODUCTIVE rung on `pr`. It is structurally incapable of
+# succeeding on `merge`, and so was `+5s`: zero hits in thirteen series, two reads spent per merge on
+# probes that had never once returned an answer. The old ladder only cleared a merge at all because
+# rung 2's `+5s` stacked onto rung 1's elapsed time and landed at ~11.2s — ON the arrival point, a
+# coin flip, which #75 duly lost.
+#
+# The argument for resizing is a 0-for-13 hit rate, i.e. STRUCTURAL — not an average taken over a
+# handful of samples. That distinction is why this does not violate the standing "do not retune by
+# feel" rule, and why `--lag-report` still (correctly) refuses to recommend a ladder below 20 series:
+# the tool declined to hand over a number, and the operator decided from the raw record instead.
+#
+# Cumulative sleep 5 / 13 / 26 puts the reads at roughly 8.8s, 17.2s and 30.7s on the `merge` step:
+#   rung 1 (+5s)  — catches the whole `pr` band, whose arrival is ≤4.6s
+#   rung 2 (+8s)  — catches `merge` with ~6s of margin over the latest observed absence (11.05s)
+#   rung 3 (+13s) — the tail. Past ~26s of waiting, assume something is genuinely wrong rather than
+#                   slow; that is the never-resolves case (an orphaned check-run) and needs a check,
+#                   not more patience.
+#
+# ⚠ Known cost of tuning the instrument to its own answer: the 5–11s window is no longer sampled, so
+# if GitHub gets FASTER this ladder will not notice. Attempt 0 still fires every series at ~2-3s, so
+# one early data point per observation survives; only the probe that never paid back was dropped.
+LAG_RETRY_DELAYS = (5, 8, 13)
+
+# The measured bands the ladder above is sized against, pinned so a future edit cannot quietly move
+# a rung back inside a window where nothing has ever arrived. Update these ONLY from `--lag-report`.
+MEASURED_ARRIVAL_S = {"pr": 4.6, "merge": 11.3}  # upper edge of each observed band
+MEASURED_FIRST_READ_S = 3.3                      # process start → attempt 0 completing, `merge` step
+
 LAG_RETRY_MIN_BUDGET = 10  # below this many remaining reads, report once and stop spending
 
 PROC_START = time.time()   # for the saved plan's verify tail, ~the moment the mutation finished
