@@ -12,6 +12,51 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.45] - 2026-08-16
+
+### Fixed
+
+- **The secret scan can run outside continuous integration** (`fix/secret-scan-runner-temp`, defect
+  fix, **no change directory**, PR #82). The job wrote its extracted scanner to a hardcoded `/tmp`
+  path, which is **read-only under a write-scoped sandbox** — so it was the one job an agent could
+  never run: broken precisely where it would be checked *before* a push, and green in continuous
+  integration where `/tmp` happens to be writable. All three steps now resolve the same directory in
+  every environment via `${RUNNER_TEMP:-${TMPDIR:-/tmp}}`, and the whole job runs locally in about
+  four seconds.
+
+  **This did not raise the pre-flight's local coverage, and the reason is worth recording.** The
+  prediction was 12/15 → 13/15; running it showed why that is wrong. The scan's history mode walks
+  **unreachable** objects deliberately — that is how it catches a secret committed and then amended
+  away — but unreachable objects are **per-clone garbage**. A fresh checkout has none; a working
+  clone accumulates them, and this one carries 103, including superseded copies of the scanner's
+  *own test fixtures*, whose literal private-key payload matches. Run locally it reported two
+  findings that do not exist on the remote. The job therefore stays outside local reproduction, with
+  its stated reason corrected from the now-fixed `/tmp` path to the real one. A check that fires
+  falsely is how a tool teaches its reader to ignore it.
+
+- **Two mechanism claims the corpus had outgrown** (`fix/correct-two-stale-mechanism-claims`, defect
+  fix, **no change directory**, PR #83). Both were prose asserting behaviour that was true when
+  written and has since changed — the same failure the constitution's enforcement table is already
+  known for, and the reason a documented absolute that practice contradicts teaches its readers that
+  the document is approximate.
+
+  The lifecycle driver's refusal on a failing check claimed the `main` ruleset had **no** required
+  status checks, so *"a merge would SUCCEED over a red check — the gate here is this driver, not the
+  server."* That stopped being true on 2026-08-06. The ruleset was **read live before the prose was
+  touched** — active, sixteen required contexts — because correcting one stale claim out of another
+  recollection is exactly how the first one survived. Two caveats remain, and are why the sentence
+  was corrected rather than deleted: the scope-review context is **not** among the sixteen, and the
+  strict up-to-date policy is **off**, so a branch can still merge green on a stale base. The driver
+  is the gate for those two, and now says so precisely.
+
+  Separately, the contributor guide claimed that archiving *"stamps the CHANGELOG"* — it does not,
+  and never did; `openspec archive` reports only the specs it updates. The changelog is stamped at
+  release, in a single commit on the release branch, without exception across the whole history. The
+  pull-request template's matching checklist item is now conditional on the pull request **being**
+  the release, and states that leaving it unticked is **correct rather than an omission** — a
+  permanently unticked item trains readers to skim past unticked boxes, the precise failure a
+  checklist exists to prevent.
+
 ## [0.1.44] - 2026-08-16
 
 ### Added
