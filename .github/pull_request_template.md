@@ -32,7 +32,9 @@ CHANGELOG.md
 - [ ] If changing a constitutional element: Informed-Upheaval Protocol completed with human sign-off in `openspec/changes/`
 - [ ] If changing `vault-template/99-Operations/scripts/`: code block updated in the literate note, `render` re-run, `reconcile` shows zero drift
 - [ ] SPDX license header present on new source files (`SPDX-License-Identifier: Apache-2.0`)
-- [ ] `CHANGELOG.md` updated under `[Unreleased]`
+- [ ] `CHANGELOG.md` — **only if this pull request IS the release** (`release(vX.Y.Z)`). Ordinary
+      changes do not touch it; the changelog is stamped at release time in one commit on the release
+      branch. Leave unticked otherwise — that is correct, not an omission.
 
 ## Test plan
 

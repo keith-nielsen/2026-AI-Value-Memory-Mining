@@ -21,9 +21,15 @@ stated below — see *When a change ships without a proposal*.
 
 **Step 5 is not optional and does not come later — archiving happens on the feature branch, in the
 same pull request that merges the change** (ADR-0040; `maintenance` — *A Change Is Archived On Its Own
-Branch*). Archiving moves `openspec/changes/<slug>/` to `openspec/changes/archive/<YYYY-MM-DD>-<slug>/`,
-applies the delta into `openspec/specs/`, and stamps the CHANGELOG. A change that merges unarchived
-leaves `openspec/specs/` describing a state the repo has already left, and **owes a second PR**.
+Branch*). Archiving moves `openspec/changes/<slug>/` to `openspec/changes/archive/<YYYY-MM-DD>-<slug>/`
+and applies the delta into `openspec/specs/`. A change that merges unarchived leaves
+`openspec/specs/` describing a state the repo has already left, and **owes a second PR**.
+
+**Archiving does NOT touch `CHANGELOG.md`** — `openspec archive` reports only *"Specs to update"* and
+leaves the changelog alone. The changelog is stamped **at release**, in a single `release(vX.Y.Z)`
+commit on the release branch. That is the practice without exception: measured across the history,
+every commit that modifies `CHANGELOG.md` is a `release(...)` commit. This sentence previously
+claimed archiving stamped it; it never did.
 
 **The one exception:** where another in-flight change carries a delta against the **same** capability
 spec, defer the archive and apply the deltas in merge order — otherwise the later archive can overwrite
