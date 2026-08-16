@@ -124,8 +124,8 @@ protected spec until the archive lands.
 
 ## 9. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 9.1 **Approved** — <operator>, <YYYY-MM-DD>. Awaiting sign-off. The two decisions that most
-      warrant review, both argued in the proposal and ADR-0042:
+- [x] 9.1 **Approved** — Keith Nielsen, 2026-08-16. Reviewed the proposal, this task file and
+      ADR-0042, including the two decisions named below, both argued in the proposal and ADR-0042:
       (a) **`constitution.md` is OUT of the subject set** — operator decision 2026-08-16. It carries
       no frontmatter tag, and gating it would have refused PR #85, the change that removed six false
       enforcement claims. `CONST-01`–`05` therefore remain ungated until task 7.2 hashes them.
