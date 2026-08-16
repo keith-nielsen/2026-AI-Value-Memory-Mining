@@ -79,6 +79,44 @@ jobs:
           test -f openspec/templates/constitution-override/proposal.md || {
             echo "MISSING constitution-override template" >&2; exit 1; }
 
+  constitutional-diff-gate:
+    name: Constitutional diff gate (declaration, burn-in)
+    runs-on: ubuntu-latest
+    # PHASE A (ADR-0042): REPORT-ONLY. `continue-on-error` is deliberate and is
+    # removed by its own governed change after burn-in — never folded into the
+    # change that builds the gate (hardening-queue F29). Threshold stated up front:
+    # pass on 5 consecutive PRs that touch a protected spec. At the measured firing
+    # rate (4 of the last 25 merges, 16%) that is roughly 30 PRs.
+    #
+    # Report-only is not caution for its own sake: ZERO existing proposals carry a
+    # `constitutional-impact` block today, so a blocking gate on day one would
+    # refuse 100% of legitimate spec changes — the bypass-training failure this
+    # gate exists to avoid.
+    #
+    # The name carries ", burn-in" and may be renamed ONLY while the context is
+    # still unrequired: the name IS the check-context identity, and renaming a
+    # required context deadlocks merges (ADR-0034; the trap ADR-0039 dodged).
+    #
+    # A separate job from `constitution-lint` on purpose — that job's context name
+    # is already in required_status_checks and is left untouched.
+    # Self-contained: stdlib-only Python, no network (INV-6 posture at the CI layer).
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A shallow checkout cannot see the merge base. `constitution-lint` above
+          # runs shallow because it reads files at HEAD; this job reads a DIFF.
+          fetch-depth: 0
+
+      - name: Diff against merge base
+        run: git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+
+      - name: Require a constitutional-impact declaration (deterministic, stdlib-only)
+        run: python3 .github/scripts/check-constitutional-impact.py pr.diff
+
   vocabulary-lint:
     name: Vocabulary lint (grade + pillar)
     runs-on: ubuntu-latest

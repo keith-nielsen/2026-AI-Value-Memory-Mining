@@ -6,7 +6,24 @@
   element (see openspec/constitution.md §1–2).
 
   A constitution-override change MUST pass four gates IN ORDER before it may be
-  merged. CI will reject the PR if any gate section is missing or incomplete.
+  merged.
+
+  WHAT CI ACTUALLY CHECKS (corrected 2026-08-16, ADR-0042 — this block previously
+  claimed CI would reject a PR with a missing or incomplete gate section, which
+  was never true; the same false claim was retracted from constitution.md by
+  PR #85 and survived here, in the file an author reads WHILE performing the
+  ceremony):
+    - `constitutional-diff-gate` reads the diff. If your change modifies a spec
+      whose frontmatter carries `protects:`, it requires a committed
+      `constitutional-impact` declaration, and — where that declaration names an
+      overridden Tier-0/Tier-1 element — a change directory of this type whose
+      four `## Gate N` headings are all present.
+    - It checks that the gate SECTIONS EXIST. Nothing reads what you wrote in
+      them, nothing verifies a checkbox is ticked, and nothing validates the
+      sign-off.
+    - It is REPORT-ONLY during burn-in and cannot currently fail a build.
+  The gates below bind through ceremony and human review. A green CI run is not
+  evidence that you completed them.
 
   Replace all <angle-bracket placeholders> with your content.
   Remove the HTML comment blocks before submitting.
@@ -36,7 +53,8 @@
 
 ## Gate 1 — CHECK (Impact Analysis)
 
-<!-- MANDATORY. CI will fail if this section is missing or has unchecked items. -->
+<!-- MANDATORY by the protocol. CI checks only that this heading EXISTS; it does not
+     read the content and does not verify the checkboxes. Unchecked items pass CI. -->
 
 **Principle(s) being overridden (restate in your own words):**
 
@@ -67,7 +85,8 @@ $ <search command(s) sweeping openspec/ vault-template/ docs/ .github/ README.md
 
 ## Gate 2 — PLAN (Migration + Regression)
 
-<!-- MANDATORY. CI will fail if this section is missing. -->
+<!-- MANDATORY by the protocol. CI checks only that this heading EXISTS; nothing
+     validates the migration plan or the named regression tests. -->
 
 **Migration plan:**
 
@@ -101,8 +120,9 @@ $ <search command(s) sweeping openspec/ vault-template/ docs/ .github/ README.md
 
 ## Gate 4 — RE-CHECK + HUMAN SIGN-OFF
 
-<!-- MANDATORY. This section must be completed and signed by a human — not an agent.
-     CI will reject a merge if SIGN-OFF is missing. -->
+<!-- MANDATORY by the protocol. This section must be completed and signed by a human
+     — not an agent. NOTHING IN CI READS THE SIGN-OFF: no check verifies it is present,
+     filled in, or human. It binds through review and the §5 agent hard stop alone. -->
 
 **Second review confirms blast radius was fully addressed:** ☐  
 **Gate-1 transcript re-run; output diffed clean against the proposal:** ☐

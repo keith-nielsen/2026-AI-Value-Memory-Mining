@@ -195,6 +195,7 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 |---|---|
 | `protects:` frontmatter tag | Marks spec files and vault artifacts as constitutionally protected |
 | `constitution-lint` (CI) | Checks the six protected specs each still contain a `protects:` tag, that `CONST-01`–`05` are all present in this file, and that the override template exists. It performs **no diff analysis** and cannot fail a change for skipping the ceremony. |
+| `constitutional-diff-gate` (CI) | Reads the diff. Where it modifies a spec whose **frontmatter** carries `protects:`, it requires a `constitutional-impact` declaration committed to the tree, and requires a `constitution-override` change directory where that declaration names an overridden Tier-0/Tier-1 element. It does **not** judge whether the declaration is true — see the sentence below the table. **Report-only (`continue-on-error`) during burn-in**; until the Phase-B flip it cannot fail a build. Implemented by `.github/scripts/check-constitutional-impact.py`; read that file, not this row. |
 | `vocabulary-lint` (CI) | Checks `config.defaults.env` defines `PILLARS`, `GRADES`, `KNOWLEDGE_STAGES`, `REFINE_GATE_GRADES`, and that `GRADES` is exactly `{coal, bronze, silver, gold}`. It does **not** validate a glossary and does **not** scan prose. |
 | Branch protection | Ruleset `19666243` on `main`: a pull request is required, **16 status-check contexts must pass**, merge-commit only, no force-push, no deletion. ⚠ It is **not path-scoped** (it governs every pull request to `main`, not only constitutional ones) and **`required_approving_review_count` is `0`** — human review is convention here, not a server-side requirement. |
 | Change template | `constitution-override/proposal.md` exists and carries CHECK / PLAN / RE-CHECK / SIGN-OFF sections. CI verifies **only that the file exists**; nothing checks that a given change filled those sections in. A change missing them is invalid **by convention and review**, not by a failing check. |
@@ -202,8 +203,14 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 **What is NOT mechanically enforced.** Stated plainly, because a table of mechanisms is read as a list
 of things that will stop you:
 
-- **No check refuses a change that touches a `protects:`-tagged element without a
-  `constitution-override`.** No job inspects the diff at all.
+- **No check yet *refuses* a change that touches a `protects:`-tagged element without a
+  `constitution-override`.** A job now **inspects the diff** — `constitutional-diff-gate`, added by
+  ADR-0042 — but it is `continue-on-error` during burn-in and therefore cannot fail a build. This
+  bullet becomes false at the Phase-B flip, and the flip is the change that must rewrite it.
+- **Even after the flip, no check will judge whether a declaration is TRUE.** The gate establishes
+  that the constitutional question was answered in writing and that the answer is versioned. Whether
+  the answer is correct remains the human judgement §5 reserves. A green gate is evidence of a
+  declaration, never of compliance.
 - **No check reads a `constitution-override` proposal** to confirm its four gates were completed, or
   that Gate 4 carries a human sign-off.
 - **No check validates vocabulary in prose.** Off-metaphor terms do not fail the build.
