@@ -87,6 +87,30 @@ and each maps to a defect that shipped for want of asking it:
 3. **Exhaustiveness — do the categories partition?** A tally counted two of three outcome values, so a
    report's footer contradicted the table above it.
 
+#### Declaring constitutional impact
+
+If your change modifies a spec whose **frontmatter** carries a `protects:` tag — the six capability
+specs under `openspec/specs/` — your `proposal.md` must carry a `constitutional-impact` block:
+
+````
+```constitutional-impact
+touches: openspec/specs/maintenance/spec.md
+protects: [INV-2, INV-3, INV-6]
+overrides: none
+basis: ADD-only; no existing requirement modified, weakened or narrowed
+```
+````
+
+`overrides: none` passes. Naming any Tier-0/Tier-1 identifier in `overrides:` requires a
+`constitution-override` change directory with its four gate sections (`constitution.md` §3).
+`basis:` is free text for the reviewer and is **not** parsed.
+
+**The gate does not judge whether your declaration is true** — that is the human judgement §5
+reserves. It refuses *silence*: a protected spec modified with the question unanswered. It reads the
+declaration from the **tree**, not the pull-request body, because a body can be edited after its
+checks report green. Run it locally with `python3 tools/preflight.py .` (STEP 7b), and see
+ADR-0042. **Report-only during burn-in** — until the Phase-B flip it cannot fail a build.
+
 #### Status of this rule
 
 **Prose, unenforced.** Nothing in continuous integration checks it, and this repo's own record is that

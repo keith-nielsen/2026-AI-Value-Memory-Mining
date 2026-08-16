@@ -54,6 +54,7 @@ NOT_LOCAL = {
     "secret-scan": "`--history` scans unreachable objects, which are per-clone garbage — it reports "
                    "false HIGHs against any working clone and is only meaningful on a fresh checkout",
     "scope-review": "reproduced by STEP 7 below, against the real merge-base diff",
+    "constitutional-diff-gate": "reproduced by STEP 7b below, against the real merge-base diff",
     "push": "not a job — a workflow trigger",
 }
 
@@ -224,6 +225,24 @@ def main():
                     failures.append("body: declared scope does not cover the diff")
                     print("        HINT: a rename touches BOTH paths — an archive must declare "
                           "source AND destination")
+
+    # --- step 7b: constitutional impact --------------------------------------------------------
+    # Needs no --body-file: the declaration is read from the TREE, which is the whole point of
+    # putting it there rather than in a PR body. So this step always runs.
+    section("STEP 7b  constitutional diff gate — against the real merge-base diff")
+    with tempfile.TemporaryDirectory() as td:
+        cdiff = Path(td) / "pr.diff"
+        cdiff.write_text(run(["git", "diff", f"{a.base}...HEAD"], cwd=root).stdout)
+        r3 = run([sys.executable, ".github/scripts/check-constitutional-impact.py", str(cdiff)],
+                 cwd=root)
+        for line in (r3.stdout.strip().splitlines() or ["(no output)"])[:5]:
+            print(f"  {line[:88]}")
+        if r3.returncode != 0:
+            for line in r3.stderr.strip().splitlines()[:6]:
+                print(f"        {line[:88]}")
+            # Report-only in CI during burn-in (ADR-0042), so report-only here too — a local gate
+            # stricter than the one that actually runs would train its reader to skip pre-flight.
+            print("        NOTE: Phase A is report-only in CI; not counted as a pre-flight failure")
 
     # --- step 11: archive ----------------------------------------------------------------------
     section("STEP 11  archive — can each live change archive on its own branch?")
