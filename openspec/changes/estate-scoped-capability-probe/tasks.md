@@ -210,3 +210,12 @@ Task 3.1 says *remove cwd derivation*, and it is removed — but the `UNDECLARED
 the export and labels the candidate `NOT used`. A silent cwd fallback would reintroduce the original
 bug exactly: run from the vault, measure the vault. **Suggesting is not substituting**, and a test
 pins the difference.
+
+## 10. Gate 4 — human sign-off (not agent-delegatable)
+
+- [x] 10.1 **Approved** — Keith Nielsen, 2026-08-16. Reviewed the proposal and this task file,
+      including the two departures from the proposal as originally written, both argued in §9:
+      the **presence-not-pushability** trigger (a probe may not commit the breach it checks for), and
+      **suggest-don't-substitute** for an undeclared `FRAMEWORK_ROOT` (a silent cwd fallback would
+      reintroduce the original defect exactly). Gate 3 complete: 255 passed, `openspec validate
+      --all --strict` 7/7, pre-flight `CLEAR`, and 8.1/8.3 verified on the real estate.
