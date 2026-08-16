@@ -151,6 +151,311 @@ def test_capabilities_probe_reports_without_raising(work):
     assert "git push" in r.stdout
 
 
+# --- estate scoping: the probe answers a SESSION question, not a cwd question -------------------
+
+
+def test_a_remoteless_vault_is_inv14_holding_not_four_failed_channels(tmp_path, monkeypatch,
+                                                                       capsys):
+    """Task 5.1 — the inversion this whole change exists to kill.
+
+    Measured at a real cold start: run from the vault, the old probe reported `slug UNRESOLVED`,
+    `github state FAILED`, `git ls-remote FAILED`, `git push FAILED`. **Not one was a defect.** The
+    vault has no remotes BECAUSE INV-14 requires it to have none. The instrument rendered a
+    governance guarantee holding as a capability failure — the exact F30/F35 false belief
+    (`GitHub is unreachable this session`) that `--capabilities` was built to prevent.
+    """
+    # A REMOTELESS repo, which is what a real vault is. The `work` fixture is cloned from a bare
+    # origin and therefore HAS a remote — using it here asserted the opposite of the vault's actual
+    # geometry, and the test caught that on first run.
+    vault = tmp_path / "remoteless-vault"
+    vault.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(vault)], check=True)
+
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(vault))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert "INV-14 HOLDING" in out, "a remoteless vault is the guarantee holding, not a broken channel"
+    assert "FAILED" not in out, "no channel may be reported as failed merely because the vault is private"
+    assert rc == EXIT_OK
+
+
+def test_a_vault_that_can_push_is_reported_as_a_violation(monkeypatch):
+    """Task 5.3 — the adversarial half, and the direction that had NO report at all.
+
+    'If `git push` ever succeeds from the vault, that is an alarm, not a pass.' The existence of the
+    capability IS the violation, because INV-14 makes the vault private by default.
+
+    Stubbed at the `git remote` seam deliberately: creating a real remote on a vault is the precise
+    act INV-14 forbids, and the outbound guard refuses the command that would set one up. The
+    geometry being faked is `git remote` printing names — not a shape reality never produces.
+    """
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+
+    def with_remotes(args, cwd=None, **kw):
+        if args[:1] == ["remote"]:
+            return types.SimpleNamespace(returncode=0, stdout="origin\nbackup\n", stderr="")
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", with_remotes)
+    state, why = pr_flow.vault_remote_state(str(REPO))
+    assert state == "VIOLATION"
+    assert "origin" in why and "backup" in why, "name the remotes, or the operator cannot act"
+
+
+def test_the_three_vault_states_partition(monkeypatch):
+    """HOLDING / VIOLATION / UNDECLARED must cover every case — item 25's exhaustiveness lesson."""
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+
+    def no_remotes(args, cwd=None, **kw):
+        if args[:1] == ["remote"]:
+            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", no_remotes)
+    assert pr_flow.vault_remote_state(str(REPO))[0] == "HOLDING"
+    assert pr_flow.vault_remote_state("")[0] == "UNDECLARED"
+    assert pr_flow.vault_remote_state("/nonexistent/path/xyz")[0] == "UNDECLARED"
+
+
+def test_an_undeclared_framework_root_is_undeclared_never_failed(work, monkeypatch, capsys):
+    """Task 5.2 — closes the residual the predecessor change named rather than papered over.
+
+    A deployed vault may legitimately have no framework repository beside it. That is an absence, and
+    an absence reported as a failure is what sends a reader looking for a fault that does not exist.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert out.count("UNDECLARED") >= 4, "every framework layer must say UNDECLARED"
+    assert "not a failure" in out
+    assert rc == EXIT_OK, "an undeclared estate member is not an error condition"
+
+
+def test_the_probe_suggests_the_export_but_never_substitutes_the_working_directory(work, monkeypatch,
+                                                                                   capsys):
+    """The ergonomic concession, bounded so it cannot become the defect it replaces.
+
+    Falling back to the working directory would reintroduce the original bug exactly: run from the
+    vault, measure the vault, report the guarantee as failure. So the probe SUGGESTS the export and
+    labels the candidate as not used. Suggesting is not substituting.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    pr_flow.capabilities()
+    out = capsys.readouterr().out
+    assert "NOT used" in out, "the candidate must be labelled as not used"
+    assert "export FRAMEWORK_ROOT=" in out, "an absence the reader cannot act on is only half a report"
+    assert "subject:" not in out, "no framework subject may be measured when none is declared"
+
+
+def test_an_unresolved_slug_is_a_named_precondition_not_a_traceback(work, monkeypatch, capsys):
+    """Task 5.4 / 3.6 — the crash the cold start actually printed.
+
+    `else (None, None)` fell through into the SUCCESS print, where `{ch:<9}` formatted `None` and the
+    probe reported `FAILED (unsupported format string passed to NoneType.__format__)`. A probe that
+    leaks its own internal error where a diagnosis belongs teaches the reader nothing about the
+    channel it was asked to measure.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", str(work))          # a repo with no origin
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: None)
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert "NoneType" not in out, "an internal error text is not a diagnosis"
+    assert "__format__" not in out
+    assert "no remote resolves to a repo slug" in out, "say what is missing, in the reader's terms"
+    assert rc == EXIT_OK
+
+
+def test_the_measured_subjects_are_printed(work, monkeypatch, capsys):
+    """Task 3.2 — output that does not name its subject can be read as describing another one.
+
+    The original defect was invisible precisely because the report never said which repository it had
+    measured; the reader supplied the wrong assumption for free.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    pr_flow.capabilities()
+    out = capsys.readouterr().out
+    assert "VAULT_ROOT" in out and str(work) in out
+    assert "never discovered from the working directory" in out
+
+
+# --- write-scope layer: the vault protection self-test (tasks 3.5a-d, 5.6, 5.7) -----------------
+#
+# Row 1 (refused) and row 2 (accepted) are REAL geometry: a real vault tree on a real filesystem,
+# with real mode bits. Row 3 (accepted + removal fails) injects the failure at the os.unlink seam,
+# because the only unprivileged filesystem that produces it naturally is a sticky directory owned
+# by a second user, which a test cannot create. Everything the requirement is about — the finally,
+# the checked result, the residue surviving into the report, the guidance text — is exercised for
+# real; only the errno is injected. That distinction is stated in tasks.md rather than glossed.
+
+
+def load_flow_module():
+    """Import pr-flow.py in-process. The hyphen in the filename rules out a plain import."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("pr_flow_under_test", FLOW)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def run_flow_env(work, *extra, env=None):
+    import os as _os
+    e = dict(_os.environ)
+    e.update(env or {})
+    return subprocess.run([sys.executable, str(FLOW), *extra],
+                          cwd=work, capture_output=True, text=True, env=e)
+
+
+@pytest.fixture()
+def fake_vault(tmp_path):
+    """A vault-shaped tree OUTSIDE any repo, with the three governed subtrees present."""
+    v = tmp_path / "vault"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations", "30-Sites"):
+        (v / name).mkdir(parents=True)
+    return v
+
+
+def test_write_scope_reports_a_refused_write_as_protection_holding(work, fake_vault):
+    """Row 1: the expected result. Refused write => PROTECTED, and NO operator action prescribed."""
+    import os as _os
+    if _os.geteuid() == 0:
+        pytest.skip("root bypasses mode bits; row 1 is unobservable as root")
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        (fake_vault / name).chmod(0o500)
+    try:
+        r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    finally:
+        for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+            (fake_vault / name).chmod(0o700)
+    assert r.returncode == EXIT_OK
+    assert r.stdout.count("PROTECTED") >= 3
+    assert "PROTECTION FAILURE" not in r.stdout
+    assert "stop governed work" not in r.stdout.lower()
+
+
+def test_write_scope_probes_every_governed_subtree_not_the_probers_choice(work, fake_vault):
+    """3.5a: the subtree list is the operator's and is fixed.
+
+    The 2026-08-13 hand-rolled substitute dropped 96-Runbooks/ and probed 30-Sites/ and 20-Claims/
+    — the subtrees it wanted to write to. This asserts the instrument cannot make that trade.
+    """
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert name in r.stdout, f"{name} was not probed"
+    assert "30-Sites" not in r.stdout
+
+
+def test_write_scope_reports_a_writable_governed_subtree_as_a_failure(work, fake_vault):
+    """Row 2 (ADVERSARIAL, written before the confirming case): the write SUCCEEDS.
+
+    A writable governed subtree is a protection failure, not a working capability. Asserts the
+    GUIDANCE text, not merely the verdict — 3.5d makes the guidance part of the requirement.
+    """
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    assert r.returncode == EXIT_OK, "a finding is reported, never raised"
+    assert "PROTECTION FAILURE" in r.stdout
+    assert "The write SUCCEEDED" in r.stdout
+    assert "denyWithinAllow" in r.stdout, "operator action must name the harness-level guard"
+    assert "stop governed work" in r.stdout.lower()
+    # And it cleaned up after itself: no probe artifact survives a successful removal.
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert not list((fake_vault / name).glob(".capability-probe-*"))
+
+
+def test_write_scope_reports_residue_when_its_own_removal_fails(fake_vault, monkeypatch, capsys):
+    """Row 3 + task 5.7: write succeeds, removal FAILS. The residue must reach the report.
+
+    This is the case a `rm -f` with an unchecked result renders silent. Errno injected at the
+    os.unlink seam (see the section note); the finally, the result check, the verdict escalation
+    and the residue path are all the real code paths.
+    """
+    import os as _os
+    flow = load_flow_module()
+    real_unlink = _os.unlink
+
+    def refuse_unlink(path, *a, **kw):
+        if ".capability-probe-" in str(path):
+            raise OSError(30, "Read-only file system")
+        return real_unlink(path, *a, **kw)
+
+    monkeypatch.setattr(flow.os, "unlink", refuse_unlink)
+    monkeypatch.setenv("VAULT_ROOT", str(fake_vault))
+
+    r = flow.probe_protected_subtree(str(fake_vault), "40-Treasury")
+    assert r["verdict"] == "UNPROTECTED+RESIDUE"
+    assert r["residue"], "the residue path must survive out of the finally"
+    assert "Read-only file system" in r["detail"]
+
+    leftovers = list((fake_vault / "40-Treasury").glob(".capability-probe-*"))
+    assert len(leftovers) == 1, "the artifact really is still on disk — that is the whole point"
+    assert str(leftovers[0]) == r["residue"], "the reported path is the artifact that exists"
+
+    # 5.7: and it reaches the printed report, with its remedy, on the way out.
+    flow.write_scope()
+    printed = capsys.readouterr().out
+    assert "ARTIFACT LEFT BEHIND" in printed
+    assert r["residue"] in printed or ".capability-probe-" in printed
+    assert "rm -f" in printed
+    assert "status --short" in printed, "the never-staged check is part of the guidance"
+    real_unlink(leftovers[0])
+
+
+def test_write_scope_undeclared_vault_root_is_not_a_failure(work, monkeypatch):
+    """3.4's shape applied to this layer: an absent declaration is UNDECLARED, never FAILED."""
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": ""})
+    assert r.returncode == EXIT_OK
+    assert "UNDECLARED" in r.stdout
+    assert "PROTECTION FAILURE" not in r.stdout
+
+
+def test_write_scope_refuses_to_probe_the_template_inside_the_repo(work):
+    """Scope guard: vault-template/ is template source and writable by design.
+
+    Probing it would report a protection failure on every run and train the reader to ignore the
+    check — the failure mode that makes a red line meaningless.
+    """
+    tmpl = work / "vault-template"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        (tmpl / name).mkdir(parents=True)
+    r = run_flow_env(work, "--capabilities", env={"VAULT_ROOT": str(tmpl)})
+    assert r.returncode == EXIT_OK
+    assert "SKIPPED" in r.stdout
+    assert "template source" in r.stdout
+    assert "PROTECTION FAILURE" not in r.stdout
+
+
+def test_write_scope_does_not_skip_a_live_vault_that_is_itself_a_repo(fake_vault):
+    """Regression for the defect task 5.8 caught on the FIRST real run.
+
+    The live vault is a git repo, and the probe is run from inside it — so a scope guard asking
+    "is VAULT_ROOT inside the cwd-derived repo root?" answered yes and skipped the entire layer,
+    silently, on exactly the subject it exists to measure. The guard must key on `vault-template`,
+    which is what "template source" actually means, and must not consult cwd at all.
+    """
+    subprocess.run(["git", "init", "-q", str(fake_vault)], check=True, capture_output=True)
+    r = run_flow_env(fake_vault, "--capabilities", env={"VAULT_ROOT": str(fake_vault)})
+    assert r.returncode == EXIT_OK
+    assert "SKIPPED" not in r.stdout, "the live vault must never be skipped as template source"
+    for name in ("40-Treasury", "96-Runbooks", "99-Operations"):
+        assert name in r.stdout
+
+
 # --- gh_read pure helpers ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("url,expected", [
@@ -1687,3 +1992,33 @@ def test_pre_partition_records_are_upgraded_on_read_not_rewritten(work):
 
     # and the originals are untouched — normalisation returns a copy
     assert old_ordinary["step"] == "(not-a-verify)"
+
+
+def test_a_quoted_subprocess_line_is_attributed_to_the_subprocess(work, monkeypatch, capsys):
+    """Second requirement: an unattributed fragment reads as corrupted output from the probe.
+
+    Also pins the CAUSE selection over positional selection: git's last stderr line is routinely a
+    generic hint, so `splitlines()[-1]` attributed the failure to remediation boilerplate.
+    """
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+    stderr = ("fatal: Authentication failed for 'https://example.invalid/x.git'\n"
+              "Please make sure you have the correct access rights\n"
+              "and the repository exists.\n")
+
+    def failing_push(args, cwd=None, **kw):
+        if args[:1] == ["push"]:
+            return types.SimpleNamespace(returncode=1, stdout="", stderr=stderr)
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", failing_push)
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow.gh_read, "get", lambda p: ({}, "anon-rest"))
+    pr_flow._framework_channels(str(work))
+    out = capsys.readouterr().out
+
+    assert "git push says:" in out, "quote the subprocess, and say it was the subprocess"
+    assert "Authentication failed" in out, "select the line naming the cause"
+    assert "and the repository exists" not in out, \
+        "positional selection picks the trailing hint and blames the wrong thing"

@@ -61,6 +61,12 @@ EXIT_BLOCKED = 3
 AGENT = "AGENT"
 OPERATOR = "OPERATOR"
 
+# Task 3.5a: the subtrees under an autonomy ban (INV-4, INV-5). This list is the OPERATOR's, and is
+# deliberately a module constant rather than a parameter or a discovery: the 2026-08-13 hand-rolled
+# substitute silently dropped 96-Runbooks/ and probed the two subtrees it wanted to write to instead.
+# An improvised probe converges on the prober's interest; a fixed list cannot.
+PROTECTED_SUBTREES = ("40-Treasury", "96-Runbooks", "99-Operations")
+
 CONSENT_LOCAL = "none needed — local only, nothing leaves this machine"
 CONSENT_ACT = "implicit in the act: you run it, so you authorize it"
 INVOCATION = None  # set once in main(): the argv that produced THIS run
@@ -956,22 +962,222 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
 
 # --- probes ---------------------------------------------------------------------------------------
 
-def capabilities(repo_root):
-    """Probe what this process can actually do, and who authorizes each channel.
+def _short(exc, n=70):
+    return str(exc)[:n]
+
+
+def probe_protected_subtree(vault_root, name):
+    """Attempt one real write into a subtree under an autonomy ban; report what happened.
+
+    Task 3.5a/3.5b/3.5c. A protection that is assumed rather than exercised is not evidence: the
+    guard is enforced OUTSIDE the vault's filesystem (harness-level), so it can lapse with no event
+    the vault can observe. Verdicts:
+
+      HOLDING            the write was refused — the expected result, no action needed
+      UNPROTECTED        the write succeeded and was cleaned up — INV-4/5 unenforced this session
+      UNPROTECTED+RESIDUE  the write succeeded AND removal failed — a second, separate defect
+      ABSENT             no such subtree here
+    """
+    sub = pathlib.Path(vault_root) / name
+    result = {"subtree": name, "verdict": "HOLDING", "residue": None, "detail": "", "path": None}
+    if not sub.is_dir():
+        result["verdict"] = "ABSENT"
+        result["detail"] = "no such subtree"
+        return result
+
+    # 3.5b: zero-byte, dot-prefixed, uniquely suffixed, at the subtree root — a residue is
+    # unmistakably a probe artifact and can never be mistaken for content.
+    path = sub / f".capability-probe-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    result["path"] = str(path)
+    created = False
+    try:
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            os.close(fd)
+            created = True
+        except OSError as exc:
+            result["detail"] = _short(exc)
+            return result
+        result["verdict"] = "UNPROTECTED"
+    finally:
+        # 3.5c: removal in a `finally`, and its RESULT IS CHECKED. An unchecked rm is exactly how
+        # the write-succeeded/delete-failed case becomes silent — observed in the wild 2026-08-13,
+        # where a hand-rolled `rm -f` discarded the result and suppressed the error besides.
+        if created:
+            try:
+                os.unlink(str(path))
+            except OSError as exc:
+                result["verdict"] = "UNPROTECTED+RESIDUE"
+                result["residue"] = str(path)
+                result["detail"] = _short(exc)
+    return result
+
+
+def write_scope():
+    """The write-scope layer the runbook has claimed since 2026-08-06 and the instrument never had.
+
+    Task 3.5. Subject is the DECLARED vault root ($VAULT_ROOT, already authoritative in config.env),
+    never the working directory — this layer answers "is this session's vault protected?", which is
+    not a question about wherever the shell happens to be. It takes NO repo_root parameter, so that
+    cwd derivation cannot leak into it by way of an argument.
+    """
+    print("  ---- write scope (vault protection self-test) ----")
+    vault_root = os.environ.get("VAULT_ROOT", "").strip()
+
+    if not vault_root:
+        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        print("        VAULT_ROOT is not set. An absent declaration is not a measured failure.")
+        print("        Action: source the vault's 99-Operations/config.env, then re-probe.")
+        return
+    if not pathlib.Path(vault_root).is_dir():
+        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        print(f"        VAULT_ROOT is set but does not resolve to a directory: {vault_root}")
+        print("        Action: correct VAULT_ROOT in 99-Operations/config.env, then re-probe.")
+        return
+
+    # Scope guard: the live vault only. vault-template/ in this repo carries the same folder names
+    # but is template SOURCE, and the repo is writable by design — probing it would report a
+    # protection failure on every run and train the reader to ignore this check.
+    #
+    # The test is "is this path template source", which the `vault-template` path component answers
+    # ALONE. An earlier draft asked "is it inside the repo root" instead, and task 5.8 caught it on
+    # the first real run: repo_root is cwd-derived, so a probe run from the live vault found the
+    # vault inside "the repo" (the vault IS a git repo) and silently skipped its own subject. A
+    # guard keyed to cwd inherits every defect of cwd derivation.
+    if "vault-template" in pathlib.Path(vault_root).resolve().parts:
+        print(f"  WRITE vault protection ... {'SKIPPED':<13} {OPERATOR} / {OPERATOR}")
+        print(f"        VAULT_ROOT is under a vault-template/ tree: {vault_root}")
+        print("        This is template source, not a live vault; it is writable by design.")
+        return
+
+    print(f"        subject (declared, not discovered): VAULT_ROOT={vault_root}")
+    for name in PROTECTED_SUBTREES:
+        r = probe_protected_subtree(vault_root, name)
+        v = r["verdict"]
+        label = f"  WRITE {name:<18}"
+        if v == "HOLDING":
+            # 3.5d: the expected result prescribes no action, deliberately.
+            print(f"{label} {'PROTECTED':<13} {OPERATOR} / {OPERATOR} — refused, INV-4/5 holding")
+        elif v == "ABSENT":
+            print(f"{label} {'ABSENT':<13} {OPERATOR} / {OPERATOR} — {r['detail']}")
+        else:
+            # 3.5d: every failing outcome carries the operator action it calls for. A check that
+            # reports only a verdict obliges its reader to derive the remedy at exactly the moment
+            # the governing assumption has been shown false.
+            print(f"{label} {'UNPROTECTED':<13} {AGENT} / {OPERATOR} — ⛔ PROTECTION FAILURE")
+            print(f"        The write SUCCEEDED. INV-4/5 rest on nothing for the rest of this "
+                  f"session.")
+            print("        Action: stop governed work. The guard is harness-level, not filesystem-"
+                  "level —")
+            print("        check the sandbox `denyWithinAllow` list, then re-probe before trusting "
+                  "any write.")
+            if v == "UNPROTECTED+RESIDUE":
+                print(f"{label} {'RESIDUE':<13} {AGENT} / {OPERATOR} — ⛔⛔ ARTIFACT LEFT BEHIND")
+                print(f"        Removal failed ({r['detail']}); a probe artifact now sits inside a "
+                      f"protected subtree.")
+                print(f"        Residue: {r['residue']}")
+                print(f"        Action: rm -f '{r['residue']}'")
+                print(f"        Then confirm it was never staged: "
+                      f"git -C '{vault_root}' status --short")
+                print("        Do not proceed and do not commit until both are done.")
+
+
+def vault_remote_state(vault_root):
+    """Is the vault remoteless (INV-14 holding) or pushable (a VIOLATION)?
+
+    The inversion this exists to kill: the vault has no remotes BECAUSE INV-14 requires it to have
+    none — it is private by default and deliberately has nowhere to push. The old probe rendered that
+    guarantee as four FAILED channels, which is the F30/F35 false belief the probe was built to
+    prevent: an agent reading it can bank "GitHub is unreachable this session".
+
+    The other direction matters more and had no report at all. **If the vault can push, that is an
+    alarm, not a pass** — the existence of the capability IS the violation.
+    """
+    if not vault_root or not pathlib.Path(vault_root).is_dir():
+        return "UNDECLARED", "VAULT_ROOT is not set to a directory"
+    r = git(["remote"], cwd=vault_root)
+    if r.returncode != 0:
+        return "UNDECLARED", "not a git repository"
+    remotes = [x for x in r.stdout.split() if x.strip()]
+    if not remotes:
+        return "HOLDING", "no remotes — INV-14 holding, the vault is private by default"
+    return "VIOLATION", f"remotes present: {', '.join(remotes)}"
+
+
+def capabilities(_cwd_root=None):
+    """Probe what this SESSION can do, across the DECLARED estate.
 
     F30: the agent asserted 'no GitHub egress this session' and it was false. A static ownership
     table would have encoded that wrong answer durably; a probe cannot, because it re-measures.
-    """
-    print("CAPABILITY PROBE (measured now, not recalled)")
-    slug = gh_read.slug_from_remote(repo_root)
-    print(f"  repo slug (from remote, not folder name): {slug or 'UNRESOLVED'}")
-    print("  channel .................. state ......... runs / authority")
 
-    try:
-        _, ch = gh_read.get(f"/repos/{slug}") if slug else (None, None)
-        print(f"  READ  github state ....... OK via {ch:<9} {AGENT} / {AGENT}")
-    except Exception as exc:  # noqa: BLE001 - probe reports, never raises
-        print(f"  READ  github state ....... FAILED ({str(exc)[:60]})")
+    ⚠ The subject is the **estate**, never the current directory. This is a session-scoped question
+    and it was previously answered with a repo-scoped subject — `git rev-parse --show-toplevel`,
+    i.e. whichever directory the shell happened to be in. Run from the vault, as every cold session
+    is, that measured the vault and reported four red channels for a repository that is *supposed* to
+    have no remotes.
+
+    Discovery was never appropriate here: the estate has exactly two members and both locations are
+    known in advance. They are declared in `config.env` and taken from the environment. When
+    `FRAMEWORK_ROOT` is undeclared the framework layers report **UNDECLARED** — an honest absence —
+    and the probe SUGGESTS the export rather than silently substituting the working directory, which
+    would reintroduce the very defect this replaces.
+    """
+    vault_root = os.environ.get("VAULT_ROOT", "").strip()
+    fw_root = os.environ.get("FRAMEWORK_ROOT", "").strip()
+
+    print("CAPABILITY PROBE (measured now, not recalled)")
+    print("  estate (declared in config.env, never discovered from the working directory):")
+    print(f"        VAULT_ROOT     = {vault_root or 'UNDECLARED'}")
+    print(f"        FRAMEWORK_ROOT = {fw_root or 'UNDECLARED'}")
+
+    # --- vault member: expected remoteless -------------------------------------------------------
+    state, why = vault_remote_state(vault_root)
+    mark = {"HOLDING": "INV-14 HOLDING", "VIOLATION": "⛔ VIOLATION", "UNDECLARED": "UNDECLARED"}[state]
+    print(f"  GUARD vault remotes ...... {mark:<15} {why}")
+    if state == "VIOLATION":
+        print("        A vault that CAN push is a governance breach, not a capability. INV-14 makes")
+        print("        it private by default. Do not push; hand this to the operator.")
+
+    # --- framework member: the only one where a GitHub result is meaningful ----------------------
+    print("  channel .................. state ......... runs / authority")
+    if not fw_root or not pathlib.Path(fw_root).is_dir():
+        for ch_name in ("github state", "git ls-remote", "git push", "gh mutations"):
+            print(f"  ----  {ch_name:<18} {'UNDECLARED':<13} no FRAMEWORK_ROOT — not a failure")
+        print("        Declare it and re-run. This is an honest absence: a deployed vault may")
+        print("        legitimately have no framework repository alongside it.")
+        cand = git(["rev-parse", "--show-toplevel"]).stdout.strip()
+        if cand and cand != vault_root:
+            print(f"        Candidate (NOT used — the estate is declared, not guessed): {cand}")
+            print(f"        export FRAMEWORK_ROOT=\"{cand}\"   # or set it in 99-Operations/config.env")
+    else:
+        _framework_channels(fw_root)
+
+    if vault_root:
+        write_scope()
+    # Exit stays OK on every failing channel — including UNDECLARED ones. A probe that exits
+    # non-zero teaches its caller to stop probing; findings are reported, never raised.
+    return EXIT_OK
+
+
+def _framework_channels(repo_root):
+    """The GitHub channels, measured against the framework repo — the member that has an origin."""
+    slug = gh_read.slug_from_remote(repo_root)
+    print(f"        subject: {repo_root}")
+    print(f"        repo slug (from remote, not folder name): {slug or 'UNRESOLVED'}")
+
+    # An unresolved slug is a PRECONDITION FAILURE, reported as one. It previously fell through
+    # `else (None, None)` into the SUCCESS print, where `{ch:<9}` formatted None and the probe
+    # reported `FAILED (unsupported format string passed to NoneType.__format__)` — an internal
+    # error text where a diagnosis belonged. A probe that leaks its own traceback teaches its reader
+    # nothing about the channel it was asked to measure.
+    if not slug:
+        print(f"  READ  github state ....... {'BLOCKED':<13} no remote resolves to a repo slug")
+    else:
+        try:
+            _, ch = gh_read.get(f"/repos/{slug}")
+            print(f"  READ  github state ....... OK via {ch:<9} {AGENT} / {AGENT}")
+        except Exception as exc:  # noqa: BLE001 - probe reports, never raises
+            print(f"  READ  github state ....... FAILED ({str(exc)[:60]})")
 
     r = git(["ls-remote", "--heads", "origin"], cwd=repo_root)
     print(f"  READ  git ls-remote ...... {'OK' if r.returncode == 0 else 'FAILED':<13} "
@@ -982,7 +1188,17 @@ def capabilities(repo_root):
     print(f"  WRITE git push ........... {'OK (dry-run)' if ok else 'FAILED':<13} "
           f"{AGENT if ok else OPERATOR} / {OPERATOR} via the INV-14 ask")
     if not ok and r.stderr.strip():
-        print(f"        {r.stderr.strip().splitlines()[-1][:110]}")
+        # Quote the line naming the CAUSE, not `splitlines()[-1]`. git's last stderr line is
+        # routinely a generic hint ("and the repository exists"), so the tail attributed the failure
+        # to the wrong thing — the probe's own output misdirected the reader it exists to inform.
+        lines = [ln.strip() for ln in r.stderr.strip().splitlines() if ln.strip()]
+        cause = next((ln for ln in lines
+                      if any(k in ln.lower() for k in
+                             ("fatal:", "error:", "denied", "not found", "could not read",
+                              "authentication", "permission"))), lines[-1])
+        # ATTRIBUTED to the subprocess that said it. An unattributed fragment reads as corrupted
+        # output from the probe itself, and the reader cannot tell whose diagnosis they are holding.
+        print(f"        git push says: {cause[:96]}")
 
     if shutil.which("gh"):
         r = run(["gh", "auth", "status"], cwd=repo_root)
@@ -995,7 +1211,6 @@ def capabilities(repo_root):
 
     budget = gh_read.rate_limit() or gh_read.budget_report()
     print(f"  READ  budget ............. {budget or 'UNMEASURED (channel unreachable)'}")
-    return EXIT_OK
 
 
 def ready(args):
