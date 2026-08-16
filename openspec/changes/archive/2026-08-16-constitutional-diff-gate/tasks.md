@@ -118,9 +118,12 @@ protected spec until the archive lands.
       on the first run: 41 claimed, 42 present)
 - [ ] 8.2 Driven landing via `tools/pr-flow.py --plan --branch feat/constitutional-diff-gate`
       **— blocked: this session cannot push (operator authority, INV-14)**
-- [ ] 8.3 PR body with a `scope` block covering every path; a rename declares both sides
-- [ ] 8.4 Archive on the feature branch in the same PR (ADR-0040), unless another in-flight change
-      carries a `maintenance` delta
+- [x] 8.3 PR body with a `scope` block covering every path; the archive rename declares **both**
+      sides. Validated by pre-flight STEP 7 against the real merge-base diff
+- [x] 8.4 Archived on the feature branch in this PR (ADR-0040) — no other in-flight change carries a
+      `maintenance` delta, so the concurrency exception does not apply. `+2` requirements applied to
+      `openspec/specs/maintenance/spec.md`. **This made the PR the gate's own first live subject: it
+      fires on `maintenance/spec.md` and passes, reading the declaration from the archived path**
 
 ## 9. Gate 4 — human sign-off (not agent-delegatable)
 
