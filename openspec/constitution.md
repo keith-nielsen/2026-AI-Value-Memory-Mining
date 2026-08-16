@@ -144,7 +144,12 @@ Substrate → Safety → Value → Consistency.
 
 An override of any **Tier-0 or Tier-1** element is a first-class OpenSpec change
 of type **`constitution-override`**. It must pass four gates **in order**.
-Doc-only edits to `protects:`-tagged elements are rejected by CI without the ceremony.
+
+> ⚠ **This protocol is NOT mechanically enforced.** No continuous-integration job inspects a diff and
+> refuses a change that touches a `protects:`-tagged element without a `constitution-override`. This
+> section previously claimed such edits were *"rejected by CI without the ceremony"* — that was never
+> true. These gates bind through **ceremony, human review, and the agent hard stop (§5)**, not through
+> a check that can fail. §4 states exactly what CI does verify.
 
 Use the template: `openspec/templates/constitution-override/proposal.md`
 
@@ -189,10 +194,27 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 | Mechanism | What it does |
 |---|---|
 | `protects:` frontmatter tag | Marks spec files and vault artifacts as constitutionally protected |
-| `constitution-lint` (CI) | Fails if a diff touches a `protects:`-tagged element without a complete `constitution-override` (acknowledgment + ADR present) |
-| `vocabulary-lint` (CI) | Validates the Value Mining controlled glossary; off-metaphor terms (e.g., *garden*, *evergreen*, *harvest*) fail the build |
-| Branch protection | Require CI green + human review on PRs touching `openspec/constitution.md` or `protects:`-tagged paths |
-| Change template | `constitution-override/proposal.md` has mandatory CHECK/PLAN/RE-CHECK/SIGN-OFF sections; missing any → change is invalid |
+| `constitution-lint` (CI) | Checks the six protected specs each still contain a `protects:` tag, that `CONST-01`–`05` are all present in this file, and that the override template exists. It performs **no diff analysis** and cannot fail a change for skipping the ceremony. |
+| `vocabulary-lint` (CI) | Checks `config.defaults.env` defines `PILLARS`, `GRADES`, `KNOWLEDGE_STAGES`, `REFINE_GATE_GRADES`, and that `GRADES` is exactly `{coal, bronze, silver, gold}`. It does **not** validate a glossary and does **not** scan prose. |
+| Branch protection | Ruleset `19666243` on `main`: a pull request is required, **16 status-check contexts must pass**, merge-commit only, no force-push, no deletion. ⚠ It is **not path-scoped** (it governs every pull request to `main`, not only constitutional ones) and **`required_approving_review_count` is `0`** — human review is convention here, not a server-side requirement. |
+| Change template | `constitution-override/proposal.md` exists and carries CHECK / PLAN / RE-CHECK / SIGN-OFF sections. CI verifies **only that the file exists**; nothing checks that a given change filled those sections in. A change missing them is invalid **by convention and review**, not by a failing check. |
+
+**What is NOT mechanically enforced.** Stated plainly, because a table of mechanisms is read as a list
+of things that will stop you:
+
+- **No check refuses a change that touches a `protects:`-tagged element without a
+  `constitution-override`.** No job inspects the diff at all.
+- **No check reads a `constitution-override` proposal** to confirm its four gates were completed, or
+  that Gate 4 carries a human sign-off.
+- **No check validates vocabulary in prose.** Off-metaphor terms do not fail the build.
+- **No server-side rule requires an approving review**, on constitutional changes or any other.
+
+The Informed-Upheaval Protocol therefore binds through **ceremony, human review, and the agent hard
+stop in §5** — all of which are real, and none of which is a check that can fail. Until that changes,
+**a green build is not evidence of ceremony compliance**, and this table should not be read as though
+it were. Corrected 2026-08-16 after four of its claims were measured against `ci.yml` and the live
+ruleset and found false; the gap is recorded here rather than deleted so that building the missing
+gate remains visible work rather than a forgotten intention.
 
 ---
 
@@ -211,8 +233,15 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 
 This protocol is the selected mechanism because it is simultaneously **explicit**
 (consequences documented), **planned** (override is a first-class change, not an
-edit), **regression-tested** (Gates 2–3), **mechanically enforced** (CI fails
-without the ceremony), and **AI-safe** (human-only sign-off + agent hard-stop).
+edit), **regression-tested** (Gates 2–3), and **AI-safe** (human-only sign-off +
+agent hard-stop).
+
+> ⚠ This sentence previously also claimed the protocol was **"mechanically enforced (CI fails without
+> the ceremony)"**. It is not, and never was — see §4. That claim is removed rather than softened,
+> because it was the load-bearing argument for why this mechanism was chosen, and a reader who
+> believed it would reasonably treat a green build as proof the ceremony had been followed. The
+> remaining four properties are real. Restoring the fifth means **building** the diff gate, not
+> rewording this paragraph.
 
 It mirrors the same propose → surface → consciously-approve → record pattern the
 vault uses at the object level (`_refine-proposals/` → `_refine-approved/`),
