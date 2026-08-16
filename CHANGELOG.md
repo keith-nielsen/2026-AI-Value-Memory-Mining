@@ -12,6 +12,47 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.46] - 2026-08-16
+
+### Fixed
+
+- **The constitution's enforcement claims are now true, and what is *not* enforced is stated**
+  (`fix/constitution-enforcement-truth`, defect fix, **no change directory**, PR #85). The hardening
+  queue had recorded **two** false rows in §4. Measured against `ci.yml` and the **live branch
+  ruleset**, there were **six**:
+
+  | Where | Claimed | Actually |
+  |---|---|---|
+  | §4 | `constitution-lint` fails a diff touching a `protects:`-tagged element without an override | performs **no diff analysis at all** |
+  | §4 | `vocabulary-lint` validates the controlled glossary; off-metaphor terms fail the build | checks four config variables and the `GRADES` set |
+  | §3 | doc-only edits to `protects:`-tagged elements are *"rejected by CI without the ceremony"* | nothing rejects them |
+  | §5 | the protocol is *"mechanically enforced (CI fails without the ceremony)"* | it is not |
+  | §4 | branch protection requires *"CI green + human review"* | `required_approving_review_count` is **0**, and the ruleset is **not path-scoped** |
+  | §4 | change template — *"missing any section → change is invalid"* | continuous integration checks only that the template **file exists** |
+
+  **Two of the six were found by verifying the rows the ticket did not name.** Correcting four while
+  leaving two unchecked would have reproduced the defect inside its own repair, so the standing rule
+  taken from this is: when fixing false claims in a table, verify every row.
+
+  §4 now carries an explicit **"What is NOT mechanically enforced"** block — the absences recorded
+  rather than deleted, so that building the missing gate remains visible work instead of a forgotten
+  intention. It closes on the consequence that matters: **a green build is not evidence of ceremony
+  compliance.** §5's *"mechanically enforced"* is **removed rather than softened**, because it was the
+  load-bearing argument for choosing the Informed-Upheaval Protocol, and a reader who believed it
+  would reasonably treat a green build as proof the ceremony had been followed. Restoring it means
+  **building** the gate, not rewording the paragraph.
+
+  **Governance.** §5 requires an agent to surface the trade-off and obtain explicit human confirmation
+  before touching constitutional material; that happened **before** any edit. Strictly, §3/§4/§5 prose
+  are not Tier-0/Tier-1 elements and `constitution.md` carries no `protects:` tag, so the letter of the
+  hard stop may not have bound — deliberately not relied upon. `CONST-01` through `CONST-05` are
+  untouched, and **no enforcement is weakened**, because none of the removed claims described anything
+  that existed.
+
+  The correction exposed an inversion worth recording: **Tier 0 is harder to change than Tier 1.**
+  Tier-0 elements are held by the sandbox, hooks and runners that can genuinely fail; Tier 1 — *"what
+  the constitution most exists to protect"* — is held only by ceremony that nothing checks.
+
 ## [0.1.45] - 2026-08-16
 
 ### Fixed
