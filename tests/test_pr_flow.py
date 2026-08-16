@@ -1992,3 +1992,33 @@ def test_pre_partition_records_are_upgraded_on_read_not_rewritten(work):
 
     # and the originals are untouched — normalisation returns a copy
     assert old_ordinary["step"] == "(not-a-verify)"
+
+
+def test_a_quoted_subprocess_line_is_attributed_to_the_subprocess(work, monkeypatch, capsys):
+    """Second requirement: an unattributed fragment reads as corrupted output from the probe.
+
+    Also pins the CAUSE selection over positional selection: git's last stderr line is routinely a
+    generic hint, so `splitlines()[-1]` attributed the failure to remediation boilerplate.
+    """
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+    stderr = ("fatal: Authentication failed for 'https://example.invalid/x.git'\n"
+              "Please make sure you have the correct access rights\n"
+              "and the repository exists.\n")
+
+    def failing_push(args, cwd=None, **kw):
+        if args[:1] == ["push"]:
+            return types.SimpleNamespace(returncode=1, stdout="", stderr=stderr)
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", failing_push)
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: "o/r")
+    monkeypatch.setattr(pr_flow.gh_read, "get", lambda p: ({}, "anon-rest"))
+    pr_flow._framework_channels(str(work))
+    out = capsys.readouterr().out
+
+    assert "git push says:" in out, "quote the subprocess, and say it was the subprocess"
+    assert "Authentication failed" in out, "select the line naming the cause"
+    assert "and the repository exists" not in out, \
+        "positional selection picks the trailing hint and blames the wrong thing"

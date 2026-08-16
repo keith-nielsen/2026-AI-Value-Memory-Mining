@@ -1196,7 +1196,9 @@ def _framework_channels(repo_root):
                       if any(k in ln.lower() for k in
                              ("fatal:", "error:", "denied", "not found", "could not read",
                               "authentication", "permission"))), lines[-1])
-        print(f"        {cause[:110]}")
+        # ATTRIBUTED to the subprocess that said it. An unattributed fragment reads as corrupted
+        # output from the probe itself, and the reader cannot tell whose diagnosis they are holding.
+        print(f"        git push says: {cause[:96]}")
 
     if shutil.which("gh"):
         r = run(["gh", "auth", "status"], cwd=repo_root)

@@ -6,31 +6,31 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 
 ## 1. Spec (ordinary change — ADDED only)
 
-- [ ] 1.1 `maintenance` ADDED: *The Capability Probe Measures A Declared Estate* (5 scenarios)
-- [ ] 1.2 `maintenance` ADDED: *A Probe Reports Diagnoses, Not Internal Errors* (3 scenarios)
-- [ ] 1.3 Confirm nature is ordinary, not override — ADD-only; *Platform Capability Is Probed, Not
+- [x] 1.1 `maintenance` ADDED: *The Capability Probe Measures A Declared Estate* (5 scenarios)
+- [x] 1.2 `maintenance` ADDED: *A Probe Reports Diagnoses, Not Internal Errors* (3 scenarios)
+- [x] 1.3 Confirm nature is ordinary, not override — ADD-only; *Platform Capability Is Probed, Not
       Recalled* left **verbatim**. Derived from `constitution.md` §3, not from a green CI check
       (`constitution-lint` does no diff analysis — open finding in the hardening queue)
 
 ## 2. Estate declaration (the bridge that does not exist today)
 
-- [ ] 2.1 `vault-template/99-Operations/config.defaults.env` — add `FRAMEWORK_ROOT` to the existing
+- [x] 2.1 `vault-template/99-Operations/config.defaults.env` — add `FRAMEWORK_ROOT` to the existing
       *path placeholder* block beside `VAULT_ROOT`, carrying the same "MUST be overridden in
       config.env with your absolute path" warning: `export FRAMEWORK_ROOT="${HOME}/value-memory-mining"`
-- [ ] 2.2 `vault-template/99-Operations/config.env.example` — add the personal-override line beside the
+- [x] 2.2 `vault-template/99-Operations/config.env.example` — add the personal-override line beside the
       `VAULT_ROOT` one: `export FRAMEWORK_ROOT=…  # set your absolute framework-repo path`
-- [ ] 2.3 `vault-template/.claude/commands/vmm-session-rebooted.md:11` — resolve the
+- [x] 2.3 `vault-template/.claude/commands/vmm-session-rebooted.md:11` — resolve the
       `<framework-repo>` placeholder to `"$FRAMEWORK_ROOT"`. **This unfilled placeholder is what the
       agent improvised around on 2026-08-11**; it is the proximate cause, not a cosmetic edit
 
 ## 3. Instrument — `tools/pr-flow.py --capabilities`
 
-- [ ] 3.1 Take subjects from `VAULT_ROOT` / `FRAMEWORK_ROOT`; **remove cwd derivation for this mode
+- [x] 3.1 Take subjects from `VAULT_ROOT` / `FRAMEWORK_ROOT`; **remove cwd derivation for this mode
       only**. Leave `route` / `ready` / `assert-preconditions` on cwd — correct for them
-- [ ] 3.2 Print the roots actually measured, so output cannot be read as describing another subject
-- [ ] 3.3 Vault member: report remotelessness as **INV-14 holding**; report a pushable vault remote as
+- [x] 3.2 Print the roots actually measured, so output cannot be read as describing another subject
+- [x] 3.3 Vault member: report remotelessness as **INV-14 holding**; report a pushable vault remote as
       a **violation** naming the remote
-- [ ] 3.4 `FRAMEWORK_ROOT` unset → framework layers `UNDECLARED`, never `FAILED` (closes the residual
+- [x] 3.4 `FRAMEWORK_ROOT` unset → framework layers `UNDECLARED`, never `FAILED` (closes the residual
       named by `2026-08-06-bootstrap-capability-probe`)
 - [x] 3.5 Write-scope layer — the layer the runbook has claimed since 2026-08-06 and the instrument has
       never reported. Measure the permitted areas by attempted write. **Highest-priority item in
@@ -62,30 +62,30 @@ the real geometry, and cites its evidence. Never the same marker for built and t
       the exact `rm`, and the `git status` check proving it was never staged. **Done, and the tests
       assert the guidance text itself**, not merely the verdict — 3.5d makes the guidance part of the
       requirement, so a test that checks only the verdict would pass a probe that strands its reader
-- [ ] 3.6 Fix `:385-386` — the `else (None, None)` guard falls into the **success** print, so `{ch:<9}`
+- [x] 3.6 Fix `:385-386` — the `else (None, None)` guard falls into the **success** print, so `{ch:<9}`
       formats `None` and the `TypeError` surfaces as a channel FAILED. Unresolved slug becomes a named
       precondition failure that skips the dependent channel
-- [ ] 3.7 Fix `:399` — quote the stderr line naming the **cause**, not `splitlines()[-1]`, and attribute
+- [x] 3.7 Fix `:399` — quote the stderr line naming the **cause**, not `splitlines()[-1]`, and attribute
       it. Today it prints the orphan fragment `and the repository exists.`
 
 ## 4. Runbook / instrument reconciliation
 
-- [ ] 4.1 `vault-template/96-Runbooks/session-bootstrap-loader.md` step 3 — reconcile the four claimed
+- [x] 4.1 `vault-template/96-Runbooks/session-bootstrap-loader.md` step 3 — reconcile the four claimed
       layers with what the instrument reports once 3.5 lands
-- [ ] 4.2 Add the inversion to Pitfalls: **a remoteless vault is INV-14 holding, not a broken channel**;
+- [x] 4.2 Add the inversion to Pitfalls: **a remoteless vault is INV-14 holding, not a broken channel**;
       a red remote row in the vault is the instrument mis-scoped, not an environment fault
-- [ ] 4.3 Bump `last-validated`; keep the runbook **referencing** the meta-script — no inlined
+- [x] 4.3 Bump `last-validated`; keep the runbook **referencing** the meta-script — no inlined
       `gh`/`curl`, no harness-specific path as SSOT (the constraint the predecessor change nearly broke)
 
 ## 5. Tests — must exercise the states the mechanism itself creates
 
-- [ ] 5.1 Probe run from a remoteless vault → INV-14 holding, zero FAILED rows. **Observe this test
+- [x] 5.1 Probe run from a remoteless vault → INV-14 holding, zero FAILED rows. **Observe this test
       failing against today's code first** — it currently produces 3 FAILED rows
-- [ ] 5.2 `FRAMEWORK_ROOT` unset → all framework layers `UNDECLARED`, exit `0`
-- [ ] 5.3 Vault with a pushable remote → reported as a violation. This is the adversarial case; write
+- [x] 5.2 `FRAMEWORK_ROOT` unset → all framework layers `UNDECLARED`, exit `0`
+- [x] 5.3 Vault with a pushable remote → reported as a violation. This is the adversarial case; write
       it **before** the confirming one
-- [ ] 5.4 Unresolved slug → named precondition failure, no `NoneType.__format__` text anywhere in output
-- [ ] 5.5 Exit code remains `0` on every failing channel — the predecessor's scenario must not regress
+- [x] 5.4 Unresolved slug → named precondition failure, no `NoneType.__format__` text anywhere in output
+- [x] 5.5 Exit code remains `0` on every failing channel — the predecessor's scenario must not regress
 - [x] 5.6 **Protection self-test, all three rows.** Row 1 (refused) passes today, so a test covering
       only it is the vacuous pass the Definition of Done names. Rows 2 and 3 must be built: a writable
       governed subtree, and a write that succeeds while removal fails. Assert the *guidance text* is
@@ -108,8 +108,8 @@ the real geometry, and cites its evidence. Never the same marker for built and t
 
 ## 6. Regression
 
-- [ ] 6.1 `openspec validate --all --strict` (CLI `1.6.0` == `package.json` pin — verified 2026-08-11)
-- [ ] 6.2 `runbook-lint` (CI job reproduced locally)
+- [x] 6.1 `openspec validate --all --strict` (CLI `1.6.0` == `package.json` pin — verified 2026-08-11)
+- [x] 6.2 `runbook-lint` (CI job reproduced locally)
 - [x] 6.3 `validate-scripts.sh` — `.py` touched, so this must run. ⚠ known `/tmp` defect in the
       hardening queue may block it in a write-scoped sandbox; if so, say so and defer to CI rather
       than ticking it. **Ran clean 2026-08-13: `VALIDATION OK`**, the `/tmp` defect did not bite this
@@ -120,7 +120,12 @@ the real geometry, and cites its evidence. Never the same marker for built and t
       no existing test modified. ⚠ Re-run when 3.1 lands — this run only proves 3.5 did not leak,
       since 3.5 is not yet built on top of estate scoping
 
-## 7. Document the archive rule (operator decision 2026-08-11)
+## 7. ✅ DISCHARGED ELSEWHERE — not work in this change (verified 2026-08-16)
+
+The owed follow-on named below **has shipped**: ADR-0040 exists, and `maintenance` carries the
+requirement *A Change Is Archived On Its Own Branch*. Nothing is owed here. Retained for provenance.
+
+## 7-OLD. Document the archive rule (operator decision 2026-08-11)
 
 🚫 **NOT IN THIS CHANGE — moved out on governance grounds, 2026-08-11.**
 
@@ -148,3 +153,43 @@ required"). Closes the *"archive-order rule undocumented"* hardening-queue item.
 - [ ] 8.2 Operator applies the runbook + adapter + config template changes into the live vault
       (`denyWrite` paths — never edited in-vault)
 - [ ] 8.3 Re-run the cold-start prime and confirm the four layers report against the real estate
+
+## 9. Evidence
+
+- **Rebased onto current `main` first.** The branch was 66 commits behind and `tools/pr-flow.py` had
+  moved 710 insertions / 35 deletions underneath it. Clean, and the already-built write-scope layer
+  survived — verified by running it, not by the rebase exiting 0.
+- **All four estate states exercised on the real estate**: declared (correct), `FRAMEWORK_ROOT` empty
+  (UNDECLARED + suggestion, exit 0), **run from the vault (byte-identical to run from the repo — the
+  thesis)**, and the violation path.
+- **255 passed**; `openspec validate --all --strict` 7/7 (CLI `1.6.0` == the `package.json` pin);
+  pre-flight `CLEAR`, 12/15, 0 unaccounted.
+
+### Two spec/code mismatches found by reading the delta against the implementation
+
+1. **The spec asked for something unsafe.** *"A remote that accepts a push"* can only be established
+   by attempting a push **from the vault** — the act INV-14 forbids, and which the outbound guard
+   refuses. A probe may not commit the breach it checks for. Trigger changed to **presence**, which is
+   also the earlier signal: a remote lacking credentials today is one credential away from pushable.
+2. **The code missed a clause.** The second requirement says a quoted subprocess line SHALL be
+   *attributed*; it was printed bare. Now `git push says: …`, with a test pinning both the attribution
+   and the cause-selection over positional selection.
+
+### Caught by the tooling, not by me
+
+- **`standalone-vault lint` failed the pre-flight**: the `config.env.example` comment leaked this
+  operator's actual framework path into the vault template, which a standalone vault must not
+  reference. Genericised. **Caught before the push** — the first time the pre-flight has paid for
+  itself on work it did not itself introduce.
+- The **INV-14 outbound guard refused** the command that would have created a real remote for the
+  violation test. Not routed around: the test stubs the `git remote` seam, which never performs the
+  forbidden act.
+- The first HOLDING test used the `work` fixture, which is **cloned from a bare origin and therefore
+  has a remote** — it asserted the opposite of a vault's real geometry. Caught on first run.
+
+### Design call not in the proposal
+
+Task 3.1 says *remove cwd derivation*, and it is removed — but the `UNDECLARED` report **suggests**
+the export and labels the candidate `NOT used`. A silent cwd fallback would reintroduce the original
+bug exactly: run from the vault, measure the vault. **Suggesting is not substituting**, and a test
+pins the difference.

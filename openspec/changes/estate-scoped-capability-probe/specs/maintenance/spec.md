@@ -14,9 +14,15 @@ Each member SHALL be evaluated against **that member's expected state**, not aga
 repository-shaped template. A finding SHALL be a deviation from what that member is supposed to be.
 
 The vault is private by default and holds no remote (INV-14). Absence of a remote in the vault SHALL
-be reported as the invariant **holding**, and SHALL NOT be reported as a failed channel. Where a vault
-remote is present and pushable, the probe SHALL report it as a **violation**, because that is the
-condition INV-14 exists to prevent.
+be reported as the invariant **holding**, and SHALL NOT be reported as a failed channel. Where a
+remote is **present** on the vault, the probe SHALL report a **violation** naming it, because that is
+the condition INV-14 exists to prevent.
+
+The trigger SHALL be presence, not demonstrated pushability. Establishing that a remote accepts a push
+means attempting one from the vault — the act INV-14 forbids, and which the outbound guard refuses. A
+probe may not commit the breach it is checking for. Presence is also the earlier signal: a remote that
+lacks credentials today is one credential away from being pushable, and the invariant is already
+broken at the moment the remote exists.
 
 Where `FRAMEWORK_ROOT` is not declared, the estate SHALL be reported as one member: the vault layers
 measured as normal, and every framework-repository layer reported `UNDECLARED`, distinctly from
@@ -59,10 +65,11 @@ them.
 - **THEN** the probe reports INV-14 as holding
 - **THEN** it does not report a failed remote read, a failed push, or an unresolved repository slug
 
-#### Scenario: A vault has acquired a pushable remote
-- **WHEN** the vault has a remote that accepts a push
+#### Scenario: A vault has acquired a remote
+- **WHEN** the vault has any configured remote
 - **THEN** the probe reports an INV-14 violation naming the remote
 - **THEN** the violation is reported as a finding, not as a working capability
+- **THEN** the probe does not attempt a push to establish whether the remote would accept one
 
 #### Scenario: The framework repository is not declared
 - **WHEN** `FRAMEWORK_ROOT` is unset
