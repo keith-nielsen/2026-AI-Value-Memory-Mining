@@ -50,12 +50,12 @@ tests; without it they would pass against a gate that refuses everything.
 
 ## 4. CI wiring
 
-- [~] 4.1 Job `constitutional-diff-gate`, `continue-on-error: true` (Phase A). **Built, not
-      observed running on the platform** — this session cannot push, so no real check-run exists.
-      `[x]` is not available until it has run once on a real PR
-- [~] 4.2 `fetch-depth: 0` + diff against `origin/${{ github.base_ref }}...HEAD` — written,
-      unexercised on the platform for the same reason
-- [~] 4.3 `if:` guard matching `scope-review` — written, unexercised on the platform
+- [x] 4.1 Job `constitutional-diff-gate`, `continue-on-error: true` (Phase A). **Observed running
+      on the platform**: PR #89, check-run `95141970131`,
+      `Constitutional diff gate (declaration, burn-in)` = **success**, 32 of 36 checks green
+- [x] 4.2 `fetch-depth: 0` + diff against `origin/${{ github.base_ref }}...HEAD` — exercised on
+      PR #89; the job resolved the merge base and read the real diff
+- [x] 4.3 `if:` guard matching `scope-review` — the job ran (not skipped) on a pull_request event
 - [x] 4.4 Registered in `tools/preflight.py` as **STEP 7b** and in `NOT_LOCAL`. Verified by running
       pre-flight: the step executes and the coverage partition still accounts for every `ci.yml` job
       (12 reproduced / 4 not reproduced, none unlisted)
@@ -116,8 +116,9 @@ protected spec until the archive lands.
 
 - [x] 8.1 `python3 tools/preflight.py .` → **CLEAR** (caught and fixed a real README ADR-count drift
       on the first run: 41 claimed, 42 present)
-- [ ] 8.2 Driven landing via `tools/pr-flow.py --plan --branch feat/constitutional-diff-gate`
-      **— blocked: this session cannot push (operator authority, INV-14)**
+- [x] 8.2 Driven landing via `tools/pr-flow.py --plan`. PR **#89** open; steps 1–7 all
+      `MEASURED ok`. The push and `gh pr create` were run by the operator — both are agent-prohibited
+      on this channel (INV-14 guard / `gh` mutations UNAVAILABLE), see F40
 - [x] 8.3 PR body with a `scope` block covering every path; the archive rename declares **both**
       sides. Validated by pre-flight STEP 7 against the real merge-base diff
 - [x] 8.4 Archived on the feature branch in this PR (ADR-0040) — no other in-flight change carries a
@@ -137,3 +138,18 @@ protected spec until the archive lands.
       a green build as ceremony compliance would be repeating the error PR #85 corrected.
       Gate 3 status: 291 passed, `openspec validate --all --strict` 7/7, pre-flight `CLEAR`,
       mutation 20/36, live archive simulation passed. CI wiring is `[~]` — never run on the platform.
+
+## 10. CI defect found on PR #89 and fixed (2026-08-16)
+
+- [x] 10.1 `test_replay_last_25_merges_matches_the_measured_rate` failed **both** fleet jobs
+      (py 3.12 + 3.13). Cause measured, not inferred: `actions/checkout@v7` defaults to depth 1 and a
+      detached head, so neither `main` nor `origin/main` exists, and the test shelled out to `main`
+      with `check=True`. **Reproduced locally** in a `--depth 1` clone: 1 failed / 35 passed,
+      identical failure
+- [x] 10.2 Fixed by resolving `main` -> `origin/main` -> **skip with a stated reason**, never a
+      vacuous pass. Verified under BOTH geometries: shallow **35 passed / 1 skipped**, full clone
+      **36 passed**
+- [x] 10.3 Recorded honestly: this is the suite's own lesson turned on its author — a test that
+      reproduced the developer's geometry instead of the one production presents. Pre-flight could
+      not have caught it, because pre-flight runs in this full clone; the shallow geometry exists
+      only on CI

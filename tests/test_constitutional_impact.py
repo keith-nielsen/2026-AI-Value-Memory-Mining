@@ -307,13 +307,38 @@ def test_frontmatter_must_open_the_file(tmp_path):
 # Real geometry: replay actual history
 # --------------------------------------------------------------------------
 
+def _resolve_history_ref():
+    """Return a ref with real merge history, or None under a shallow checkout.
+
+    `actions/checkout@v7` defaults to depth 1 and a DETACHED head, so neither `main`
+    nor `origin/main` exists on CI. The first version of this test shelled out to
+    `main` with `check=True` and failed both fleet jobs on PR #89 -- a test that
+    reproduced the author's geometry rather than the one production presents, which
+    is the exact defect the suite above is written to avoid.
+    """
+    for ref in ("main", "origin/main"):
+        r = subprocess.run(["git", "-C", str(REPO), "rev-parse", "--verify", ref],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            return ref
+    return None
+
+
 def test_replay_last_25_merges_matches_the_measured_rate(tmp_path):
     """Task 5.6 -- the proposal measured 4 fire / 21 quiet. A different number
     means the subject set is wrong. This is the only test whose input production
     actually produced.
+
+    SKIPS under a shallow checkout rather than passing vacuously: on CI there is no
+    merge history to replay, and a green tick there would misreport coverage this
+    run does not have.
     """
+    ref = _resolve_history_ref()
+    if ref is None:
+        pytest.skip("shallow checkout: no main/origin/main to replay — this test is "
+                    "meaningful only against a full clone (run it locally / in pre-flight)")
     merges = subprocess.run(
-        ["git", "-C", str(REPO), "log", "--merges", "-25", "--format=%H", "main"],
+        ["git", "-C", str(REPO), "log", "--merges", "-25", "--format=%H", ref],
         capture_output=True, text=True, check=True,
     ).stdout.split()
     assert len(merges) == 25, f"expected 25 merges, got {len(merges)}"
