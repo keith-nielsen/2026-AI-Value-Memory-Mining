@@ -149,10 +149,27 @@ required"). Closes the *"archive-order rule undocumented"* hardening-queue item.
 
 ## 8. Deploy-down (operator)
 
-- [ ] 8.1 Operator adds `FRAMEWORK_ROOT` to the live gitignored `99-Operations/config.env`
-- [ ] 8.2 Operator applies the runbook + adapter + config template changes into the live vault
+- [x] 8.1 **DONE — operator, 2026-08-16.** `FRAMEWORK_ROOT` added to the live gitignored
+      `99-Operations/config.env`; verified to resolve to a directory.
+- [ ] 8.2 Operator applies the three changed files into the live vault — **after this change merges**,
+      so the vault never carries unmerged content. All three measured as differing 2026-08-16:
+      `96-Runbooks/session-bootstrap-loader.md` (40 lines),
+      `.claude/commands/vmm-session-rebooted.md` (13),
+      `99-Operations/config.defaults.env` (19).
+      Two sit in subtrees the agent is denied by INV-4/5 — confirmed `PROTECTED` by the probe's own
+      write-scope layer in the same run. ⚠ `96-Runbooks/` is **not a lockstep prefix** (queue item
+      11), so `template-mirror` will not carry it and no instrument detects the drift in between.
       (`denyWrite` paths — never edited in-vault)
-- [ ] 8.3 Re-run the cold-start prime and confirm the four layers report against the real estate
+- [x] 8.3 **VERIFIED ON THE REAL ESTATE, 2026-08-16** — run exactly as a cold session does, from the
+      vault, sourcing only `config.env`:
+      `source 99-Operations/config.env && python3 "$FRAMEWORK_ROOT/tools/pr-flow.py" --capabilities`
+      → estate printed, `INV-14 HOLDING`, framework channels measured against the correct subject,
+      all three protected subtrees `PROTECTED`, exit `0`.
+      **Same session, four hours earlier, same directory, before the fix:** `slug UNRESOLVED`,
+      `github state FAILED (unsupported format string passed to NoneType.__format__)`,
+      `ls-remote FAILED`, `push FAILED` — the third recorded occurrence of the inversion.
+      ⚠ Scope of this verification: it exercises the **probe** against the real estate. The full cold
+      prime reading the **deployed runbook** is only possible after 8.2.
 
 ## 9. Evidence
 
