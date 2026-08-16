@@ -121,3 +121,16 @@ protected spec until the archive lands.
 - [ ] 8.3 PR body with a `scope` block covering every path; a rename declares both sides
 - [ ] 8.4 Archive on the feature branch in the same PR (ADR-0040), unless another in-flight change
       carries a `maintenance` delta
+
+## 9. Gate 4 — human sign-off (not agent-delegatable)
+
+- [ ] 9.1 **Approved** — <operator>, <YYYY-MM-DD>. Awaiting sign-off. The two decisions that most
+      warrant review, both argued in the proposal and ADR-0042:
+      (a) **`constitution.md` is OUT of the subject set** — operator decision 2026-08-16. It carries
+      no frontmatter tag, and gating it would have refused PR #85, the change that removed six false
+      enforcement claims. `CONST-01`–`05` therefore remain ungated until task 7.2 hashes them.
+      (b) **Phase A is report-only** — the gate cannot fail a build yet, so merging this does not
+      make the constitution enforced; it makes the enforcement exist and observable. Anyone reading
+      a green build as ceremony compliance would be repeating the error PR #85 corrected.
+      Gate 3 status: 291 passed, `openspec validate --all --strict` 7/7, pre-flight `CLEAR`,
+      mutation 20/36, live archive simulation passed. CI wiring is `[~]` — never run on the platform.
