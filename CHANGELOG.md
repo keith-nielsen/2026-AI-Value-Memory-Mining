@@ -12,6 +12,46 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.47] - 2026-08-16
+
+### Fixed
+
+- **The capability probe measures a declared estate, not the working directory**
+  (`estate-scoped-capability-probe`, PR #87). The probe answers *"what can this session do?"* but took
+  a **repository-scoped subject** — `git rev-parse --show-toplevel`, whichever directory the shell
+  happened to be in. Run from the vault, as every cold session is, it measured the **vault** and
+  printed four failed channels for a repository that is *supposed* to have no remotes.
+
+  **Not one of those was a defect.** The vault has no remotes *because* INV-14 requires it to have
+  none: it is private by default and deliberately has nowhere to push. The instrument rendered a
+  governance guarantee **holding** as a capability **failure** — precisely the false belief
+  (*"GitHub is unreachable this session"*) that a measured probe exists to prevent. Both halves of the
+  proof come from a single session four hours apart, in the same directory: `slug UNRESOLVED`,
+  `github state FAILED (unsupported format string passed to NoneType.__format__)`, `ls-remote FAILED`,
+  `push FAILED` — and afterwards, the estate printed and `INV-14 HOLDING`.
+
+  Discovery was never appropriate: the estate has exactly two members and both locations are known in
+  advance. `FRAMEWORK_ROOT` now joins `VAULT_ROOT` in the configuration, resolving a placeholder the
+  session adapter had carried unfilled since the predecessor change named it as a residual. The probe
+  takes both roots from the declaration, **prints the roots it measured**, and reports a remoteless
+  vault as the invariant holding. A vault that *has* a remote is reported as a **violation** — the
+  direction that previously had no report at all, because the existence of the capability is the
+  breach. Where `FRAMEWORK_ROOT` is undeclared the framework layers read `UNDECLARED`, distinct from
+  `FAILED`: a deployed vault with no framework repository beside it is a supported configuration.
+
+  Two reporting defects go with it. An unresolved slug is now a named precondition rather than the
+  `NoneType.__format__` text a fall-through produced, because a probe that prints its own internal
+  error where a diagnosis belongs teaches the reader nothing about the channel. And a quoted
+  subprocess line is selected by **cause** and **attributed** to the subprocess, instead of taking the
+  last line — which was routinely a generic trailing hint, blaming the wrong thing.
+
+  Two departures from the change as originally proposed, both recorded there. The trigger is a
+  remote's **presence**, not demonstrated pushability: establishing that a remote accepts a push means
+  attempting one **from the vault**, which is the act INV-14 forbids — **a probe may not commit the
+  breach it is checking for** — and presence is the earlier signal in any case. And where
+  `FRAMEWORK_ROOT` is undeclared the probe **suggests** the export rather than falling back to the
+  working directory, which would reintroduce the original defect exactly.
+
 ## [0.1.46] - 2026-08-16
 
 ### Fixed
