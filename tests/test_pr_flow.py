@@ -151,6 +151,150 @@ def test_capabilities_probe_reports_without_raising(work):
     assert "git push" in r.stdout
 
 
+# --- estate scoping: the probe answers a SESSION question, not a cwd question -------------------
+
+
+def test_a_remoteless_vault_is_inv14_holding_not_four_failed_channels(tmp_path, monkeypatch,
+                                                                       capsys):
+    """Task 5.1 — the inversion this whole change exists to kill.
+
+    Measured at a real cold start: run from the vault, the old probe reported `slug UNRESOLVED`,
+    `github state FAILED`, `git ls-remote FAILED`, `git push FAILED`. **Not one was a defect.** The
+    vault has no remotes BECAUSE INV-14 requires it to have none. The instrument rendered a
+    governance guarantee holding as a capability failure — the exact F30/F35 false belief
+    (`GitHub is unreachable this session`) that `--capabilities` was built to prevent.
+    """
+    # A REMOTELESS repo, which is what a real vault is. The `work` fixture is cloned from a bare
+    # origin and therefore HAS a remote — using it here asserted the opposite of the vault's actual
+    # geometry, and the test caught that on first run.
+    vault = tmp_path / "remoteless-vault"
+    vault.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(vault)], check=True)
+
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(vault))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert "INV-14 HOLDING" in out, "a remoteless vault is the guarantee holding, not a broken channel"
+    assert "FAILED" not in out, "no channel may be reported as failed merely because the vault is private"
+    assert rc == EXIT_OK
+
+
+def test_a_vault_that_can_push_is_reported_as_a_violation(monkeypatch):
+    """Task 5.3 — the adversarial half, and the direction that had NO report at all.
+
+    'If `git push` ever succeeds from the vault, that is an alarm, not a pass.' The existence of the
+    capability IS the violation, because INV-14 makes the vault private by default.
+
+    Stubbed at the `git remote` seam deliberately: creating a real remote on a vault is the precise
+    act INV-14 forbids, and the outbound guard refuses the command that would set one up. The
+    geometry being faked is `git remote` printing names — not a shape reality never produces.
+    """
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+
+    def with_remotes(args, cwd=None, **kw):
+        if args[:1] == ["remote"]:
+            return types.SimpleNamespace(returncode=0, stdout="origin\nbackup\n", stderr="")
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", with_remotes)
+    state, why = pr_flow.vault_remote_state(str(REPO))
+    assert state == "VIOLATION"
+    assert "origin" in why and "backup" in why, "name the remotes, or the operator cannot act"
+
+
+def test_the_three_vault_states_partition(monkeypatch):
+    """HOLDING / VIOLATION / UNDECLARED must cover every case — item 25's exhaustiveness lesson."""
+    import types
+    pr_flow = load_flow_module()
+    real_git = pr_flow.git
+
+    def no_remotes(args, cwd=None, **kw):
+        if args[:1] == ["remote"]:
+            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+        return real_git(args, cwd=cwd, **kw)
+
+    monkeypatch.setattr(pr_flow, "git", no_remotes)
+    assert pr_flow.vault_remote_state(str(REPO))[0] == "HOLDING"
+    assert pr_flow.vault_remote_state("")[0] == "UNDECLARED"
+    assert pr_flow.vault_remote_state("/nonexistent/path/xyz")[0] == "UNDECLARED"
+
+
+def test_an_undeclared_framework_root_is_undeclared_never_failed(work, monkeypatch, capsys):
+    """Task 5.2 — closes the residual the predecessor change named rather than papered over.
+
+    A deployed vault may legitimately have no framework repository beside it. That is an absence, and
+    an absence reported as a failure is what sends a reader looking for a fault that does not exist.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert out.count("UNDECLARED") >= 4, "every framework layer must say UNDECLARED"
+    assert "not a failure" in out
+    assert rc == EXIT_OK, "an undeclared estate member is not an error condition"
+
+
+def test_the_probe_suggests_the_export_but_never_substitutes_the_working_directory(work, monkeypatch,
+                                                                                   capsys):
+    """The ergonomic concession, bounded so it cannot become the defect it replaces.
+
+    Falling back to the working directory would reintroduce the original bug exactly: run from the
+    vault, measure the vault, report the guarantee as failure. So the probe SUGGESTS the export and
+    labels the candidate as not used. Suggesting is not substituting.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    pr_flow.capabilities()
+    out = capsys.readouterr().out
+    assert "NOT used" in out, "the candidate must be labelled as not used"
+    assert "export FRAMEWORK_ROOT=" in out, "an absence the reader cannot act on is only half a report"
+    assert "subject:" not in out, "no framework subject may be measured when none is declared"
+
+
+def test_an_unresolved_slug_is_a_named_precondition_not_a_traceback(work, monkeypatch, capsys):
+    """Task 5.4 / 3.6 — the crash the cold start actually printed.
+
+    `else (None, None)` fell through into the SUCCESS print, where `{ch:<9}` formatted `None` and the
+    probe reported `FAILED (unsupported format string passed to NoneType.__format__)`. A probe that
+    leaks its own internal error where a diagnosis belongs teaches the reader nothing about the
+    channel it was asked to measure.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", str(work))          # a repo with no origin
+    monkeypatch.setattr(pr_flow.gh_read, "slug_from_remote", lambda root: None)
+    rc = pr_flow.capabilities()
+    out = capsys.readouterr().out
+
+    assert "NoneType" not in out, "an internal error text is not a diagnosis"
+    assert "__format__" not in out
+    assert "no remote resolves to a repo slug" in out, "say what is missing, in the reader's terms"
+    assert rc == EXIT_OK
+
+
+def test_the_measured_subjects_are_printed(work, monkeypatch, capsys):
+    """Task 3.2 — output that does not name its subject can be read as describing another one.
+
+    The original defect was invisible precisely because the report never said which repository it had
+    measured; the reader supplied the wrong assumption for free.
+    """
+    pr_flow = load_flow_module()
+    monkeypatch.setenv("VAULT_ROOT", str(work))
+    monkeypatch.setenv("FRAMEWORK_ROOT", "")
+    pr_flow.capabilities()
+    out = capsys.readouterr().out
+    assert "VAULT_ROOT" in out and str(work) in out
+    assert "never discovered from the working directory" in out
+
+
 # --- write-scope layer: the vault protection self-test (tasks 3.5a-d, 5.6, 5.7) -----------------
 #
 # Row 1 (refused) and row 2 (accepted) are REAL geometry: a real vault tree on a real filesystem,

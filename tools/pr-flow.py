@@ -1082,22 +1082,102 @@ def write_scope():
                 print("        Do not proceed and do not commit until both are done.")
 
 
-def capabilities(repo_root):
-    """Probe what this process can actually do, and who authorizes each channel.
+def vault_remote_state(vault_root):
+    """Is the vault remoteless (INV-14 holding) or pushable (a VIOLATION)?
+
+    The inversion this exists to kill: the vault has no remotes BECAUSE INV-14 requires it to have
+    none — it is private by default and deliberately has nowhere to push. The old probe rendered that
+    guarantee as four FAILED channels, which is the F30/F35 false belief the probe was built to
+    prevent: an agent reading it can bank "GitHub is unreachable this session".
+
+    The other direction matters more and had no report at all. **If the vault can push, that is an
+    alarm, not a pass** — the existence of the capability IS the violation.
+    """
+    if not vault_root or not pathlib.Path(vault_root).is_dir():
+        return "UNDECLARED", "VAULT_ROOT is not set to a directory"
+    r = git(["remote"], cwd=vault_root)
+    if r.returncode != 0:
+        return "UNDECLARED", "not a git repository"
+    remotes = [x for x in r.stdout.split() if x.strip()]
+    if not remotes:
+        return "HOLDING", "no remotes — INV-14 holding, the vault is private by default"
+    return "VIOLATION", f"remotes present: {', '.join(remotes)}"
+
+
+def capabilities(_cwd_root=None):
+    """Probe what this SESSION can do, across the DECLARED estate.
 
     F30: the agent asserted 'no GitHub egress this session' and it was false. A static ownership
     table would have encoded that wrong answer durably; a probe cannot, because it re-measures.
-    """
-    print("CAPABILITY PROBE (measured now, not recalled)")
-    slug = gh_read.slug_from_remote(repo_root)
-    print(f"  repo slug (from remote, not folder name): {slug or 'UNRESOLVED'}")
-    print("  channel .................. state ......... runs / authority")
 
-    try:
-        _, ch = gh_read.get(f"/repos/{slug}") if slug else (None, None)
-        print(f"  READ  github state ....... OK via {ch:<9} {AGENT} / {AGENT}")
-    except Exception as exc:  # noqa: BLE001 - probe reports, never raises
-        print(f"  READ  github state ....... FAILED ({str(exc)[:60]})")
+    ⚠ The subject is the **estate**, never the current directory. This is a session-scoped question
+    and it was previously answered with a repo-scoped subject — `git rev-parse --show-toplevel`,
+    i.e. whichever directory the shell happened to be in. Run from the vault, as every cold session
+    is, that measured the vault and reported four red channels for a repository that is *supposed* to
+    have no remotes.
+
+    Discovery was never appropriate here: the estate has exactly two members and both locations are
+    known in advance. They are declared in `config.env` and taken from the environment. When
+    `FRAMEWORK_ROOT` is undeclared the framework layers report **UNDECLARED** — an honest absence —
+    and the probe SUGGESTS the export rather than silently substituting the working directory, which
+    would reintroduce the very defect this replaces.
+    """
+    vault_root = os.environ.get("VAULT_ROOT", "").strip()
+    fw_root = os.environ.get("FRAMEWORK_ROOT", "").strip()
+
+    print("CAPABILITY PROBE (measured now, not recalled)")
+    print("  estate (declared in config.env, never discovered from the working directory):")
+    print(f"        VAULT_ROOT     = {vault_root or 'UNDECLARED'}")
+    print(f"        FRAMEWORK_ROOT = {fw_root or 'UNDECLARED'}")
+
+    # --- vault member: expected remoteless -------------------------------------------------------
+    state, why = vault_remote_state(vault_root)
+    mark = {"HOLDING": "INV-14 HOLDING", "VIOLATION": "⛔ VIOLATION", "UNDECLARED": "UNDECLARED"}[state]
+    print(f"  GUARD vault remotes ...... {mark:<15} {why}")
+    if state == "VIOLATION":
+        print("        A vault that CAN push is a governance breach, not a capability. INV-14 makes")
+        print("        it private by default. Do not push; hand this to the operator.")
+
+    # --- framework member: the only one where a GitHub result is meaningful ----------------------
+    print("  channel .................. state ......... runs / authority")
+    if not fw_root or not pathlib.Path(fw_root).is_dir():
+        for ch_name in ("github state", "git ls-remote", "git push", "gh mutations"):
+            print(f"  ----  {ch_name:<18} {'UNDECLARED':<13} no FRAMEWORK_ROOT — not a failure")
+        print("        Declare it and re-run. This is an honest absence: a deployed vault may")
+        print("        legitimately have no framework repository alongside it.")
+        cand = git(["rev-parse", "--show-toplevel"]).stdout.strip()
+        if cand and cand != vault_root:
+            print(f"        Candidate (NOT used — the estate is declared, not guessed): {cand}")
+            print(f"        export FRAMEWORK_ROOT=\"{cand}\"   # or set it in 99-Operations/config.env")
+    else:
+        _framework_channels(fw_root)
+
+    if vault_root:
+        write_scope()
+    # Exit stays OK on every failing channel — including UNDECLARED ones. A probe that exits
+    # non-zero teaches its caller to stop probing; findings are reported, never raised.
+    return EXIT_OK
+
+
+def _framework_channels(repo_root):
+    """The GitHub channels, measured against the framework repo — the member that has an origin."""
+    slug = gh_read.slug_from_remote(repo_root)
+    print(f"        subject: {repo_root}")
+    print(f"        repo slug (from remote, not folder name): {slug or 'UNRESOLVED'}")
+
+    # An unresolved slug is a PRECONDITION FAILURE, reported as one. It previously fell through
+    # `else (None, None)` into the SUCCESS print, where `{ch:<9}` formatted None and the probe
+    # reported `FAILED (unsupported format string passed to NoneType.__format__)` — an internal
+    # error text where a diagnosis belonged. A probe that leaks its own traceback teaches its reader
+    # nothing about the channel it was asked to measure.
+    if not slug:
+        print(f"  READ  github state ....... {'BLOCKED':<13} no remote resolves to a repo slug")
+    else:
+        try:
+            _, ch = gh_read.get(f"/repos/{slug}")
+            print(f"  READ  github state ....... OK via {ch:<9} {AGENT} / {AGENT}")
+        except Exception as exc:  # noqa: BLE001 - probe reports, never raises
+            print(f"  READ  github state ....... FAILED ({str(exc)[:60]})")
 
     r = git(["ls-remote", "--heads", "origin"], cwd=repo_root)
     print(f"  READ  git ls-remote ...... {'OK' if r.returncode == 0 else 'FAILED':<13} "
@@ -1108,7 +1188,15 @@ def capabilities(repo_root):
     print(f"  WRITE git push ........... {'OK (dry-run)' if ok else 'FAILED':<13} "
           f"{AGENT if ok else OPERATOR} / {OPERATOR} via the INV-14 ask")
     if not ok and r.stderr.strip():
-        print(f"        {r.stderr.strip().splitlines()[-1][:110]}")
+        # Quote the line naming the CAUSE, not `splitlines()[-1]`. git's last stderr line is
+        # routinely a generic hint ("and the repository exists"), so the tail attributed the failure
+        # to the wrong thing — the probe's own output misdirected the reader it exists to inform.
+        lines = [ln.strip() for ln in r.stderr.strip().splitlines() if ln.strip()]
+        cause = next((ln for ln in lines
+                      if any(k in ln.lower() for k in
+                             ("fatal:", "error:", "denied", "not found", "could not read",
+                              "authentication", "permission"))), lines[-1])
+        print(f"        {cause[:110]}")
 
     if shutil.which("gh"):
         r = run(["gh", "auth", "status"], cwd=repo_root)
@@ -1121,11 +1209,6 @@ def capabilities(repo_root):
 
     budget = gh_read.rate_limit() or gh_read.budget_report()
     print(f"  READ  budget ............. {budget or 'UNMEASURED (channel unreachable)'}")
-
-    write_scope()
-    # Exit stays OK on every failing channel: a probe that exits non-zero teaches its caller to
-    # stop probing. Findings are reported, never raised.
-    return EXIT_OK
 
 
 def ready(args):
