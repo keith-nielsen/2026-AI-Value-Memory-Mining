@@ -177,7 +177,11 @@ def test_a_remoteless_vault_is_inv14_holding_not_four_failed_channels(tmp_path, 
     rc = pr_flow.capabilities()
     out = capsys.readouterr().out
 
-    assert "INV-14 HOLDING" in out, "a remoteless vault is the guarantee holding, not a broken channel"
+    # The state is HOLDING; WHICH invariant is holding is the note beside it. `INV-14 HOLDING`
+    # carried a space and folded the invariant's name into the token, which is why the vocabulary
+    # was unparseable (item 29-E).
+    assert "HOLDING" in out, "a remoteless vault is the guarantee holding, not a broken channel"
+    assert "INV-14 holding" in out, "the note must still name the invariant that is holding"
     assert "FAILED" not in out, "no channel may be reported as failed merely because the vault is private"
     assert rc == EXIT_OK
 

@@ -64,7 +64,18 @@ sessions without notice, so the prime also **measures** its own reach rather tha
      **attempts a real write** into each protected subtree, because a protection assumed is not a
      protection measured.
    - **`gh` credential** — an operator keyring is unreadable from a confined session; a tool reporting
-     its own token "invalid" is describing *that process*, not the operator's account.
+     its own token "invalid" is describing *that process*, not the operator's account. Its three
+     states are **`AUTHENTICATED`** · **`UNAUTHENTICATED`** · **`ABSENT`**, and the third is a
+     different axis: **`ABSENT` means the tool is not installed, so the credential state is UNKNOWN**
+     — it is not a synonym for `UNAUTHENTICATED`, and the two have different remedies.
+   - **the state column is a controlled vocabulary** — every state is a single word naming
+     **what was found in this process**, never what is possible in the world. If a token could be
+     falsified by something outside the process that emitted it, it is the wrong word. `UNAVAILABLE`
+     was retired on this ground (*unavailable to whom?*), not narrowed.
+   - **evidence** — every row records `attempted:<channel>` or `inspected`. **A channel that was
+     merely inspected is not a channel that was exercised**, and reading one as the other is exactly
+     how a single denial became a false capability class (F40). `--capabilities --json` emits the
+     rows machine-readably, so nothing needs to parse the table.
    - **`git` credential** — a **separate channel**, which may succeed while `gh` mutations do not. A
      credential-*lock* error naming a read-only filesystem is a write failure, **not** a network verdict.
    - **reachability** — reads may succeed against hosts absent from any configured allowlist, where

@@ -61,6 +61,78 @@ EXIT_BLOCKED = 3
 AGENT = "AGENT"
 OPERATOR = "OPERATOR"
 
+# ---------------------------------------------------------------------------------------------
+# CAPABILITY STATES — the controlled vocabulary of the probe's state column.
+#
+# THE RULE (item 29-D): A STATE NAMES WHAT WAS FOUND IN THIS PROCESS. It never names what is
+# possible in the world. Test a candidate by asking: could this token be falsified by something
+# outside the process that emitted it? If yes, it is the wrong word.
+#   AUTHENTICATED ok   UNAUTHENTICATED ok   ABSENT ok
+#   IMPOSSIBLE    no — `apt install gh` falsifies it
+#   UNAVAILABLE   no — unavailable to WHOM? RETIRED 2026-08-17, not narrowed: a token reused with
+#                      a tighter meaning makes every previously-emitted transcript ambiguous.
+#
+# Single word, no whitespace, so a consumer can compare without parsing prose. Declared HERE and
+# nowhere else: states inlined at their print sites have no discoverable legal set, and a new one
+# can be introduced by a typo with nothing to observe it. `test_every_emitted_state_is_declared`
+# is what makes this a vocabulary rather than a comment.
+#
+# AXIS TRAP, for anyone consuming these: AUTHENTICATED/UNAUTHENTICATED describe the CREDENTIAL.
+# ABSENT describes the TOOL, and therefore leaves the credential state UNKNOWN — it is not a
+# synonym for UNAUTHENTICATED, and the two have different remedies.
+S_OK = "OK"                       # the operation succeeded; HOW it succeeded is the evidence field
+S_FAILED = "FAILED"
+S_BLOCKED = "BLOCKED"             # a precondition for measuring was not met
+S_HOLDING = "HOLDING"             # an invariant is holding (e.g. a remoteless vault, INV-14)
+S_VIOLATION = "VIOLATION"
+S_UNDECLARED = "UNDECLARED"       # not configured — an honest absence, never a failure
+S_UNRESOLVED = "UNRESOLVED"
+S_UNMEASURED = "UNMEASURED"       # the reason belongs in a field, not inside the token
+S_AUTHENTICATED = "AUTHENTICATED"
+S_UNAUTHENTICATED = "UNAUTHENTICATED"
+S_ABSENT = "ABSENT"
+S_PROTECTED = "PROTECTED"
+S_UNPROTECTED = "UNPROTECTED"
+S_UNPROTECTED_RESIDUE = "UNPROTECTED+RESIDUE"   # single token, no space — parses fine, kept
+S_SKIPPED = "SKIPPED"
+
+CAPABILITY_STATES = frozenset({
+    S_OK, S_FAILED, S_BLOCKED, S_HOLDING, S_VIOLATION, S_UNDECLARED, S_UNRESOLVED, S_UNMEASURED,
+    S_AUTHENTICATED, S_UNAUTHENTICATED, S_ABSENT, S_PROTECTED, S_UNPROTECTED,
+    S_UNPROTECTED_RESIDUE, S_SKIPPED,
+})
+
+# Evidence kinds. The report must say whether a channel was EXERCISED or whether a precondition was
+# merely read — F40's direct cause was reading an inspected precondition as an attempted channel.
+# `attempted` alone is not enough: naming the channel actually exercised is what makes a
+# subprocess-vs-shell divergence visible in the OUTPUT rather than only in the source (item 29-A).
+EV_INSPECTED = "inspected"
+
+
+def ev_attempted(channel):
+    return f"attempted:{channel}"
+
+
+_CAP_ROWS = []  # accumulated for --json; the human table is printed as we go
+
+
+def cap_row(kind, channel, state, runs, authority, evidence, note=""):
+    """Emit one capability row to the table AND to the --json accumulator.
+
+    ONE call site per row, so the two renderings cannot drift apart — which is the defect class
+    this whole change exists to close.
+    """
+    if state not in CAPABILITY_STATES:
+        raise AssertionError(f"undeclared capability state: {state!r}")
+    _CAP_ROWS.append({
+        "channel": channel, "state": state, "runs": runs,
+        "authority": authority, "evidence": evidence, "note": note,
+    })
+    dots = "." * max(1, 24 - len(channel))
+    print(f"  {kind:<5} {channel} {dots} {state:<16} {runs} / {authority}"
+          + (f"  {note}" if note else ""))
+
+
 # Task 3.5a: the subtrees under an autonomy ban (INV-4, INV-5). This list is the OPERATOR's, and is
 # deliberately a module constant rather than a parameter or a discovery: the 2026-08-13 hand-rolled
 # substitute silently dropped 96-Runbooks/ and probed the two subtrees it wanted to write to instead.
@@ -1108,12 +1180,12 @@ def write_scope():
     vault_root = os.environ.get("VAULT_ROOT", "").strip()
 
     if not vault_root:
-        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        cap_row("WRITE", "vault protection", S_UNDECLARED, OPERATOR, OPERATOR, EV_INSPECTED)
         print("        VAULT_ROOT is not set. An absent declaration is not a measured failure.")
         print("        Action: source the vault's 99-Operations/config.env, then re-probe.")
         return
     if not pathlib.Path(vault_root).is_dir():
-        print(f"  WRITE vault protection ... {'UNDECLARED':<13} {OPERATOR} / {OPERATOR}")
+        cap_row("WRITE", "vault protection", S_UNDECLARED, OPERATOR, OPERATOR, EV_INSPECTED)
         print(f"        VAULT_ROOT is set but does not resolve to a directory: {vault_root}")
         print("        Action: correct VAULT_ROOT in 99-Operations/config.env, then re-probe.")
         return
@@ -1128,7 +1200,7 @@ def write_scope():
     # vault inside "the repo" (the vault IS a git repo) and silently skipped its own subject. A
     # guard keyed to cwd inherits every defect of cwd derivation.
     if "vault-template" in pathlib.Path(vault_root).resolve().parts:
-        print(f"  WRITE vault protection ... {'SKIPPED':<13} {OPERATOR} / {OPERATOR}")
+        cap_row("WRITE", "vault protection", S_SKIPPED, OPERATOR, OPERATOR, EV_INSPECTED)
         print(f"        VAULT_ROOT is under a vault-template/ tree: {vault_root}")
         print("        This is template source, not a live vault; it is writable by design.")
         return
@@ -1140,14 +1212,17 @@ def write_scope():
         label = f"  WRITE {name:<18}"
         if v == "HOLDING":
             # 3.5d: the expected result prescribes no action, deliberately.
-            print(f"{label} {'PROTECTED':<13} {OPERATOR} / {OPERATOR} — refused, INV-4/5 holding")
+            cap_row("WRITE", name, S_PROTECTED, OPERATOR, OPERATOR,
+                    ev_attempted("filesystem"), "refused, INV-4/5 holding")
         elif v == "ABSENT":
-            print(f"{label} {'ABSENT':<13} {OPERATOR} / {OPERATOR} — {r['detail']}")
+            cap_row("WRITE", name, S_ABSENT, OPERATOR, OPERATOR,
+                    ev_attempted("filesystem"), r["detail"])
         else:
             # 3.5d: every failing outcome carries the operator action it calls for. A check that
             # reports only a verdict obliges its reader to derive the remedy at exactly the moment
             # the governing assumption has been shown false.
-            print(f"{label} {'UNPROTECTED':<13} {AGENT} / {OPERATOR} — ⛔ PROTECTION FAILURE")
+            cap_row("WRITE", name, S_UNPROTECTED, AGENT, OPERATOR,
+                    ev_attempted("filesystem"), "PROTECTION FAILURE")
             print(f"        The write SUCCEEDED. INV-4/5 rest on nothing for the rest of this "
                   f"session.")
             print("        Action: stop governed work. The guard is harness-level, not filesystem-"
@@ -1187,7 +1262,7 @@ def vault_remote_state(vault_root):
     return "VIOLATION", f"remotes present: {', '.join(remotes)}"
 
 
-def capabilities(_cwd_root=None):
+def capabilities(_cwd_root=None, as_json=False):
     """Probe what this SESSION can do, across the DECLARED estate.
 
     F30: the agent asserted 'no GitHub egress this session' and it was false. A static ownership
@@ -1215,8 +1290,11 @@ def capabilities(_cwd_root=None):
 
     # --- vault member: expected remoteless -------------------------------------------------------
     state, why = vault_remote_state(vault_root)
-    mark = {"HOLDING": "INV-14 HOLDING", "VIOLATION": "⛔ VIOLATION", "UNDECLARED": "UNDECLARED"}[state]
-    print(f"  GUARD vault remotes ...... {mark:<15} {why}")
+    # `INV-14 HOLDING` carried a space and named the invariant inside the token. The state is
+    # HOLDING; which invariant is holding is the note.
+    cap_row("GUARD", "vault remotes", {"HOLDING": S_HOLDING, "VIOLATION": S_VIOLATION,
+                                       "UNDECLARED": S_UNDECLARED}[state],
+            OPERATOR, OPERATOR, EV_INSPECTED, why)
     if state == "VIOLATION":
         print("        A vault that CAN push is a governance breach, not a capability. INV-14 makes")
         print("        it private by default. Do not push; hand this to the operator.")
@@ -1224,8 +1302,9 @@ def capabilities(_cwd_root=None):
     # --- framework member: the only one where a GitHub result is meaningful ----------------------
     print("  channel .................. state ......... runs / authority")
     if not fw_root or not pathlib.Path(fw_root).is_dir():
-        for ch_name in ("github state", "git ls-remote", "git push", "gh mutations"):
-            print(f"  ----  {ch_name:<18} {'UNDECLARED':<13} no FRAMEWORK_ROOT — not a failure")
+        for ch_name in ("github state", "git ls-remote", "git push", "gh credential"):
+            cap_row("----", ch_name, S_UNDECLARED, OPERATOR, OPERATOR, EV_INSPECTED,
+                    "no FRAMEWORK_ROOT — not a failure")
         print("        Declare it and re-run. This is an honest absence: a deployed vault may")
         print("        legitimately have no framework repository alongside it.")
         cand = git(["rev-parse", "--show-toplevel"]).stdout.strip()
@@ -1237,6 +1316,16 @@ def capabilities(_cwd_root=None):
 
     if vault_root:
         write_scope()
+
+    if as_json:
+        # Emitted AFTER the table so both renderings come from the SAME accumulated rows and cannot
+        # disagree. The subject travels with them: a state without its subject is not a measurement
+        # anyone can act on.
+        print(json.dumps({
+            "subject": {"VAULT_ROOT": vault_root or None, "FRAMEWORK_ROOT": fw_root or None},
+            "rows": _CAP_ROWS,
+        }, indent=2))
+
     # Exit stays OK on every failing channel — including UNDECLARED ones. A probe that exits
     # non-zero teaches its caller to stop probing; findings are reported, never raised.
     return EXIT_OK
@@ -1254,22 +1343,31 @@ def _framework_channels(repo_root):
     # error text where a diagnosis belonged. A probe that leaks its own traceback teaches its reader
     # nothing about the channel it was asked to measure.
     if not slug:
-        print(f"  READ  github state ....... {'BLOCKED':<13} no remote resolves to a repo slug")
+        cap_row("READ", "github state", S_BLOCKED, OPERATOR, OPERATOR, EV_INSPECTED,
+                "no remote resolves to a repo slug")
     else:
         try:
             _, ch = gh_read.get(f"/repos/{slug}")
-            print(f"  READ  github state ....... OK via {ch:<9} {AGENT} / {AGENT}")
+            # The channel that answered is EVIDENCE, not part of the state. It used to be spliced
+            # into the token as `OK via anon-rest`, which is unparseable and hides which of two
+            # possible channels was exercised.
+            cap_row("READ", "github state", S_OK, AGENT, AGENT, ev_attempted(ch))
         except Exception as exc:  # noqa: BLE001 - probe reports, never raises
-            print(f"  READ  github state ....... FAILED ({str(exc)[:60]})")
+            cap_row("READ", "github state", S_FAILED, AGENT, AGENT, ev_attempted("rest"),
+                    str(exc)[:60])
 
     r = git(["ls-remote", "--heads", "origin"], cwd=repo_root)
-    print(f"  READ  git ls-remote ...... {'OK' if r.returncode == 0 else 'FAILED':<13} "
-          f"{AGENT} / {AGENT}")
+    cap_row("READ", "git ls-remote", S_OK if r.returncode == 0 else S_FAILED, AGENT, AGENT,
+            ev_attempted("git-subprocess"))
 
     r = git(["push", "--dry-run", "origin", "HEAD"], cwd=repo_root)
     ok = r.returncode == 0
-    print(f"  WRITE git push ........... {'OK (dry-run)' if ok else 'FAILED':<13} "
-          f"{AGENT if ok else OPERATOR} / {OPERATOR} via the INV-14 ask")
+    # `attempted:git-subprocess` is the whole point of the evidence field: this row is measured by a
+    # Python subprocess, while the agent's real command crosses a guard that matches a SHELL command
+    # line. They agree today; naming the exercised channel is what would make a future divergence
+    # visible here rather than only in the source (item 29-A).
+    cap_row("WRITE", "git push", S_OK if ok else S_FAILED, AGENT if ok else OPERATOR, OPERATOR,
+            ev_attempted("git-subprocess:dry-run"), "via the INV-14 ask")
     if not ok and r.stderr.strip():
         # Quote the line naming the CAUSE, not `splitlines()[-1]`. git's last stderr line is
         # routinely a generic hint ("and the repository exists"), so the tail attributed the failure
@@ -1283,17 +1381,27 @@ def _framework_channels(repo_root):
         # output from the probe itself, and the reader cannot tell whose diagnosis they are holding.
         print(f"        git push says: {cause[:96]}")
 
+    # Named `gh credential`, not `gh mutations`: this INSPECTS a credential. Whether mutations are
+    # possible is a conclusion drawn from it, and it already has a home in the runs/authority column.
+    # The runbook has said `gh credential` since 2026-08-06; the instrument had drifted from its own
+    # spec. Three conditions, three tokens — the tool being absent is NOT the same fact as the
+    # credential being unusable, and they have different remedies.
     if shutil.which("gh"):
         r = run(["gh", "auth", "status"], cwd=repo_root)
         ok = r.returncode == 0 and "Logged in" in (r.stdout + r.stderr)
-        print(f"  WRITE gh mutations ....... {'OK' if ok else 'UNAVAILABLE':<13} "
-              f"{AGENT if ok else OPERATOR} / {OPERATOR}")
+        cap_row("WRITE", "gh credential", S_AUTHENTICATED if ok else S_UNAUTHENTICATED,
+                AGENT if ok else OPERATOR, OPERATOR, EV_INSPECTED,
+                "" if ok else "this process; not a statement about the operator's account")
     else:
-        print(f"  WRITE gh mutations ....... {'UNAVAILABLE':<13} {OPERATOR} / {OPERATOR} "
-              "(gh not installed)")
+        cap_row("WRITE", "gh credential", S_ABSENT, OPERATOR, OPERATOR, EV_INSPECTED,
+                "gh not on PATH — credential state UNKNOWN, not unauthenticated")
 
     budget = gh_read.rate_limit() or gh_read.budget_report()
-    print(f"  READ  budget ............. {budget or 'UNMEASURED (channel unreachable)'}")
+    if budget:
+        cap_row("READ", "budget", S_OK, AGENT, AGENT, ev_attempted("rest"), budget)
+    else:
+        cap_row("READ", "budget", S_UNMEASURED, AGENT, AGENT, ev_attempted("rest"),
+                "channel unreachable")
 
 
 def ready(args):
@@ -2007,6 +2115,10 @@ def main(argv=None):
     ap.add_argument("--plan", action="store_true", help="show the whole remaining route, then exit")
     ap.add_argument("--capabilities", action="store_true",
                     help="probe what this process can do, then exit")
+    ap.add_argument("--json", action="store_true",
+                    help="with --capabilities: emit machine-readable rows instead of the table. "
+                         "A fixed-width table is a presentation; a consumer that parses it binds "
+                         "to column widths and every cosmetic change becomes a breaking one.")
     ap.add_argument("--ready", choices=("checks", "mergeable", "merged"),
                     help="answer ONE readiness condition in one request; exit 0 ready, 2 waiting")
     ap.add_argument("--sha", help="head SHA, for --ready checks")
@@ -2036,7 +2148,7 @@ def main(argv=None):
     root = r.stdout.strip()
 
     if args.capabilities:
-        return capabilities(root)
+        return capabilities(root, as_json=args.json)
     if args.lag_report:
         return lag_report(root)
     if args.ready:
