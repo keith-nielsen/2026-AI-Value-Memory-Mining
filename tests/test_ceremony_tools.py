@@ -195,10 +195,16 @@ def test_ship_full_ceremony_walk(ceremony):
     assert "guard [changelog]:" in r.stdout
     assert "mutated [local-tag]: created annotated v0.1.31" in r.stdout
     next_cmd = [ln for ln in r.stdout.splitlines() if ln.startswith("NEXT: ")][-1][6:]
-    assert next_cmd == "git push origin refs/tags/v0.1.31"
+    # `-C <root>`, not a bare `git push`. This assertion previously encoded the DEFECT: the emitted
+    # command depended on the caller's cwd, so it could not be run verbatim from anywhere else — and
+    # a command that cannot be run as emitted can never match its own emission record (ADR-0043).
+    # Measured shipping v0.1.48 on 2026-08-17.
+    assert next_cmd == f"git -C {ceremony.work} push origin refs/tags/v0.1.31"
 
-    # The caller runs the emitted command through the gated channel.
-    subprocess.run(next_cmd.split(), cwd=str(ceremony.work), env=ceremony.env,
+    # The caller runs the emitted command through the gated channel — now from an UNRELATED cwd
+    # (the origin's parent, not the work tree), which is the property `-C` exists to give and the
+    # old form did not have. An agent's shell resets its cwd between calls; this is that geometry.
+    subprocess.run(next_cmd.split(), cwd=str(ceremony.origin.parent), env=ceremony.env,
                    check=True, capture_output=True)
 
     # Step 2: remote tag verified as landed on the target; release command is emitted.
@@ -206,7 +212,9 @@ def test_ship_full_ceremony_walk(ceremony):
     assert r.returncode == EXIT_NEEDS_INPUT
     assert f"layer [remote-tag]: v0.1.31 at {target[:12]}" in r.stdout
     next_cmd = [ln for ln in r.stdout.splitlines() if ln.startswith("NEXT: ")][-1][6:]
-    assert next_cmd.startswith("gh release create v0.1.31 --verify-tag --latest")
+    # `-R <slug>` for the same reason as `-C` above: the emitted command names its subject rather
+    # than inheriting it from wherever the caller happens to be standing.
+    assert next_cmd.startswith(f"gh release create v0.1.31 -R {ceremony.slug} --verify-tag --latest")
     assert "--notes-file" in next_cmd
 
     # The caller creates the release; the stub now knows it.
