@@ -324,14 +324,27 @@ def _resolve_history_ref():
     return None
 
 
-def test_replay_last_25_merges_matches_the_measured_rate(tmp_path):
-    """Task 5.6 -- the proposal measured 4 fire / 21 quiet. A different number
-    means the subject set is wrong. This is the only test whose input production
-    actually produced.
+def test_replay_real_merges_agrees_with_the_protected_path_set():
+    """Task 5.6 -- replay real merges and check the classifier against an INDEPENDENT
+    computation of the same answer.
 
-    SKIPS under a shallow checkout rather than passing vacuously: on CI there is no
-    merge history to replay, and a green tick there would misreport coverage this
-    run does not have.
+    Two defects this version exists to avoid, both shipped and both caught in
+    production on 2026-08-16:
+
+    1. **Ref existence is not history.** The first version required `main` to resolve.
+       On a `pull_request` run it does not exist, so the test skipped -- correct by
+       accident. On a `push` run `actions/checkout` CREATES the branch ref, so it
+       resolved, and then `-25` returned 0 merges from a depth-1 clone. **That turned
+       `main` red.** The precondition is sufficient HISTORY, not a resolvable name.
+
+    2. **A snapshot is not an invariant.** It asserted `len(fired) == 4`, a measurement
+       taken on one day against a window that slides with every merge. It was already
+       one merge away from wrong when written.
+
+    So: skip when history is absent, and assert a property that cannot rot -- the
+    frontmatter classifier and the known protected-path set agree, over ~25 real diffs.
+    A seventh protected spec, a dropped tag, or a broken parser all break the agreement;
+    an ordinary merge does not.
     """
     ref = _resolve_history_ref()
     if ref is None:
@@ -341,8 +354,12 @@ def test_replay_last_25_merges_matches_the_measured_rate(tmp_path):
         ["git", "-C", str(REPO), "log", "--merges", "-25", "--format=%H", ref],
         capture_output=True, text=True, check=True,
     ).stdout.split()
-    assert len(merges) == 25, f"expected 25 merges, got {len(merges)}"
-    fired = []
+    if len(merges) < 25:
+        pytest.skip(f"shallow clone: only {len(merges)} merge(s) reachable from {ref}, "
+                    "need 25 — history is truncated, not missing")
+
+    by_classifier, by_known_paths = set(), set()
+    known = set(PROTECTED_SPECS)
     for sha in merges:
         diff = subprocess.run(
             ["git", "-C", str(REPO), "diff", "--no-renames", f"{sha}^1", sha],
@@ -350,5 +367,16 @@ def test_replay_last_25_merges_matches_the_measured_rate(tmp_path):
         ).stdout
         touched = cimpact.parse_diff_paths(diff)
         if any(cimpact.frontmatter_protects(REPO / p) is not None for p in touched):
-            fired.append(sha[:8])
-    assert len(fired) == 4, f"expected 4 firing merges, got {len(fired)}: {fired}"
+            by_classifier.add(sha[:8])
+        if touched & known:
+            by_known_paths.add(sha[:8])
+
+    assert by_classifier == by_known_paths, (
+        "the frontmatter classifier and the known protected-path set disagree over real "
+        f"history.\n  classifier-only: {sorted(by_classifier - by_known_paths)}\n"
+        f"  paths-only:      {sorted(by_known_paths - by_classifier)}\n"
+        "A spec gained or lost its protects: tag, or PROTECTED_SPECS is stale."
+    )
+    # Vacuity guard: agreement over an empty set proves nothing.
+    assert by_classifier, ("no merge in the last 25 touched a protected spec — this replay "
+                           "proved nothing; widen the window or check the subject set")
