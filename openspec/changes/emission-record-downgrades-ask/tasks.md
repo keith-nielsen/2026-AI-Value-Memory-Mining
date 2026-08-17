@@ -97,7 +97,8 @@ path proves nothing about "cannot create a refusal".
 
 ## 8. Gate 4 — human sign-off (not agent-delegatable)
 
-- [ ] 8.1 **Approved** — <operator>, <YYYY-MM-DD>. Awaiting sign-off. Decisions warranting review:
+- [x] 8.1 **Approved** — Keith Nielsen, 2026-08-17. Reviewed the proposal, this task file and the
+      spec delta. Decisions reviewed and accepted as recommended:
       (a) **silent allow vs logged allow** — recommended: allow but print the matched step, so the
       downgrade is auditable in the transcript;
       (b) **the record is forgeable by the agent** — accepted deliberately under ADR-0018's tripwire
