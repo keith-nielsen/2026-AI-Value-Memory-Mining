@@ -320,15 +320,27 @@ def main(argv):
         print(f"mutated [local-tag]: created annotated {version} at {target[:12]}, "
               f"verified by re-read")
 
+    # Emitted commands carry their subject EXPLICITLY — `git -C <root>` and `gh -R <slug>` — so they
+    # can be run from any working directory. They used to depend on the caller's cwd, which broke
+    # "run exactly this" in two ways, both measured 2026-08-17 shipping v0.1.48:
+    #   1. An agent's shell resets its cwd between calls, so the emitted string could not be run
+    #      verbatim at all; prefixing a `cd` is a modification, and a modified command is exactly
+    #      what the outbound guard resolves differently (vault failure class 10, stage 1).
+    #   2. A command that cannot be run as emitted can never match its own emission record, which
+    #      defeats the mechanism ADR-0043 added — the record compares byte-for-byte.
+    # `pr-flow.py` has always emitted `git -C <literal>`; this brings the release driver in line.
+    emit_slug = gh_read.slug_from_remote(str(root))
+
     if remote is None:
-        _emit_next(f"git push origin refs/tags/{version}")
+        _emit_next(f"git -C {root} push origin refs/tags/{version}")
 
     if release is None:
         notes_file = root / ".git" / f"ship-release-notes-{version}.md"
         notes_file.write_text(notes + "\n")
         print(f"notes [changelog]: release notes written to {notes_file}")
         title = ns.title or version
-        _emit_next(f'gh release create {version} --verify-tag --latest '
+        repo_arg = f"-R {emit_slug} " if emit_slug else ""
+        _emit_next(f'gh release create {version} {repo_arg}--verify-tag --latest '
                    f'-t "{title}" --notes-file {notes_file}')
 
     problems = []

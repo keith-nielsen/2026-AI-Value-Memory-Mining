@@ -879,6 +879,36 @@ def write_emission_record(root, step, command, branch):
         return None
 
 
+def _strip_opts_with_values(argv, opts):
+    """Remove each option in `opts` AND its value from an argv list.
+
+    The old one-liner filtered the option NAMES only, leaving their values behind as orphaned
+    positionals. Measured 2026-08-17 on PR #92: the `pr` step's verify tail carried
+    `--after-mutation pr --mutation-evidence /tmp/pr-flow-evidence.XXXXXX`; when that run advanced to
+    `merge` and wrote a new saved plan, the names were stripped and `pr` and the path survived into
+    the tail. The merge SUCCEEDED and the verification then died with
+    `error: unrecognized arguments: pr /tmp/pr-flow-evidence.MhF7Ba` — an alarming message directly
+    beneath a successful mutation, which is the item-19 family this driver exists to avoid.
+
+    It only fires when two OPERATOR steps run back-to-back without an intervening clean invocation —
+    i.e. when the lifecycle is driven exactly as intended, which is why it survived until a release.
+
+    Handles the `--opt=value` form too, which the caller does not currently emit but argparse accepts.
+    """
+    out, skip = [], False
+    for a in argv:
+        if skip:
+            skip = False
+            continue
+        if a in opts:
+            skip = True
+            continue
+        if any(a.startswith(o + "=") for o in opts):
+            continue
+        out.append(a)
+    return out
+
+
 def verify_invocation(root, step=None):
     """The driver invocation that produced this plan, PINNED at write time.
 
@@ -894,7 +924,7 @@ def verify_invocation(root, step=None):
     for want of arguments it was never handed.
     """
     argv = INVOCATION if INVOCATION is not None else [a for a in sys.argv[1:] if a != "--plan"]
-    argv = [a for a in argv if a not in ("--after-mutation", "--mutation-evidence")]
+    argv = _strip_opts_with_values(argv, ("--after-mutation", "--mutation-evidence"))
     if step:
         # Pinned at write time, exactly like the branch: the tail must know it is verifying a
         # mutation it just ran, because that is what licenses lag tolerance and forbids emitting
