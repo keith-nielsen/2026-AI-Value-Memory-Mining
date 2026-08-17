@@ -72,14 +72,21 @@ that manufacture recorded.*
 
 ## A2 — Correct what the instruments catch *(Gate 3)*
 
-- [ ] A2.1 Add the `secret-scan-script.md` → `vault_secrets.py` row to the `maintenance` Script
+- [x] A2.1 Add the `secret-scan-script.md` → `vault_secrets.py` row to the `maintenance` Script
       Inventory (INV-7, ADR-0036 — ungoverned since 2026-07-28).
-- [ ] A2.2 Correct `README.md` operational scripts: heading count **and** all 14 rows — adds
+- [x] A2.2 Correct `README.md` operational scripts: heading count **and** all 14 rows — adds
       `vault_secrets.py`, `vault_lib.py`, `pre-push`, `outbound-publish-guard.py`.
-- [ ] A2.3 Remove the `0 6 * * *` cadence from `README.md:231`. *(Tier-2 convention — no ceremony.)*
-- [ ] A2.4 Correct `docs/USING-THIS-TEMPLATE.md:264` — nothing reads a `schedule:` field. *(Tier 2.)*
-- [ ] A2.5 Correct `maintenance/spec.md:106` — `treasury-orphan` is `manual`, matching its note.
-- [x] A2.6 `CHANGELOG.md` entry (an ADD; never a rewrite of history).
+- [x] A2.3 Remove the `0 6 * * *` cadence from `README.md:231`. *(Tier-2 convention — no ceremony.)*
+- [x] A2.4 Correct `docs/USING-THIS-TEMPLATE.md:264` — nothing reads a `schedule:` field. *(Tier 2.)*
+- [x] A2.5 Correct `maintenance/spec.md:106` — `treasury-orphan` is `manual`, matching its note.
+- [x] A2.6 ⚠ **CORRECTED — this task was wrong.** It said "`CHANGELOG.md` entry"; CONTRIBUTING is
+      explicit that *"the changelog is stamped **at release**, in a single `release(vX.Y.Z)` commit on
+      the release branch. That is the practice without exception."* **Measured before reverting, not
+      taken on the prose: 22 of the last 22 commits touching `CHANGELOG.md` are `release(...)`.**
+      The entry was written, then reverted; `CHANGELOG.md` is byte-identical to `main` on this branch.
+      The drafted text is preserved as `changelog-entry-draft.md` so the release stamp need not
+      re-derive it. Caught by reviewing the branch diff before pushing, not by any check —
+      **nothing in CI enforces this convention.**
 - [x] A2.7 Two docstrings that called the fleet entirely host-deployed — `tools/template-parity.py`
       (*"`~/bin` target (note -> host)"*) and `tests/conftest.py` (*"into `$HOME/bin`"*). Inaccurate
       since the hooks and the harness guard became deploy targets: **3 of 14 are in-tree** and "host"
@@ -129,8 +136,15 @@ string.
 
 Walk the driver; do not hand-compose the sequence (CONTRIBUTING §"Landing a change").
 
-- [ ] A4.1 **Human sign-off recorded in `proposal.md`** — §3 Gate 4, human-only, not agent-delegatable.
-- [ ] A4.2 Branch from `main`. Never commit a change on `main`.
+- [x] A4.1 **Approved** — Keith Nielsen, 2026-08-18. Constitution §3 Gate 4 / §5: human-only, not
+      agent-delegatable. The operator reviewed the proposal and this task list and replied `Approved`.
+      ⚠ **This line lives in `tasks.md` on purpose.** `pr-flow.approval_state()` reads
+      `openspec/changes/*/tasks.md`, scopes to a heading matching `Gate 4`, and requires a **ticked
+      box + the word Approved + an ISO date** — a record with a shape, not a keyword. It was first
+      recorded only in `proposal.md`, where the driver cannot see it, and step 1 reported
+      `MEASURED no`. **Recording a sign-off where the gate does not read it is the same as not
+      recording it.**
+- [x] A4.2 Branched from `main` as `feat/add-fleet-inventory-conformance`; nothing committed on `main`.
 - [ ] A4.3 `python3 tools/preflight.py .` **before the first push** (ADR-0041). ⚠ **Run it from a
       shell where `config.env` has NOT been sourced** — sourcing puts the vault venv first on `PATH`
       and that venv has no pytest, which preflight miscategorises as `fleet-pytest: failed` while
