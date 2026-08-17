@@ -142,6 +142,8 @@ PROTECTED_SUBTREES = ("40-Treasury", "96-Runbooks", "99-Operations")
 CONSENT_LOCAL = "none needed — local only, nothing leaves this machine"
 CONSENT_ACT = "implicit in the act: you run it, so you authorize it"
 INVOCATION = None  # set once in main(): the argv that produced THIS run
+BODY_FILE = None   # set in main(); the saved-plan history suffix reads it
+PR_NUMBER = None   # set once the route resolves a PR; same reason
 
 # Set once in main() from --after-mutation: the step whose mutation just ran, when this invocation
 # is the verify tail of a saved plan rather than an ordinary route derivation. Two things change in
@@ -497,6 +499,33 @@ def is_outward_mutation(command):
     ))
 
 
+def plan_history_suffix(step, body_file=None, pr_number=None):
+    """A trailing comment that makes the operator's shell history navigable.
+
+    Every saved-plan invocation is BYTE-IDENTICAL — `bash <repo>/.git/pr-flow/next.sh` — so
+    `history | grep next.sh` returns a wall of indistinguishable lines and the operator must
+    reconstruct which step each one was. They had been appending this by hand:
+
+        bash .../next.sh   # preflight step:merge -> PR #80
+        bash .../next.sh   # v0.1.44 step:pr -> new PR
+
+    The driver holds every field that annotation needs, so it emits it. Reconstructing it by memory
+    at the moment of a mutation is exactly the wrong time to be remembering anything.
+
+    The mnemonic comes from the body-file stem (`body-preflight.md` -> `preflight`), which is what
+    the operator's own convention used and keeps two changes on the same topic distinguishable —
+    `const-truth` and `const-diff-gate` were both constitution work and must not read alike.
+    """
+    body_file = body_file or BODY_FILE
+    pr_number = pr_number or PR_NUMBER
+    mnemonic = ""
+    if body_file:
+        stem = pathlib.Path(body_file).stem
+        mnemonic = stem[5:] if stem.startswith("body-") else stem
+    target = f"PR #{pr_number}" if pr_number else "new PR"
+    return f"   # {mnemonic or 'change'} step:{step} -> {target}"
+
+
 def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None,
          assert_args=None, branch=None):
     if plan:
@@ -575,7 +604,7 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
         if path:
             print("")
             print(f"  Saved plan: {path}")
-            print(f"  To run it:  bash {path}")
+            print(f"  To run it:  bash {path}{plan_history_suffix(step)}")
             if assert_args:
                 print("  It re-asserts the state you were shown and aborts WITHOUT mutating if "
                       "GitHub has moved; it expires in 24h.")
@@ -1866,7 +1895,9 @@ def drive(args, root, route, plan=False):
                       "gets merged", plan)
 
     pr = open_prs[0]
+    global PR_NUMBER
     number = pr["number"]
+    PR_NUMBER = number   # the saved-plan history suffix names the PR it acts on
     head_sha = pr["head"]["sha"]
     out("pr", f"#{number} — {pr['title'][:70]}")
 
@@ -2136,8 +2167,9 @@ def main(argv=None):
     args = ap.parse_args(argv)
     # Pin the invocation that produced this run, so a saved plan verifies THIS lifecycle rather than
     # whatever branch the caller happens to stand on when they run the file.
-    global INVOCATION, AFTER_MUTATION, MUTATION_EVIDENCE
+    global INVOCATION, AFTER_MUTATION, MUTATION_EVIDENCE, BODY_FILE
     INVOCATION = [a for a in (argv if argv is not None else sys.argv[1:]) if a != "--plan"]
+    BODY_FILE = args.body_file
     AFTER_MUTATION = args.after_mutation
     MUTATION_EVIDENCE = args.mutation_evidence
 
