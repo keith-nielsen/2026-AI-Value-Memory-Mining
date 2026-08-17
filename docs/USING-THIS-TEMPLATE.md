@@ -261,9 +261,14 @@ your inbox tidy), and how to trigger the maintenance scripts from inside Obsidia
 |------|-----|
 | Pillars | `99-Operations/config.env` → `PILLARS=...`; update Catalog indexes |
 | Grade gate | `config.env` → `REFINE_GATE_GRADES=...` (default: `silver gold`) |
-| Cron schedules | Edit the `schedule:` field in the relevant `99-Operations/scripts/*.md` note, re-run `render` |
 | Script behaviour | Edit the code block in the relevant `99-Operations/scripts/*.md` note, re-run `render`; verify with `reconcile` |
 | `~/bin` location | Change `deploy_target` values in script notes if you use a different local bin path |
+
+**There are no cron schedules to customize.** `render` deploys code and marks it executable; it
+installs no schedules, and nothing reads a `schedule:` field. No script declares a `cron` runtime —
+every one is invoked manually or by the git/harness hook that owns it. If you want a cadence, install
+it yourself with your own scheduler; the framework will not do it for you and does not pretend to
+(ADR-0028).
 
 **Never edit deployed host scripts directly** — they are generated artifacts. Changes
 belong in the Layer-0 source note. `reconcile` will catch any drift.

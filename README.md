@@ -216,23 +216,31 @@ Full walkthrough: [`docs/USING-THIS-TEMPLATE.md`](docs/USING-THIS-TEMPLATE.md)
 
 ---
 
-## Operational Scripts (13)
+## Operational Scripts (14)
 
 All scripts are stored as literate meta-script notes in
-`vault-template/99-Operations/scripts/` and deployed to `~/bin/` via `render`.
+`vault-template/99-Operations/scripts/` and deployed via `render` to the `deploy_target` each note
+declares — eleven to `~/bin/`, three in-tree (the two git hooks and the harness guard).
 
-| Script | Class | Schedule | Purpose |
-|--------|-------|----------|---------|
+Nothing installs a schedule: `render` deploys code and marks it executable, and no script declares a
+`cron` runtime. Every entry below is invoked manually or by the hook that owns it.
+
+| Script | Class | Runtime | Purpose |
+|--------|-------|---------|---------|
 | `vault_naming.py` | `[script]` | manual | Naming ruleset SSOT; emits `naming-rules.json` |
-| `pre-commit` | `[script]` | git hook | Blocks commits with naming-violating filenames |
+| `vault_lib.py` | `[script]` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, exit-code contract (ADR-0023) |
 | `vault-render.py` | `[script]` | manual | Deploy / reconcile Layer-0 scripts |
-| `vault-lint.py` | `[script]` | manual | Frontmatter + naming conformance |
-| `vault-orphans.py` | `[script]` | manual | Find Treasury notes not linked from any index |
-| `vault-refine-detect.py` | `[script]` | `0 6 * * *` | Queue ore that has cleared the grade gate |
+| `vault-lint.py` | `[script]` | manual / pre-commit | Frontmatter + naming conformance |
+| `vault_secrets.py` | `[script]` | manual / pre-commit | Credential-format scanner (INV-7, ADR-0036); `--selftest` proves the patterns fire |
+| `vault-orphans.py` | `[script]` | manual | Find Treasury notes not linked from any index (INV-12) |
+| `vault-refine-detect.py` | `[script]` | manual | Queue ore that has cleared the grade gate |
 | `vault-refine-execute.py` | `[script]` | manual | Apply approved proposals to Treasury |
 | `vault-dump.sh` | `[script]` | manual | Move spent husk to Spoil |
 | `vault-slag.sh` | `[script]` | manual | Move uneconomic effort to Tailings |
 | `vault-reprospect.py` | `[script]` | manual | List slagged efforts for re-evaluation |
+| `pre-commit` | `[script]` | git hook | Blocks commits with naming-violating filenames (INV-11) |
+| `pre-push` | `[script]` | git hook | Denies outbound push by default (INV-14); allowlisted remotes only |
+| `outbound-publish-guard.py` | `[script]` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands, ASK before public publishes |
 
 
 ---

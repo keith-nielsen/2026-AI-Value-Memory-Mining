@@ -526,3 +526,86 @@ def test_space_bearing_pillar_is_inexpressible(fleet):
     assert "pillars must be non-empty subset" in r.stdout, r.stdout
     # and the vocabulary itself is well-formed — the fault is the note, not the config
     assert "LINT PILLARS" not in r.stdout, r.stdout
+
+
+# --------------------------------------------------------------------------------------
+# treasury-orphan + tailings-reprospect: the two members that had NO coverage anywhere
+#
+# Both were uncovered in pytest AND in validate-scripts.sh, while both also carry the
+# hardcoded `Path.home() / "bin"` import. Unverified code with a hardcoded path to a
+# directory scheduled for deletion was the highest-risk cell in the relocation plan, and
+# is the concrete reason that work was split into two changes (A: cover, B: move).
+#
+# Detection-only tools get an extra assertion: they must write NOTHING and create NO
+# commit. For a tool whose correct behaviour is to report, a silent no-op and a correct
+# report are indistinguishable from an exit code alone.
+# --------------------------------------------------------------------------------------
+
+def test_orphan_reports_a_treasury_note_no_index_links(fleet):
+    fleet.write("40-Treasury/unlinked-durable-insight.md",
+                KNOWLEDGE_TMPL.format(title="Unlinked durable insight", pillar="[technology]"))
+    r = fleet.run("vault-orphans.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "ORPHAN unlinked-durable-insight" in r.stdout, r.stdout
+    assert "1 orphan(s)" in r.stdout, r.stdout
+
+
+def test_orphan_does_not_report_a_catalog_linked_note(fleet):
+    # The confirming half. Without it, a script that printed every Treasury note as an
+    # orphan would pass the test above.
+    fleet.write("40-Treasury/linked-durable-insight.md",
+                KNOWLEDGE_TMPL.format(title="Linked durable insight", pillar="[technology]"))
+    idx = "40-Treasury/Catalog/technology-domain-index.md"
+    fleet.write(idx, fleet.read(idx) + "\n- [[linked-durable-insight]]\n")
+    r = fleet.run("vault-orphans.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "linked-durable-insight" not in r.stdout, r.stdout
+    assert "0 orphan(s)" in r.stdout, r.stdout
+
+
+def test_orphan_is_detection_only(fleet):
+    fleet.write("40-Treasury/unlinked-durable-insight.md",
+                KNOWLEDGE_TMPL.format(title="Unlinked durable insight", pillar="[technology]"))
+    fleet.setup_commit("stage an orphan")
+    before = fleet.commit_count()
+    r = fleet.run("vault-orphans.py")
+    assert r.returncode == EXIT_OK
+    assert fleet.commit_count() == before, "detection-only script created a commit"
+    assert fleet.git("status", "--porcelain").stdout.strip() == "", \
+        "detection-only script left working-tree changes"
+
+
+def test_reprospect_lists_a_slagged_effort_with_its_metadata(fleet):
+    fleet.write("70-Tailings/abandoned-effort-slug/abandoned-effort-slug.md",
+                "---\ntype: effort-note\ntitle: Abandoned effort slug\n"
+                "grade: coal\nslag_reason: uneconomic seam\n---\n# Abandoned\n")
+    r = fleet.run("vault-reprospect.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "SLAGGED abandoned-effort-slug" in r.stdout, r.stdout
+    assert "grade=coal" in r.stdout, r.stdout
+    assert "reason=uneconomic seam" in r.stdout, r.stdout
+
+
+def test_reprospect_ignores_a_non_index_note_in_a_slagged_folder(fleet):
+    # It enumerates the folder's own index note (stem == folder name), not every file in
+    # it. Without this, a glob widened by accident would still pass the test above.
+    fleet.write("70-Tailings/abandoned-effort-slug/abandoned-effort-slug.md",
+                "---\ntype: effort-note\ngrade: coal\nslag_reason: uneconomic seam\n---\n# A\n")
+    fleet.write("70-Tailings/abandoned-effort-slug/supporting-working-note.md",
+                "---\ntype: effort-note\ngrade: bronze\n---\n# Support\n")
+    r = fleet.run("vault-reprospect.py")
+    assert r.returncode == EXIT_OK, r.stdout + r.stderr
+    assert "supporting-working-note" not in r.stdout, r.stdout
+    assert r.stdout.count("SLAGGED") == 1, r.stdout
+
+
+def test_reprospect_is_detection_only(fleet):
+    fleet.write("70-Tailings/abandoned-effort-slug/abandoned-effort-slug.md",
+                "---\ntype: effort-note\ngrade: coal\nslag_reason: uneconomic seam\n---\n# A\n")
+    fleet.setup_commit("stage a slagged effort")
+    before = fleet.commit_count()
+    r = fleet.run("vault-reprospect.py")
+    assert r.returncode == EXIT_OK
+    assert fleet.commit_count() == before, "detection-only script created a commit"
+    assert fleet.git("status", "--porcelain").stdout.strip() == "", \
+        "detection-only script left working-tree changes"
