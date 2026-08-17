@@ -25,6 +25,30 @@ silent gap: the ASK now fires on **any** non-denied outward op (`OUTWARD or PUBL
 `git push` can no longer defer unprompted. Vault-outward commands are still hard-denied; the change
 only removes a false-positive and closes an under-fire — the Safety band is tightened, not relaxed.
 
+### Third zone — a driver's emission downgrades the ASK (ADR-0043)
+
+Where an outward command targets a repository a lifecycle driver governs, and the command is
+**byte-identical** to that driver's recorded emission, the ASK is skipped. Anything else — no record,
+expired, another branch, unparseable, or altered text — falls through to the ASK raised today, with
+the difference printed. **The record can only DOWNGRADE the prompt; it can never produce a DENY**, so
+this cannot make the guard stricter than it already is.
+
+A repository is *governed* exactly when a driver has emitted for it: the record names its own subject,
+so this needs no environment variable and cannot be silently disabled by an unset one.
+
+⚠ **The record is FORGEABLE by the agent it governs** — it lives in that agent's write scope. It
+therefore addresses **error, not intent**: a mangled retype does not also produce a matching record.
+That is consistent with ADR-0018's posture (safe-by-default and a governed guarantee, not a physical
+impossibility — a tripwire for a cooperating agent), and it is stated here because an unstated
+limitation on a control is indistinguishable from a control that does not have it. **A match is
+reported as a match, never as an authorisation.**
+
+The vault HARD DENY is evaluated first and is **not** downgradeable by any record.
+
+Separately, a deny caused by a redirect this guard could not resolve now explains itself: an
+unexpanded shell variable in `-C`, or a `cd` that is not leading, silently drops the redirect and
+falls back to the reported cwd. That produced a correct and completely opaque denial on 2026-08-16.
+
 ## Implementation
 ```python
 #!/usr/bin/env python3
@@ -50,6 +74,7 @@ import json
 import os
 import re
 import sys
+import time
 
 VAULT = (os.environ.get("VAULT_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or "").rstrip("/")
 
@@ -86,6 +111,100 @@ def _unquote(s: str) -> str:
     if len(s) >= 2 and s[0] == s[-1] and s[0] in "'\"":
         s = s[1:-1]
     return s
+
+
+def _effective_path(cmd: str, cwd: str) -> str:
+    """The directory a command actually acts on, resolved from RAW TEXT.
+
+    Returns "" when an explicit `-R owner/repo` names a GitHub repo rather than a local tree.
+    """
+    if _GH_R.search(cmd):
+        return ""
+    m = _GIT_C.search(cmd) or _LEAD_CD.match(cmd)
+    if m:
+        return os.path.abspath(os.path.expanduser(_unquote(m.group("path")))).rstrip("/")
+    return cwd
+
+
+def _current_branch(repo: str) -> str:
+    """Read HEAD directly.
+
+    NOT via subprocess: this note is AST-analysed by `inv6-offline-check` and is one of the two most
+    security-relevant scripts in the fleet. It stays free of process invocation entirely.
+    """
+    try:
+        with open(os.path.join(repo, ".git", "HEAD"), encoding="utf-8") as fh:
+            head = fh.read().strip()
+    except OSError:
+        return ""
+    prefix = "ref: refs/heads/"
+    return head[len(prefix):] if head.startswith(prefix) else ""
+
+
+def _emission(path: str) -> dict:
+    """The live driver emission for the repository containing `path`, or {}.
+
+    A repository is GOVERNED exactly when a driver has emitted for it. The record names its own
+    subject, so this needs no environment variable and cannot be silently disabled by an unset one.
+
+    ⚠ EVERY failure here returns {} and therefore falls through to the ASK raised today — absent,
+    unreadable, unparseable, expired, wrong-branch are all identical to "no record". **This function
+    cannot cause a refusal.** That is the invariant the mechanism rests on: the record may only ever
+    DOWNGRADE a confirmation to an allowance, never create one.
+    """
+    if not path:
+        return {}
+    p = path
+    for _ in range(8):  # bounded walk toward the repo root
+        try:
+            with open(os.path.join(p, ".git", "pr-flow", "emitted.json"), encoding="utf-8") as fh:
+                rec = json.load(fh)
+        except (OSError, ValueError):
+            nxt = os.path.dirname(p)
+            if nxt == p:
+                return {}
+            p = nxt
+            continue
+        if not isinstance(rec, dict):
+            return {}
+        try:
+            if float(rec.get("expires", 0)) <= time.time():
+                return {}
+        except (TypeError, ValueError):
+            return {}
+        want = str(rec.get("branch") or "")
+        if want and want != _current_branch(p):
+            return {}
+        return rec
+    return {}
+
+
+def _unresolved_redirect_hint(cmd: str) -> list:
+    """Explain a deny caused by a redirect this guard could not resolve.
+
+    The 2026-08-16 denial was CORRECT and completely opaque. The command carried
+    `git -C "$R"`; this guard reads raw text, so `"$R"` resolved to nothing, the redirect was
+    ignored, and the effective target fell back to the reported cwd — the vault. The reader saw
+    "you are pushing the vault" while believing they had targeted a sibling repository, and spent a
+    day reasoning from that. A guard that reports only its verdict makes its reader derive the cause
+    at the moment they have already shown they cannot.
+    """
+    m = _GIT_C.search(cmd) or _LEAD_CD.match(cmd)
+    if not m:
+        return []
+    raw = _unquote(m.group("path"))
+    resolved = os.path.abspath(os.path.expanduser(raw)).rstrip("/")
+    if os.path.isdir(resolved):
+        return []
+    return [
+        "  ⚠️  THE REDIRECT IN THIS COMMAND DID NOT RESOLVE, so the target fell back to the cwd:",
+        f"        written:  {raw}",
+        f"        resolved: {resolved}   (no such directory)",
+        "     A shell variable is not expanded before this guard sees it, and a leading `cd` only",
+        "     counts when it is genuinely leading. Use a LITERAL path — run the driver's emitted",
+        "     command verbatim rather than rewrapping it.",
+        "",
+    ]
 
 
 def _targets_vault(cmd: str, cwd: str) -> bool:
@@ -151,9 +270,56 @@ def main() -> None:
                     f"  command: {cmd}",
                     "",
                 ]
+                + _unresolved_redirect_hint(cmd)
             ),
         )
         sys.exit(0)
+
+    # 1b) DOWNGRADE: an outward op on a repository a driver governs, run EXACTLY as the driver
+    #     emitted it. Allowed without a prompt, because the driver already derived and printed it.
+    #
+    #     ⚠ THIS PATH CAN ONLY ALLOW. It never denies. Anything that is not an exact match on a
+    #     live record falls through to the ASK below — which is the behaviour today — so this
+    #     cannot make the guard stricter than it already is, and needs no burn-in.
+    #
+    #     A match is NOT an authorisation and is never reported as one: it means the command is
+    #     byte-identical to what the driver emitted. The record lives in the agent's own write
+    #     scope and is therefore FORGEABLE by the agent it governs. It addresses ERROR, not intent
+    #     — a mangled retype does not also produce a matching record — which is consistent with
+    #     ADR-0018's posture: safe-by-default and a governed guarantee, not a physical
+    #     impossibility; a tripwire for a cooperating agent.
+    if OUTWARD.search(cmd):
+        # Two lookups on purpose. A MANGLED redirect is exactly the case this exists to catch, and a
+        # mangled redirect is also the case where the effective path cannot be resolved — so the
+        # repository the caller is standing in is consulted as well. Found by a test: the motivating
+        # 2026-08-16 command resolves `-C "$R"` to nothing, so the effective-path lookup alone found
+        # no record and the diff was never shown.
+        rec = _emission(_effective_path(cmd, cwd)) or _emission(cwd)
+        if rec:
+            if rec.get("command") == cmd:
+                emit("allow", "matched the driver's emitted command for step "
+                              f"'{rec.get('step', '?')}' (branch '{rec.get('branch', '?')}'). "
+                              "Matched a record — not an authorisation.")
+                sys.exit(0)
+            # A live record exists and this is NOT it. Fall through to ASK, but name what differs:
+            # a mangled command differs in ways its author cannot see by re-reading it.
+            emit(
+                "ask",
+                "\n".join([
+                    "",
+                    "  ⚠️  NOT THE COMMAND THE DRIVER EMITTED",
+                    "",
+                    f"  emitted:  {rec.get('command', '')}",
+                    f"  you ran:  {cmd}",
+                    "",
+                    "  A driver emission is live for this repository and this is not it. Run the",
+                    "  emitted command VERBATIM — no variables, no timeout prefix, no rewrapping:",
+                    "  the guard resolves targets from raw text, so rewriting changes what it sees.",
+                    "  Or re-run the driver to derive a current command.",
+                    "",
+                ]),
+            )
+            sys.exit(0)
 
     # 2) ASK (loud): any outward-replication / publish not vault-denied — a structural hard stop.
     if OUTWARD.search(cmd) or PUBLISH.search(cmd):

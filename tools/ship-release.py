@@ -56,10 +56,36 @@ def _refuse(msg):
     raise SystemExit(EXIT_REFUSED)
 
 
+def _record_emission(cmd, step="release"):
+    """Record this emission for the outbound guard, through pr-flow.py's writer.
+
+    IMPORTED, never re-implemented: a second copy of the record format would be a fork with no
+    merge (the class-9 defect), and this driver and pr-flow.py must agree byte-for-byte on what
+    the guard compares against.
+
+    Without a record a release push simply falls through to the confirmation prompt — correct, but
+    it would leave this the one driver whose "run exactly this" is backed by nothing. Advisory
+    only: a record can downgrade a prompt, never cause a refusal. Never fatal.
+    """
+    try:
+        import importlib.util
+        here = pathlib.Path(__file__).resolve().parent
+        spec = importlib.util.spec_from_file_location("pr_flow_emit", str(here / "pr-flow.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        root = _run(["git", "rev-parse", "--show-toplevel"]).stdout.strip()
+        branch = _run(["git", "branch", "--show-current"], cwd=root or None).stdout.strip()
+        if root:
+            mod.write_emission_record(root, step, cmd, branch)
+    except Exception:
+        pass
+
+
 def _emit_next(cmd):
     print("NEXT: run exactly this one command through the normal gated channel, then re-run")
     print("NEXT: the driver — it verifies the mutation landed before advancing.")
     print(f"NEXT: {cmd}")
+    _record_emission(cmd)
     raise SystemExit(EXIT_NEEDS_INPUT)
 
 
