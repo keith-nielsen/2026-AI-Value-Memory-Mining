@@ -170,7 +170,11 @@ Walk the driver; do not hand-compose the sequence (CONTRIBUTING §"Landing a cha
 
 - **No relocation.** Every `deploy_target` still points at `~/bin`. That is Change B.
 - **No ADR.** This change weighs no architectural options: it adds checks and corrects statements that
-  contradict the tree. Change B carries ADR-0044 for the decisions that *do* involve a choice.
+  contradict the tree. Change B carries its own ADR for the decisions that *do* involve a choice.
+  ⚠ **That ADR's number is deliberately not cited here.** It is not allocated until B creates it, and
+  a forward citation to an unallocated number is a dangling reference that `adr-reference-integrity`
+  refuses. This file carried exactly that defect and `preflight.py` STEP 11 caught it before the
+  first push — the archive simulation deferred rather than the check failing after a merge.
 - **The three stale ADR headers** (0032, 0033, 0042 read "Proposed/pending" while signed, applied and
   archived) are real and out of scope — they touch no line this change edits.
 - **The harness-exclusion limit stands.** A1.3 proves a path *resolves*; only a real agent invocation
