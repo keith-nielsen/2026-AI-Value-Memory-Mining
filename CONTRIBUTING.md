@@ -120,6 +120,21 @@ together or not at all. The candidate enforcement point, if this proves worth me
 driver's `approval` step: a diff that adds a flag, a module-level assignment or an exit-code change
 while carrying no change directory is the case to flag.
 
+### Run the emitted command verbatim (ADR-0043)
+
+The driver prints *"run exactly this"* and means it literally. **No shell variables, no `timeout`
+prefix, no re-wrapping.** The outbound guard resolves a command's effective target from **raw text**,
+so rewriting it changes what the guard can see: on 2026-08-16 an emitted `git -C <literal> push` was
+retyped as `R=…; cd "$R"; git -C "$R" push …`, the `-C` argument resolved to nothing, the target fell
+back to the working directory — the vault — and it was denied. Correctly, and opaquely.
+
+Each emission is recorded to `.git/pr-flow/emitted.json`. A command byte-identical to the record runs
+**without a prompt**; anything else raises the usual confirmation **and prints the difference**. The
+record can only ever *downgrade* a prompt — it never causes a refusal, so a missing or stale record
+just means you get the prompt you would have got anyway. A match means *"this matched a record"*,
+never *"this was authorised"*: the record is writable by the agent, so it catches **mistakes**, not
+intent.
+
 ### Landing a change (branch → PR → merge → cleanup)
 
 The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of the ship driver. Walk

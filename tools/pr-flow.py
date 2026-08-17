@@ -494,6 +494,10 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     print(f"  why:       {why}")
     if approve:
         print("  approve:   " + approve)
+    # EVERY step, not only operator-owned ones: the agent mangles retyped commands too (class 10,
+    # stage 1). Advisory only — the guard uses it to downgrade a prompt, never to refuse.
+    if root:
+        write_emission_record(root, step, command, branch)
     if runs == OPERATOR and root:
         path = write_saved_plan(root, step, command, approve, branch, assert_args)
         if path:
@@ -834,6 +838,47 @@ def saved_plan_path(root):
     return pathlib.Path(root) / ".git" / "pr-flow" / "next.sh"
 
 
+def emission_record_path(root):
+    """The emission record the outbound guard reads. One place names it, as above."""
+    return pathlib.Path(root) / ".git" / "pr-flow" / "emitted.json"
+
+
+def write_emission_record(root, step, command, branch):
+    """Record the command this driver emitted, verbatim, for the outbound guard to recognise.
+
+    Vault failure class 10, stage 1: the driver prints the exact command and the agent retypes it
+    wrong. On 2026-08-16 `git -C <literal> push` was retyped as `R=…; cd "$R"; git -C "$R" push …`;
+    the guard resolves effective targets from RAW TEXT, could not resolve `"$R"`, fell back to the
+    reported cwd — the vault — and denied. Correctly, on what it could see. A day of wrong
+    conclusions followed from one mangled retype.
+
+    `write_saved_plan` already solves this for the OPERATOR (F14, F26: the paste channel corrupting
+    a hand-off). It was gated to operator-owned steps on the assumption that an agent transfers
+    commands losslessly. This records EVERY step, which is the asymmetry being corrected.
+
+    The record is what the guard compares against; a mismatch DOWNGRADES nothing and simply leaves
+    the existing confirmation in place. It can never produce a refusal — see the guard note.
+
+    `repo` is recorded so the record identifies its own subject: a repository is "governed" exactly
+    when a driver has emitted for it, which keeps the guard free of any environment dependency.
+    """
+    try:
+        (pathlib.Path(root) / ".git" / "pr-flow").mkdir(parents=True, exist_ok=True)
+        path = emission_record_path(root)
+        path.write_text(json.dumps({
+            "command": command,
+            "step": step,
+            "branch": branch or "",
+            "repo": str(root),
+            "expires": int(time.time()) + PLAN_TTL_SECONDS,
+        }, indent=2) + "\n", encoding="utf-8")
+        return path
+    except OSError:
+        # Never fatal. A driver that dies because it could not write an advisory record would
+        # trade a downgrade for an outage, and the guard fails safe to ASK without it.
+        return None
+
+
 def verify_invocation(root, step=None):
     """The driver invocation that produced this plan, PINNED at write time.
 
@@ -867,6 +912,14 @@ def discard_saved_plan(root):
     every intervening AGENT-owned step (push, branch delete) while still holding the LAST operator
     mutation. Deleting it once the lifecycle completes is the other half of the branch guard.
     """
+    # The emission record is discarded with it, and for the same reason: a record that outlives its
+    # step is an authorisation left lying where a later, different command can match it.
+    try:
+        rec = emission_record_path(root)
+        if rec.exists():
+            rec.unlink()
+    except OSError:
+        pass
     try:
         p = saved_plan_path(root)
         if p.exists():
