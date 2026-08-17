@@ -12,6 +12,64 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.49] - 2026-08-17
+
+### Added
+
+- **A controlled vocabulary for the capability probe, and a machine-readable report**
+  (`probe-vocabulary-and-json`, PR #94). The probe is the instrument the session prime instructs
+  every cold start to **trust before making any capability claim**, and its report was more
+  precise-looking than it was precise.
+
+  Four defects, measured: a row **named for what it infers** (`gh auth status` measures a
+  *credential*; the row said `gh mutations`, while the runbook had said `gh credential` since
+  2026-08-06 — the instrument had drifted from its own spec); **three conditions collapsed into two
+  tokens**, so "tool absent" and "no usable credential" — different remedies — shared one word; **no
+  controlled vocabulary at all**, with eleven ad-hoc literals inlined at their print sites, three
+  containing whitespace, and a new state creatable by typo; and **two epistemic kinds under
+  look-alike tokens**, where `OK (dry-run)` was *attempted* while `UNAVAILABLE` was *never attempted*
+  — a precondition had been inspected.
+
+  The credential row now reports **`AUTHENTICATED` / `UNAUTHENTICATED` / `ABSENT`**. `UNAVAILABLE` is
+  **retired, not narrowed**: a token reused with a tighter meaning makes every previously-emitted
+  transcript ambiguous. `ABSENT` describes the *tool*, so the credential state is **unknown** — not a
+  synonym for `UNAUTHENTICATED`.
+
+  The rule this settles, declared where the constants live: **a state names what was found in this
+  process; it never names what is possible in the world.** Test a candidate by asking whether it could
+  be falsified from outside the process that emitted it.
+
+  Every row now carries **evidence** — `attempted:<channel>` or `inspected`. Naming the *channel* is
+  the point: a probe measuring a subprocess while the agent's real command crosses a shell-matching
+  guard can diverge silently, and the evidence field makes that visible in the output rather than only
+  in the source. `--capabilities --json` emits the rows machine-readably, from the same accumulated
+  data as the table, so the two renderings cannot drift apart.
+
+- **The saved-plan hand-off carries a shell-history annotation** (PR #95). Every saved-plan
+  invocation is byte-identical, so `history | grep next.sh` returned indistinguishable lines and the
+  operator had been appending the annotation **by hand at the moment of a mutation**. The driver holds
+  every field it needs, so it emits
+  `bash …/next.sh   # <mnemonic> step:<step> -> PR #<n>`.
+
+### Fixed
+
+- **Emitted commands name their subject; the argv strip drops values too** (PR #93). Two defects found
+  by *running* the v0.1.48 ceremony rather than reading it.
+
+  `verify_invocation` stripped option **names** but not their **values**, so a saved plan written by a
+  post-mutation verify tail carried orphaned positionals. On PR #92 the merge **succeeded** and the
+  verification then died with `unrecognized arguments: pr /tmp/pr-flow-evidence.…` — an alarm printed
+  directly beneath a successful mutation. It fires only when two operator-owned steps run
+  back-to-back, which is what following the driven path exactly produces.
+
+  `ship-release.py` emitted **cwd-dependent** commands where `pr-flow.py` has always emitted
+  `git -C <literal>`. An agent's shell resets its working directory between calls, so the emitted
+  string could not be run verbatim — and prefixing a `cd` is a modification, which is precisely what
+  the outbound guard resolves differently. More consequentially, **a command that cannot be run as
+  emitted can never match its own emission record**, so this silently disabled ADR-0043's mechanism
+  for the release driver.
+
+
 ## [0.1.48] - 2026-08-17
 
 ### Added
