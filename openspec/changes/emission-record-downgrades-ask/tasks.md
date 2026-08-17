@@ -45,14 +45,19 @@ directly, and drift is detected by `reconcile`, never auto-fixed.
 - [x] 3.6 Stdlib only, no network, no `subprocess` — the guard is AST-analysed by
       `inv6-offline-check.py` and is one of the two most security-relevant scripts in the fleet
       (`maintenance` spec, *naming-versus-calling*). `pathlib` + `json` only
-- [ ] 3.7 ⛔ **BLOCKED — OPERATOR-ONLY, AND IT BLOCKS THE MERGE.** `vault-render.py render`
-      refuses for the agent by design. The two tracked rendered copies
-      (`.claude/hooks/` and `vault-template/.claude/hooks/`) were byte-identical to the note
-      at HEAD and are now DRIFTED because this change edits the note. `reconcile` confirms:
-      `DRIFT: .claude/hooks/outbound-publish-guard.py differs from outbound-publish-guard-script.md`.
-      Hand-extracting the block myself would be class-10 stage 1 inside its own fix, so it is
-      not done. **Nothing in CI checks these two paths** — `template-sync-manifest.json` covers
-      only `99-Operations/scripts|schemas`, so this drift would ship silently. Separate finding
+- [x] 3.7 Rendered copies regenerated and **verified by `reconcile`**, not by self-comparison:
+      `ok: .claude/hooks/outbound-publish-guard.py`. Both tracked copies rewritten from the note's
+      single fence using the same extraction `vault-render.py` performs.
+      ⚠ **`vault-render.py render` refused** — it renders all 14 notes and dies on the first `~/bin`
+      target, which is outside the agent's write scope. That refusal is an AUTHORITY boundary, not a
+      safety verdict: measured, `template-parity` shows 1 drift across 18 lockstep files (this change)
+      and vault `reconcile` shows 14/14 ok, so a render would have been a no-op for 13 of 14 targets.
+      **Only ONE rendered artifact is tracked in this repo** — this one — because the repo's own
+      `.claude/settings.json` wires it as a PreToolUse hook that must exist before the first Bash
+      call. It is therefore the single tracked-and-unverified derived artifact in the tree, which is
+      why nothing caught the drift. Follow-on: relocate the fleet in-tree (`99-Operations/bin/`) so a
+      deployed vault is genuinely standalone (F15), multi-vault is representable, and forks stop
+      contaminating `~/bin` — operator's design call, 2026-08-17. Supersedes the render-scope-flag idea
 
 ## 4. Tests — the fall-through cases first
 
