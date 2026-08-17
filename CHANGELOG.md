@@ -12,6 +12,86 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.48] - 2026-08-17
+
+### Added
+
+- **The constitutional diff gate — the enforcement §5 said was owed** (`constitutional-diff-gate`,
+  PR #89, ADR-0042). PR #85 removed the claim that the Informed-Upheaval Protocol was *"mechanically
+  enforced (CI fails without the ceremony)"* and recorded why: **restoring it means building the gate,
+  not rewording the paragraph.** This is that build.
+
+  It closes an inversion named by `constitution.md` §2's own tier table: Tier-0 elements are held by
+  the sandbox, hooks, CI runners and rulesets — all of which can refuse — while **Tier 1
+  (`CONST-01`–`05` + INV-12), described as *"what the constitution most exists to protect"*, was held
+  by paperwork that nothing checked.** The layer treated as most precious had the least resistance.
+
+  **The gate refuses silence, not work.** It cannot judge whether a diff overrides a principle — that
+  is the human judgement §5 reserves — so it establishes only that the question was answered in
+  writing and that the answer is in version control. Smaller than "mechanically enforced", and
+  described that way everywhere it appears.
+
+  Measured, not assumed: the subject set is **6 files by frontmatter**; a substring implementation
+  would fire on **23**, including `CHANGELOG.md`, `ci.yml` and `constitution.md` itself — a bootstrap
+  deadlock. It fires on **4 of the last 25 merges (16%)**, and all four already carried a change
+  directory to hold the declaration. The declaration lives **in the tree, not the PR body**, because a
+  body can be edited after its checks report green.
+
+  **Phase A is report-only**; the flip is its own change after burn-in (5 consecutive PRs touching a
+  protected spec). Until then a green gate means *a declaration exists*, never that the ceremony was
+  followed — `constitution.md` §4 says so. `CONST-01`–`05` remain ungated; closing that is a separate
+  change to hash the five principle sections.
+
+  Also corrected here: the `constitution-override` **template** still carried three of the six claims
+  PR #85 retracted — in the file an author reads *while performing the ceremony*.
+
+- **A driver's emission downgrades the outbound prompt; it never creates a refusal**
+  (`emission-record-downgrades-ask`, PR #91, ADR-0043). The driver prints the exact command and the
+  agent retypes it wrong — stage 1 of the vault's newly-adopted failure **class 10, unauthorized
+  deviation from a codified route**, which had been carried unnumbered since 2026-07-01, invoked eight
+  times and tallied never.
+
+  Each emitted command is recorded to `.git/pr-flow/emitted.json`. An outward command byte-identical to
+  a live record for the current branch is allowed without a prompt; anything else raises the usual
+  confirmation **and prints the difference**.
+
+  **The invariant: the record may only DOWNGRADE a confirmation to an allowance. It may never create a
+  refusal.** Absent, expired, wrong-branch, unparseable and comparison faults all fall through to the
+  prompt raised today, so the change cannot make the guard stricter than it was — which is why it
+  ships without a burn-in phase. An earlier draft made "no record" a denial; it was withdrawn for
+  manufacturing exactly the over-denial that trains readers to route around guards.
+
+  This inverts the incentive: running the emitted command verbatim becomes the frictionless path, and
+  deviating is the one that stops with a diff. It also reduces operator interrupts, since
+  driver-emitted pushes stop prompting.
+
+  **Stated as a requirement, not a footnote: the record is forgeable by the agent it governs.** It
+  addresses **error, not intent** — a mangled retype does not also produce a matching record — which is
+  consistent with ADR-0018's posture of a tripwire for a cooperating agent. **An allowance means
+  "matched a record", never "authorised".**
+
+  A second, independent diagnostic was added after a test exposed the gap: a denial caused by a
+  redirect the guard could not resolve now prints what was written and what it resolved to. That works
+  with no record at all, and it is what the motivating incident needed and did not get.
+
+### Fixed
+
+- **The replay guard checked ref existence, not history** (`fix/replay-test-shallow-and-snapshot`,
+  PR #90). The post-merge run of PR #89 turned `main` red while the same suite passed on the pull
+  request that merged it. `actions/checkout` presents two geometries: on a `pull_request` run `main`
+  does not exist, so the test skipped — correct by accident; on a `push` run the checkout **creates**
+  the branch ref, so it resolved, and `git log --merges -25` returned **0** from a depth-1 clone.
+
+  The precondition was never ref existence; it is sufficient **history**. Fixed to skip on truncated
+  history with a stated reason, never a vacuous pass. A second defect was found while fixing the
+  first: the test asserted a **snapshot** (`len(fired) == 4`) against a window that slides with every
+  merge, and was replaced with an invariant that cannot rot — the frontmatter classifier and the known
+  protected-path set must agree over real merge diffs.
+
+  **Pre-flight could not have caught either**: it runs in a full clone, and both failing geometries
+  exist only on CI. Recorded against the pre-flight scorecard's known bounds.
+
+
 ## [0.1.47] - 2026-08-16
 
 ### Fixed
