@@ -22,7 +22,9 @@ structurally), and an unchanged result is a **clean no-op** — message, no comm
 INV-2 no-op clause (the kanban same-day re-render lesson, 2026-07-05). The fleet exit-code
 contract (`0` ok · `1` violation · `2` needs-input · `3` gate-blocked) exists because drivers and
 models key on codes, not prose. Consumers import it the way the linter already imports
-`vault_naming`: `sys.path.insert(0, str(pathlib.Path.home() / "bin"))`. The `frontmatter` import is
+`vault_naming`: `sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))` - resolved from the
+importing script's OWN location, never from `$HOME` or an environment variable, so a fleet member
+works wherever it is deployed and in any invocation mode. The `frontmatter` import is
 lazy so the root/config helpers stay usable outside the venv (git hooks). Bootstrap exception:
 `render-reconcile-script` deploys this module and therefore must not import it — it carries its own
 inline copy of the resolution contract. Deterministic (INV-6): reads local files and env only;

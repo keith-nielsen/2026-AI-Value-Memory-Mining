@@ -228,6 +228,35 @@ Three rules follow, and the task list is built around them:
 `render`/`reconcile` govern note → deployed and `template-parity` governs template → vault, but
 nothing governed **spec → note**, and nothing verified that a harness exclusion named a real artifact.
 
+
+### ⚠ Correction — this defect is narrower than first stated
+
+An earlier draft of this proposal claimed the five hardcoded imports would produce **hard
+`ImportError`s once `~/bin` is deleted**. **That is false, and was measured false on 2026-08-18.**
+
+The interpreter already places a script's OWN directory at `sys.path[0]`. A fleet member executed
+from its deploy directory therefore resolves its siblings from there regardless of `$HOME`, and
+`HOME=/nonexistent python3 <script>` **passes both before and after this change**. The home-relative
+insert has never been load-bearing under ordinary invocation — it is redundant, and it merely
+*appears* to be the mechanism.
+
+It stops being redundant exactly where it also stops being correct:
+
+```
+$ HOME=/nonexistent python3 -P /home/administrator/bin/vault-lint.py
+ModuleNotFoundError: No module named 'vault_naming'
+```
+
+`python3 -P` disables the script-directory prepend; the same holds when a fleet member is **imported**
+rather than executed, since `sys.path[0]` is then the importer's directory. In those modes the
+home-relative path is the only resolver, and after relocation it names a directory the fleet no
+longer occupies.
+
+**So the fix is real but the severity was overstated.** The change removes a line that is misleading
+under normal use and wrong under strict use — not one that would break the migration. The
+corresponding test uses the `-P` form, because the obvious test is vacuous: it was written first, it
+passed on the unmodified tree, and it proved nothing.
+
 ## Blast radius *(constitution §3 Gate 1)*
 
 Delivered as a **pasted, re-runnable command transcript** — the exact commands plus their full,
@@ -280,8 +309,8 @@ hardcoded path to a directory being deleted was the highest-risk cell in the ori
 plan, and it is the concrete reason this is now two changes rather than one.
 
 **Change A lands their coverage first.** By the time B moves them, both are exercised as real
-subprocesses with asserted outcomes, and B's GATE B1 adversarial run (`HOME=/nonexistent`) has
-something that can actually fail.
+subprocesses with asserted outcomes, and B's GATE B1 adversarial run has something that can
+actually fail.
 
 By contrast `vault-refine-execute.py` is well covered — 12 adversarial tests including a real
 end-to-end bank asserting the three-part atomic commit shape. No new behavioural test is needed for
@@ -296,7 +325,7 @@ they certify.
 
 | Check | Owner | Fails without B because |
 |---|---|---|
-| fleet import resolution | B | run any of the 5 scripts with `HOME=/nonexistent` → `ImportError` on today's tree |
+| fleet import resolution | B | run any of the 5 scripts with **`python3 -P` and a broken `$HOME`** → `ModuleNotFoundError` on today's tree. ⚠ **`HOME=/nonexistent` ALONE PROVES NOTHING** — see the correction below |
 | `settings.json` resolution | **A** | B repoints 11 targets; without B2.2 the exclusion names a path no note declares. **B is the first change that can break this check** |
 | spec↔note inventory | **A** | must stay green — the relocation changes targets, not membership. A regression here means B edited the fleet roster by accident |
 | standalone lint (F15) | B | all 11 targets are host paths today; the extended lint fails on the pre-change tree |

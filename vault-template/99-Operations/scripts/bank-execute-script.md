@@ -31,7 +31,8 @@ while a genuinely new index is still linked.
 ```python
 #!/usr/bin/env python3
 import datetime, json, pathlib, sys, frontmatter
-sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+sys.dont_write_bytecode = True                                    # no __pycache__ in a governed silo
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # co-located siblings; no $HOME
 from vault_naming import is_valid_slug, has_min_hyphen_tokens  # naming.md
 from vault_lib import EXIT_VIOLATION, commit_paths, find_vault_root, vocab
 

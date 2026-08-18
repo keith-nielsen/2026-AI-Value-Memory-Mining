@@ -34,7 +34,8 @@ switch is safe.
 ```python
 #!/usr/bin/env python3
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+sys.dont_write_bytecode = True                                    # no __pycache__ in a governed silo
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # co-located siblings; no $HOME
 from vault_naming import validate_name, is_valid_slug, is_exempt, has_min_hyphen_tokens  # naming.md
 from vault_lib import EXIT_VIOLATION, find_vault_root, fm, vocab
 vault = find_vault_root()

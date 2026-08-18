@@ -129,9 +129,16 @@ The **`publish-manifest.json`** schema (`99-Operations/schemas/`) is a language-
 allowlist of publishable framework paths, consumed by `push-guard-script` and by any future
 public-export/mirror tool.
 
-Sibling scripts import the shared modules (`vault_naming`, `vault_lib`) from `~/bin` via
-`sys.path.insert(0, str(pathlib.Path.home() / "bin"))`; the underscore module names mark
-importable libraries (the `vault_naming` precedent).
+Sibling scripts import the shared modules (`vault_naming`, `vault_lib`) from **their own
+directory** via `sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))`; the underscore
+module names mark importable libraries (the `vault_naming` precedent).
+
+Resolution is from the executing file's location, never from `$HOME` or an environment variable.
+Under ordinary invocation the interpreter already places the script's directory first, so a
+home-relative insert is redundant and merely *appears* to be the mechanism. It stops being
+redundant exactly where it also stops being correct: with the script-directory prepend disabled
+(`python3 -P`) or when a fleet member is imported rather than executed, the home-relative path is
+the only resolver — and it names a location the fleet no longer occupies.
 
 #### Scenario: Retiring a script removes its deploy target in lockstep
 - **WHEN** a script note is removed from the inventory

@@ -81,18 +81,34 @@ Validate it with `.github/scripts/extract-declared-scope.py` **and** a coverage 
 
 ## B1 — Source changes, targets unmoved *(Gate 3 · repo · agent)*
 
-- [ ] B1.1 In the 5 notes carrying it, replace `pathlib.Path.home() / "bin"` with
+- [x] B1.1 In the 5 notes carrying it, replace `pathlib.Path.home() / "bin"` with
       `pathlib.Path(__file__).resolve().parent` — `knowledge-lint`, `treasury-orphan`, `ore-detect`,
       `bank-execute`, `tailings-reprospect`. **Evidence:** transcript Command 4.
-- [ ] B1.2 Set `sys.dont_write_bytecode` at the entry point of each Python member importing a sibling.
-- [ ] B1.3 Amend `maintenance/spec.md:131-132`, which **codifies the `$HOME` hardcode** as spec'd
+- [x] B1.2 Set `sys.dont_write_bytecode` at the entry point of each Python member importing a sibling.
+- [x] B1.3 Amend `maintenance/spec.md:131-132`, which **codifies the `$HOME` hardcode** as spec'd
       behaviour. A spec change, not a code fix.
 
 **GATE B1 —**
 1. `pytest` green with its count.
-2. **Adversarial:** a fleet script run with `HOME=/nonexistent` still imports and runs. This fails on
-   the pre-change tree — it is what proves B1.1 did what it claims.
+2. **Adversarial:** a fleet script run with **`python3 -P` AND a broken `$HOME`** still imports and
+   runs. ⚠ **`HOME=/nonexistent` alone is VACUOUS** — the interpreter already puts the script's own
+   directory on `sys.path[0]`, so that form passes before and after. Measured 2026-08-18. Only `-P`
+   (or importing rather than executing) removes the auto-prepend and makes the insert load-bearing.
 3. Record the 5 new checksums; they supersede baseline for those files only.
+
+**GATE B1 — PASSED 2026-08-18.**
+1. Full suite **350 passed** (was 344; +6 new).
+2. Adversarial `-P` + broken `$HOME` green across all 5 scripts. **Red demonstrated**: reverting
+   `knowledge-lint` to the home-relative insert produced
+   `ModuleNotFoundError: No module named 'vault_naming'`, then restored.
+3. `grep -rc 'Path.home()' vault-template/99-Operations/scripts/` -> **none remaining** (5 code
+   fences plus the `vault-lib` prose sentence that described the old mechanism).
+4. `inv6-offline-check` -> 14 notes, 0 violations.
+5. No `__pycache__` left in the deploy directory after a fleet run (new test).
+
+⚠ **Severity correction recorded in `proposal.md`.** The claim that deleting `~/bin` would cause hard
+`ImportError`s was FALSE. The obvious test (`HOME=/nonexistent` alone) passes before and after and
+proved nothing; it was written first and discarded.
 
 *Falsifier: any script still resolving `vault_lib` via `$HOME`.*
 

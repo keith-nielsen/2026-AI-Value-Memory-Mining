@@ -8,6 +8,7 @@ drives the deployed script as a subprocess — the runtime the fleet ships in.
 """
 
 import json
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -609,3 +610,57 @@ def test_reprospect_is_detection_only(fleet):
     assert fleet.commit_count() == before, "detection-only script created a commit"
     assert fleet.git("status", "--porcelain").stdout.strip() == "", \
         "detection-only script left working-tree changes"
+
+
+# --------------------------------------------------------------------------------------
+# Sibling-module resolution is co-located, not home-relative (relocate-fleet-in-tree-bin B1)
+#
+# WHY THIS TEST NEEDS `-P`, AND WHY THE OBVIOUS TEST IS VACUOUS:
+#
+#   The interpreter already places a script's OWN directory at sys.path[0]. So a fleet
+#   member run normally resolves its siblings from the deploy directory no matter what
+#   `$HOME` says, and `HOME=/nonexistent python3 <script>` PASSES both before and after
+#   this change. Measured 2026-08-18 — it was the first test written here and it proved
+#   nothing.
+#
+#   `python3 -P` disables that auto-prepend. Only then is the insert load-bearing, and
+#   only then does a home-relative insert fail. That is also the state in which the old
+#   code was WRONG rather than merely redundant: it named a directory the fleet is
+#   leaving.
+#
+#   The same applies when a fleet member is imported rather than executed — sys.path[0]
+#   is the importer's directory, not the module's.
+# --------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("script", [
+    "vault-lint.py", "vault-orphans.py", "vault-refine-detect.py",
+    "vault-refine-execute.py", "vault-reprospect.py",
+])
+def test_sibling_import_resolves_without_home_and_without_script_dir(fleet, script):
+    """Resolution comes from the file's own location, not $HOME and not sys.path[0]."""
+    exe = fleet.home / "bin" / script
+    env = fleet.env()
+    env["HOME"] = "/nonexistent-home-for-this-test"
+    r = subprocess.run([sys.executable, "-P", str(exe)], cwd=str(fleet.vault),
+                       env=env, capture_output=True, text=True)
+    combined = r.stdout + r.stderr
+    assert "ModuleNotFoundError" not in combined, (
+        f"{script} could not resolve a sibling module with the script-directory prepend "
+        f"disabled and $HOME broken — its import is still location-dependent:\n{combined}"
+    )
+    assert "No module named" not in combined, combined
+
+
+def test_fleet_run_writes_no_bytecode_into_the_deploy_directory(fleet):
+    """__pycache__ inside a governed silo is ungoverned content no drift check can see.
+
+    `reconcile` iterates NOTES, so a compiled artifact whose source note was retired
+    persists invisibly — which is how vault-close-day.pyc outlived its .py by a month.
+    """
+    bindir = fleet.home / "bin"
+    for cached in bindir.rglob("__pycache__"):
+        shutil.rmtree(cached)
+    for script in ("vault-lint.py", "vault-orphans.py", "vault-reprospect.py"):
+        fleet.run(script)
+    leftover = sorted(p.relative_to(bindir) for p in bindir.rglob("__pycache__"))
+    assert not leftover, f"fleet run left bytecode in the deploy directory: {leftover}"
