@@ -54,7 +54,25 @@ after.** The protected zone admits one delivery per ceremony cycle; that is why 
       **Evidence:** `blast-radius-transcript.md`, 5 commands, captured 2026-08-18.
       **Tally: 85 corpus files — 53 archived (frozen) + 19 vault dig-record (frozen) + 25 live.**
 - [x] B0.2 Baseline captured. **Evidence:** `baseline-preflight-record.md`.
-- [ ] B0.3 Re-confirm Change A merged and its checks green on `main` before starting B1.
+- [x] B0.3 **Change A merged** — PR #97 into `main` at `093d9f5`, 2026-08-18T04:06:09Z, verified over
+      REST by the driver (`LIFECYCLE COMPLETE`, exit 0). This branch was **rebased onto merged main**
+      (was based on `dec7a01`, 8 commits stale and WITHOUT A's instruments). CONTRIBUTING: rebase
+      before pushing, never after opening — B is not yet open, so now is the moment.
+      **Evidence on this branch:** A's `test_inventory_conformance.py` + `test_settings_paths.py`
+      present and green (10 passed); full suite **344 passed**; A archived at
+      `openspec/changes/archive/2026-08-18-add-fleet-inventory-conformance/`.
+
+⚠ **Scope-block lesson inherited from A — pre-declare, do not discover.** A's `Scope review` gate
+failed because the ADR-0040 archive MUTATES THE PR DIFF after the scope block is written: it moves
+the change directory to `openspec/changes/archive/<date>-<slug>/` and applies EACH capability delta
+into `openspec/specs/`. B carries **three** deltas (`maintenance`, `access-control`, `naming-rules`),
+so B's scope block must declare, from the start:
+  - `openspec/changes/archive/<date>-relocate-fleet-in-tree-bin/`
+  - `openspec/specs/maintenance/spec.md`
+  - `openspec/specs/access-control/spec.md`
+  - `openspec/specs/naming-rules/spec.md`
+Validate it with `.github/scripts/extract-declared-scope.py` **and** a coverage check against
+`git diff origin/main..HEAD --name-only` before the body is posted.
 
 **GATE B0 —** transcript present and re-runnable; A merged.
 *Falsifier: a blast radius stated as a table without its generating command.*
