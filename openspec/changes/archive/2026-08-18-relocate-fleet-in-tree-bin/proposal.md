@@ -9,7 +9,11 @@ the inventory, cadence, settings-resolution and coverage instruments. B is the f
 could ever break the settings-resolution check — that is the point of the split, and it is stronger
 evidence than a check manufactured red inside the change that makes it green.
 
-**Decisions recorded in [ADR-0044](../../adr/0044-relocate-fleet-in-tree-bin.md)** — context /
+<!-- NOTE: three levels up, not two. This file lives at openspec/changes/archive/<date>-<slug>/,
+     one deeper than the openspec/changes/<slug>/ it was written in. The ADR-0040 archive MOVES
+     the directory, so a relative link correct at authoring time breaks at archive time - the
+     link-check caught exactly that on PR #98. -->
+**Decisions recorded in [ADR-0044](../../../adr/0044-relocate-fleet-in-tree-bin.md)** — context /
 options / choice / consequence / **sacrifice**, per constitution §3 Gate 4. Five options were
 weighed, including `~/.local/bin` (the systemd `file-hierarchy(7)` standard location, rejected
 because it is still user-global and fixes only one of the five grounds).
