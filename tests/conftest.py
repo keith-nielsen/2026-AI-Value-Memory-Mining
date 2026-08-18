@@ -2,10 +2,11 @@
 
 Each test gets a throwaway `HOME` + vault rendered from `vault-template/`, exactly the
 way `.github/scripts/validate-scripts.sh` builds its sandbox: bootstrap `vault-render.py`
-from its own literate note, render the whole fleet into `$HOME/bin`, deploy the git hooks
-into the vault, instantiate the private `config.env` from the example, and `git init` with
-the naming gate active. Scripts are then exercised as real subprocesses — the runtime the
-fleet actually ships in — so the tests prove behaviour, not a re-implementation of it.
+from its own literate note, render the whole fleet to the `deploy_target` each note
+declares, deploy the git hooks into the vault, instantiate the private `config.env` from
+the example, and `git init` with the naming gate active. Scripts are then exercised as real
+subprocesses — the runtime the fleet actually ships in — so the tests prove behaviour, not
+a re-implementation of it.
 """
 
 import dataclasses

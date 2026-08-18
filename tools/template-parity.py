@@ -2,8 +2,9 @@
 """Template<->live parity check — is a deployed vault's LOCKSTEP scaffold in sync
 with what this repo's `vault-template/` ships?
 
-Orthogonal to render/reconcile. `reconcile` compares a script note to its deployed
-`~/bin` target (note -> host). This compares the framework repo's shipped scaffold
+Orthogonal to render/reconcile. `reconcile` compares a script note to its deployed target
+as declared by its own `deploy_target` (note -> deployed copy). This compares the framework
+repo's shipped scaffold
 (`vault-template/<prefix>`) against a deployed live vault (`<VAULT_ROOT>/<prefix>`) for
 every LOCKSTEP prefix declared in `template-sync-manifest.json`. It answers the question
 `reconcile` cannot: after a post-merge mirror, does every governed scaffold file the repo
