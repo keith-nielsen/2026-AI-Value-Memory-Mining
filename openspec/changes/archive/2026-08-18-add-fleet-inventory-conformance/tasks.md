@@ -145,21 +145,29 @@ Walk the driver; do not hand-compose the sequence (CONTRIBUTING §"Landing a cha
       `MEASURED no`. **Recording a sign-off where the gate does not read it is the same as not
       recording it.**
 - [x] A4.2 Branched from `main` as `feat/add-fleet-inventory-conformance`; nothing committed on `main`.
-- [ ] A4.3 `python3 tools/preflight.py .` **before the first push** (ADR-0041). ⚠ **Run it from a
+- [x] A4.3 `python3 tools/preflight.py .` **before the first push** (ADR-0041). ⚠ **Run it from a
       shell where `config.env` has NOT been sourced** — sourcing puts the vault venv first on `PATH`
       and that venv has no pytest, which preflight miscategorises as `fleet-pytest: failed` while
       claiming `0 unrunnable`. Measured both ways 2026-08-18; see `baseline-conformance-record.md`
       §A0.2. A clear preflight is not a promise the remote will be green.
-- [ ] A4.4 `python3 tools/pr-flow.py --plan --branch BR` — the whole route first, each step with its
+- [x] A4.4 `python3 tools/pr-flow.py --plan --branch BR` — the whole route first, each step with its
       executor, authority, and whether its guard was MEASURED or PROJECTED.
-- [ ] A4.5 `python3 tools/pr-flow.py --branch BR` → proves each guard, emits **one** command, exits 2.
-- [ ] A4.6 **Run the emitted command VERBATIM** — no shell variables, no `timeout` prefix, no
+- [x] A4.5 `python3 tools/pr-flow.py --branch BR` → proves each guard, emits **one** command, exits 2.
+- [x] A4.6 **Run the emitted command VERBATIM** — no shell variables, no `timeout` prefix, no
       re-wrapping. The INV-14 guard resolves targets from raw text. Failure **class 10, stage 1**;
       it recurred twice on 2026-08-17 alone.
-- [ ] A4.7 Re-run `pr-flow.py` — it verifies the mutation landed before advancing. If NOT READY, poll
+- [x] A4.7 Re-run `pr-flow.py` — it verifies the mutation landed before advancing. If NOT READY, poll
       `--ready`. **Never sleep.**
 - [ ] A4.8 Repeat A4.5–A4.7 until `LIFECYCLE COMPLETE`, exit 0.
-- [ ] A4.9 **Archive the change ON THE FEATURE BRANCH** (ADR-0040) — before merge, not after.
+- [x] A4.9 **Archive the change ON THE FEATURE BRANCH** (ADR-0040) — before merge, not after.
+      **DONE — commit `76cad53`.** Applied +3 `maintenance` and +1 `access-control`; counts verified
+      before and after (maintenance 43 -> 46, access-control 10 -> 11). Suite re-run after the
+      archive because it edits `maintenance/spec.md`, which this change's own tests READ: 344 passed.
+      ⚠ **The archive mutates the PR diff after the scope block was written** — it MOVES the change
+      directory and APPLIES each capability delta. The declared-scope gate failed on exactly that
+      (`Scope review`), and the body needed a REST PATCH plus a PUSH. **Any ADR-0040 change hits
+      this**; a scope block written at step 6 cannot anticipate step 11 unless it pre-declares the
+      archive path and every capability whose delta lands.
 - [ ] A4.10 Merge via the driver's REST route carrying `sha`. **Never `gh pr merge --delete-branch`**
       — it cannot express a head precondition and its deletion is non-atomic while printing `✓ Merged`.
 
