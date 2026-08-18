@@ -20,7 +20,7 @@
       ]
     },
     "excludedCommands": [
-      "~/bin/vault-refine-execute.py *"
+      "99-Operations/bin/vault-refine-execute.py *"
     ]
   },
   "hooks": {

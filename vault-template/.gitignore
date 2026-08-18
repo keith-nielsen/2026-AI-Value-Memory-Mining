@@ -17,3 +17,11 @@ __pycache__/
 
 # Private live config — framework ships config.defaults.env + config.env.example; create yours via `cp` (ADR-0020)
 99-Operations/config.env
+
+# Rendered Layer-0 fleet. Generated output; its SOURCE is 99-Operations/scripts/*.md and
+# `render` recreates it. Tracking it would give one piece of code two homes - the note and a
+# committed copy - which is the duplication the literate meta-script model exists to prevent
+# (INV-3), and would make every render a diff to review.
+# NOTE the narrowness: this ignores the generated output DIRECTORY only, never a parent that
+# also holds tracked scaffold. A blanket rule silently hides the next artifact deployed beneath it.
+99-Operations/bin/

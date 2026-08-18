@@ -203,7 +203,7 @@ def test_bank_batch_isolation_one_bad_one_good(fleet):
 def test_commit_paths_noop_and_unchanged(fleet):
     code = textwrap.dedent(f"""
         import sys, pathlib
-        sys.path.insert(0, {str(fleet.home / "bin")!r})
+        sys.path.insert(0, {str(fleet.bindir)!r})
         from vault_lib import commit_paths, find_vault_root
         vault = find_vault_root()
         commit_paths(vault, [], "empty pathspec must not commit")
@@ -247,10 +247,18 @@ def _erofs_shim(fleet, prefix):
     shim.mkdir(exist_ok=True)
     (shim / "sitecustomize.py").write_text(textwrap.dedent(f"""
         import errno, pathlib
-        _PREFIX = {str(prefix)!r}
+        _PREFIX = pathlib.Path({str(prefix)!r}).resolve()
         _orig = pathlib.Path.write_text
         def _write_text(self, *a, **k):
-            if str(self).startswith(_PREFIX):
+            # RESOLVE both sides. A raw string prefix silently stops matching the moment the
+            # caller writes a RELATIVE target -- which is exactly what an in-tree deploy_target
+            # is. That failure is invisible: the shim simply never fires and the test passes
+            # for the wrong reason. Measured 2026-08-18 during the in-tree relocation.
+            try:
+                target = pathlib.Path(self).resolve()
+            except OSError:
+                target = pathlib.Path(self)
+            if target == _PREFIX or _PREFIX in target.parents:
                 raise OSError(errno.EROFS, "Read-only file system", str(self))
             return _orig(self, *a, **k)
         pathlib.Path.write_text = _write_text
@@ -268,8 +276,8 @@ def test_render_operator_only_path_explains_itself(fleet):
     assert control.returncode == EXIT_OK, control.stdout + control.stderr
 
     # every deploy_target of render lives in an area the matrix denies the agent
-    env = _erofs_shim(fleet, fleet.home / "bin")
-    r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault-render.py"), "render"],
+    env = _erofs_shim(fleet, fleet.bindir)
+    r = subprocess.run([sys.executable, str(fleet.bindir / "vault-render.py"), "render"],
                        cwd=str(fleet.vault), env=env, capture_output=True, text=True)
     out = r.stdout + r.stderr
     assert r.returncode == EXIT_OPERATOR_ONLY, out
@@ -284,7 +292,7 @@ def test_naming_emit_operator_only_path_explains_itself(fleet):
     assert control.returncode == EXIT_OK, control.stdout + control.stderr
 
     env = _erofs_shim(fleet, fleet.vault / "99-Operations" / "schemas")
-    r = subprocess.run([sys.executable, str(fleet.home / "bin" / "vault_naming.py")],
+    r = subprocess.run([sys.executable, str(fleet.bindir / "vault_naming.py")],
                        cwd=str(fleet.vault), env=env, capture_output=True, text=True)
     out = r.stdout + r.stderr
     assert r.returncode == EXIT_OPERATOR_ONLY, out
@@ -297,7 +305,7 @@ def test_naming_check_modes_unaffected_by_the_erofs_branch(fleet):
     # when the schema path is unwritable — the property most likely to be broken by a
     # careless edit to this feature
     env = _erofs_shim(fleet, fleet.vault / "99-Operations" / "schemas")
-    exe = str(fleet.home / "bin" / "vault_naming.py")
+    exe = str(fleet.bindir / "vault_naming.py")
     ok = subprocess.run([sys.executable, exe, "--check-strict", "a-conforming-name.md"],
                         cwd=str(fleet.vault), env=env, capture_output=True, text=True)
     bad = subprocess.run([sys.executable, exe, "--check-strict", "two-tokens.md"],
@@ -314,7 +322,7 @@ def test_non_erofs_oserror_is_not_swallowed(fleet):
     reported to the operator as a governance decision — a worse bug than the one the
     feature fixes. No simulation here: the errno is genuine.
     """
-    victim = fleet.home / "bin" / "vault-lint.py"
+    victim = fleet.bindir / "vault-lint.py"
     victim.chmod(0o444)
     try:
         r = fleet.run("vault-render.py", "render")
@@ -638,7 +646,7 @@ def test_reprospect_is_detection_only(fleet):
 ])
 def test_sibling_import_resolves_without_home_and_without_script_dir(fleet, script):
     """Resolution comes from the file's own location, not $HOME and not sys.path[0]."""
-    exe = fleet.home / "bin" / script
+    exe = fleet.bindir / script
     env = fleet.env()
     env["HOME"] = "/nonexistent-home-for-this-test"
     r = subprocess.run([sys.executable, "-P", str(exe)], cwd=str(fleet.vault),
@@ -657,7 +665,7 @@ def test_fleet_run_writes_no_bytecode_into_the_deploy_directory(fleet):
     `reconcile` iterates NOTES, so a compiled artifact whose source note was retired
     persists invisibly — which is how vault-close-day.pyc outlived its .py by a month.
     """
-    bindir = fleet.home / "bin"
+    bindir = fleet.bindir
     for cached in bindir.rglob("__pycache__"):
         shutil.rmtree(cached)
     for script in ("vault-lint.py", "vault-orphans.py", "vault-reprospect.py"):

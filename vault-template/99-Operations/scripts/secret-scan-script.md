@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault_secrets.py
+deploy_target: 99-Operations/bin/vault_secrets.py
 runtime: manual
 class: script
 created: 2026-07-28

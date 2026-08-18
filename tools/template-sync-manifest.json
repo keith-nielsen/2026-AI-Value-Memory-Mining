@@ -4,8 +4,9 @@
     "99-Operations/scripts/",
     "99-Operations/schemas/"
   ],
-  "_exclude_comment": "Files under a lockstep prefix that legitimately diverge because the live vault GENERATES them (the template ships the generator, not its output). Deliberate duplication per the operation's standing list — do not rationalize. naming-rules.json is emitted into the live vault by vault_naming.py.",
+  "_exclude_comment": "Files under a lockstep prefix that legitimately diverge because the live vault GENERATES them (the template ships the generator, not its output). Deliberate duplication per the operation's standing list \u2014 do not rationalize. naming-rules.json is emitted into the live vault by vault_naming.py.",
   "exclude": [
     "99-Operations/schemas/naming-rules.json"
-  ]
+  ],
+  "_bin_comment": "99-Operations/bin/ is DELIBERATELY NOT a lockstep prefix. It holds RENDER OUTPUT whose single source is 99-Operations/scripts/, which IS lockstep - the template ships the generator, not its output. Same category as the naming-rules.json exclusion below. Adding it would also fail permanently: the comparator returns an empty set for an absent directory and vault-template/ ships no bin/, so parity would report one drift per fleet member, forever, and a check that is always red is a check nobody reads. The division of labour: PARITY compares hand-maintained scaffold; RENDER/RECONCILE compares generated output against the note that produced it. Neither substitutes for the other, and 99-Operations/bin/ is reconcile's jurisdiction. It is also git-ignored in both trees - see .gitignore."
 }

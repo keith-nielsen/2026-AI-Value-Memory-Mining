@@ -10,9 +10,12 @@ set -uo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WORK="$(mktemp -d)"
 export HOME="$WORK/home"
-mkdir -p "$HOME/bin"
+mkdir -p "$HOME"
 VAULT="$WORK/vault"
 cp -r "$REPO/vault-template" "$VAULT"
+# The fleet deploys IN-TREE. HOME stays a throwaway so a stray home-relative path in a
+# fleet script fails loudly here instead of resolving against a real one.
+BIN="$VAULT/99-Operations/bin"
 trap 'rm -rf "$WORK"' EXIT
 
 # Instantiate the private config from the example (as a user would: cp config.env.example config.env),
@@ -33,24 +36,24 @@ cd "$VAULT"
 
 hdr "render all scripts to the sandbox host"
 # Bootstrap render from its source note, then deploy everything
-python3 - <<'PY' || exit 2
+BIN="$BIN" python3 - <<'PY' || exit 2
 import re, os, pathlib, frontmatter
 note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
-out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+out = pathlib.Path(os.environ["BIN"]) / "vault-render.py"
 out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
 PY
-python3 "$HOME/bin/vault-render.py" render >/dev/null || { no "render failed"; exit 2; }
-python3 "$HOME/bin/vault_naming.py" >/dev/null
+python3 "$BIN/vault-render.py" render >/dev/null || { no "render failed"; exit 2; }
+python3 "$BIN/vault_naming.py" >/dev/null
 ok "render + naming-rules.json"
 
 hdr "static checks — python compiles"
-for py in "$HOME"/bin/*.py; do
+for py in "$BIN"/*.py; do
   if python3 -m py_compile "$py" 2>"$WORK/pc.txt"; then ok "py_compile $(basename "$py")"; else no "py_compile $(basename "$py")"; cat "$WORK/pc.txt"; fi
 done
 
 hdr "static checks — bash syntax + shellcheck"
-SH_FILES=("$HOME"/bin/*.sh "$VAULT/99-Operations/hooks/pre-commit")
+SH_FILES=("$BIN"/*.sh "$VAULT/99-Operations/hooks/pre-commit")
 for sh in "${SH_FILES[@]}"; do
   base="$(basename "$sh")"
   bash -n "$sh" 2>"$WORK/bn.txt" && ok "bash -n $base" || { no "bash -n $base"; cat "$WORK/bn.txt"; }
@@ -64,12 +67,12 @@ hdr "fresh-vault smoke"
 git init -q -b main; git config user.name ci; git config user.email ci@ci; git config core.hooksPath 99-Operations/hooks
 git add -A; git commit -qm init --no-verify
 # reconcile zero drift
-python3 "$HOME/bin/vault-render.py" reconcile >/dev/null && ok "reconcile zero drift" || no "reconcile drift"
+python3 "$BIN/vault-render.py" reconcile >/dev/null && ok "reconcile zero drift" || no "reconcile drift"
 # linter passes on empty treasury
-lint_out=$(python3 "$HOME/bin/vault-lint.py" 2>&1); lint_rc=$?
+lint_out=$(python3 "$BIN/vault-lint.py" 2>&1); lint_rc=$?
 [ $lint_rc -eq 0 ] && ok "lint clean (empty treasury)" || { no "lint (rc=$lint_rc)"; echo "$lint_out" | sed 's/^/        /'; }
 # refine-detect on empty sites
-python3 "$HOME/bin/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
+python3 "$BIN/vault-refine-detect.py" | grep -q "queued 0" && ok "refine-detect empty" || no "refine-detect"
 
 
 hdr "INV-11 executor boundary (A3.3 executor side)"
@@ -79,7 +82,7 @@ cat > "$VAULT/20-Claims/_refine-approved/bad.json" <<'JSON'
   "insight_md": "x", "provenance_md": "y", "index_links": [],
   "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
 JSON
-out=$(python3 "$HOME/bin/vault-refine-execute.py" 2>&1)
+out=$(python3 "$BIN/vault-refine-execute.py" 2>&1)
 if echo "$out" | grep -q REJECT && [ ! -e "$VAULT/40-Treasury/Bad:Name.md" ]; then
   ok "executor rejects non-kebab target_note, no Treasury write"
 else
@@ -93,7 +96,7 @@ cat > "$VAULT/20-Claims/_refine-approved/good.json" <<'JSON'
   "index_links": ["40-Treasury/Catalog/technology-domain-index.md"],
   "frontmatter": {"pillars": ["technology"], "grade": "gold", "crucible": false} }
 JSON
-python3 "$HOME/bin/vault-refine-execute.py" >/dev/null 2>&1
+python3 "$BIN/vault-refine-execute.py" >/dev/null 2>&1
 [ -f "$VAULT/40-Treasury/good-durable-insight.md" ] && ok "executor applies conforming proposal" || no "executor good-path"
 
 echo

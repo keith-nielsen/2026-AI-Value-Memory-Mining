@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault-reprospect.py
+deploy_target: 99-Operations/bin/vault-reprospect.py
 runtime: manual
 class: script
 created: 2026-06-14

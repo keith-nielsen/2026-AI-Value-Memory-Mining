@@ -119,37 +119,63 @@ proved nothing; it was written first and discarded.
 **These land together or not at all.** The `settings.json` exclusion is an exact string match; a
 non-match is indistinguishable from a deny, and no automated check can see it.
 
-- [ ] B2.1 `deploy_target` → `99-Operations/bin/<name>` in all **11** host notes. The 3 in-tree notes
+- [x] B2.1 `deploy_target` → `99-Operations/bin/<name>` in all **11** host notes. The 3 in-tree notes
       are **not** touched.
-- [ ] B2.2 `.claude/settings.json` — repoint the exclusion in **both** the repo's file and
+- [x] B2.2 `.claude/settings.json` — repoint the exclusion in **both** the repo's file and
       `vault-template/`.
-- [ ] B2.3 `tests/conftest.py` lines 43 (`run()`) and 91 (`_render_fleet()`).
-- [ ] B2.4 `.github/scripts/validate-scripts.sh` — 9 refs incl. `mkdir -p "$HOME/bin"`.
-- [ ] B2.5 `config.env` + `config.defaults.env` — **append** `$VAULT_ROOT/99-Operations/bin` to
+- [x] B2.3 `tests/conftest.py` lines 43 (`run()`) and 91 (`_render_fleet()`).
+- [x] B2.4 `.github/scripts/validate-scripts.sh` — 9 refs incl. `mkdir -p "$HOME/bin"`.
+- [x] B2.5 `config.env` + `config.defaults.env` — **append** `$VAULT_ROOT/99-Operations/bin` to
       `PATH`, **idempotently**; fix the existing non-idempotent `.venv/bin` line in the same pass.
-- [ ] B2.6 `template-sync-manifest.json` — **do NOT add `99-Operations/bin/` to `lockstep`**. Record
+- [x] B2.6 `template-sync-manifest.json` — **do NOT add `99-Operations/bin/` to `lockstep`**. Record
       the reason in the manifest's own `_comment`. Grounds: the template ships the *generator*
       (`99-Operations/scripts/`, already lockstep), not its output — the category the existing
       `exclude` entry for `naming-rules.json` was created for. It would also fail forever:
       `files_under()` returns empty for an absent directory and `vault-template/` ships no `bin/`, so
       parity would report 11 permanent drift findings. **`reconcile` governs note → deployed.** Parity
       watches hand-maintained scaffold; reconcile watches generated output.
-- [ ] B2.7 **`.gitignore` — add `99-Operations/bin/` in BOTH trees**, commented as render output whose
+- [x] B2.7 **`.gitignore` — add `99-Operations/bin/` in BOTH trees**, commented as render output whose
       source is `99-Operations/scripts/`. Neither excludes it today, so the default is *tracked* — a
       decision by accident. ⚠ Ignore the generated output directory **specifically**, never one that
       also holds tracked scaffold.
-- [ ] B2.8 Extend `Standalone-vault lint (F15)` to fail on any `deploy_target` outside the tree.
+- [x] B2.8 Extend `Standalone-vault lint (F15)` to fail on any `deploy_target` outside the tree.
 
-**GATE B2 — repo-side only; the vault has received nothing yet:**
-1. `pytest` green — the 12 bank tests now resolve through the new location. They would have thrown
+**Surfaces B2 did not anticipate — found by running, not by reading:**
+- [x] B2.9 **The git hooks invoke fleet members by `${HOME}/bin` path.** The hooks are in-tree targets
+      that do not move, but their CODE called the relocated scripts. `commit-gate` now derives
+      `BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)"` and `site-slag`/`spoil-dump` call
+      `"$(dirname "$0")/vault_naming.py"` — co-location, same principle as B1. **24 test failures.**
+- [x] B2.10 **Eight tests hardcoded `fleet.home / "bin"`.** Replaced with a single `Fleet.bindir`
+      property, so the layout has ONE definition and the next relocation is one edit, not eight.
+- [x] B2.11 **The EROFS shim compared path STRINGS.** In-tree targets are vault-RELATIVE, so the
+      prefix silently stopped matching and the shim never fired. Now resolves both sides. ⚠ This
+      failure is invisible in the general case — the shim simply does nothing and the test passes
+      for the wrong reason.
+- [x] B2.12 **Change A's settings check was FALSE-NEGATIVE — it compared BASENAMES.** With the
+      exclusion still at `~/bin/vault-refine-execute.py` and the target moved in-tree, it PASSED.
+      **The proposal's claim that "B is the first change able to trip it naturally" was therefore
+      false — B would not have tripped it either.** Now compares by path suffix (tolerating a
+      `$CLAUDE_PROJECT_DIR/` prefix), demonstrated red on exactly that mismatch. Same defect family
+      as everything this pair of changes exists to close: **a check that verifies the shape of a
+      thing instead of the thing.**
+- [x] B2.13 **Two `"$HOME"/bin/*.py` globs in `validate-scripts.sh`** used a different quote
+      placement and survived the first rewrite. Caught by exit status, not by reading.
+
+**GATE B2 — PASSED 2026-08-18. Repo-side only; the vault has received nothing yet.**
+1. `pytest` **350 passed** — the bank tests resolve through the new location. They would have thrown
    `FileNotFoundError` had B2.3 been missed; that they pass **is** the evidence.
-2. **Change A's settings-resolution check green against the NEW paths.** B is the first change that
-   could break it.
-3. **Change A's inventory check still green** — the relocation changed targets, not membership.
-4. `validate-scripts.sh` — **exit status**, not its printed verdict.
-5. `template-parity` still **0 drift across 2 prefixes** — proves B2.6 held.
-6. B2.8 demonstrated red on the pre-change tree, green now.
-7. `inv6-offline-check` static half clean.
+2. Change A's settings-resolution check green against the NEW paths — **after B2.12 made it able to
+   fail at all.**
+3. Change A's inventory check green — the relocation changed targets, not membership.
+4. `validate-scripts.sh` **EXIT 0** (18 ok / 0 FAIL), status captured rather than its printed verdict.
+5. `template-parity`: **2 prefixes** — `bin/` was NOT added to `lockstep`, so B2.6 held.
+   ⚠ **CRITERION CORRECTED.** This originally read *"still 0 drift"*, which is **impossible between
+   B2 and B6**: parity compares template -> LIVE VAULT, and the vault receives nothing until B6's
+   mirror. It reports **12 drift**, which is exactly the 12 notes edited here (11 relocated +
+   `commit-gate`), with `outbound-publish-guard` and `push-guard` correctly untouched. Drift here is
+   the expected state, not a failure; the prefix COUNT is what proves the manifest decision.
+6. B2.8 demonstrated **red on the pre-move tree (11 violations across 14 notes)**, green now (0).
+7. `inv6-offline-check` static half clean — 14 notes, 0 violations.
 
 *Falsifier: any `~/bin` reference left in the repo's running-code or verifier surface.*
 

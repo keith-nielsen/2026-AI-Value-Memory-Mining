@@ -471,6 +471,30 @@ jobs:
           sys.exit(1 if hits else 0)
           EOF
 
+      - name: Check every deploy_target resolves inside the tree
+        run: |
+          python3 - << 'EOF'
+          import pathlib, re, sys
+          # The lint above catches a template that references the FRAMEWORK REPO. It cannot see
+          # the other way a vault stops being standalone: a fleet installed OUTSIDE the tree
+          # entirely. `~/bin` walked straight past a job named for this principle for months --
+          # a tree plus a user-global side-load is not standalone, and two vaults sharing one
+          # install directory make version skew unrepresentable (the last render silently wins).
+          notes = sorted(pathlib.Path("vault-template/99-Operations/scripts").glob("*-script.md"))
+          bad = []
+          for n in notes:
+            m = re.search(r"^deploy_target:\s*(.+?)\s*$", n.read_text(encoding="utf-8"), re.M)
+            if not m:
+              bad.append(f"{n}: no deploy_target declared"); continue
+            tgt = m.group(1).strip().strip("\"'")
+            if tgt.startswith(("~", "/")) or tgt.startswith("$HOME") or ".." in tgt:
+              bad.append(f"{n}: deploy_target escapes the tree -> {tgt}")
+          for b in bad:
+            print(b, file=sys.stderr)
+          print(f"in-tree deploy_target lint: {len(bad)} violation(s) across {len(notes)} notes")
+          sys.exit(1 if bad else 0)
+          EOF
+
   inv6-offline-static:
     name: INV-6 static (no fleet script calls the network)
     runs-on: ubuntu-latest
