@@ -197,13 +197,13 @@ python3 - << 'EOF'
 import re, pathlib, frontmatter, os
 note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 m = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M)
-target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+target = pathlib.Path("99-Operations/bin/vault-render.py")
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(m.group(1)); target.chmod(0o755)
 EOF
 
-python3 ~/bin/vault-render.py render
-python3 ~/bin/vault_naming.py                        # emit naming-rules.json
+python3 99-Operations/bin/vault-render.py render
+python3 99-Operations/bin/vault_naming.py                        # emit naming-rules.json
 
 # 5. Initial commit
 git add -A
@@ -220,7 +220,13 @@ Full walkthrough: [`docs/USING-THIS-TEMPLATE.md`](docs/USING-THIS-TEMPLATE.md)
 
 All scripts are stored as literate meta-script notes in
 `vault-template/99-Operations/scripts/` and deployed via `render` to the `deploy_target` each note
-declares — eleven to `~/bin/`, three in-tree (the two git hooks and the harness guard).
+declares. **Every target is inside the vault tree** — eleven to `99-Operations/bin/`, two git hooks to
+`99-Operations/hooks/`, and the harness guard to `.claude/hooks/`. A deployed vault is standalone
+(F15): it carries its own tools and installs nothing into the user's home.
+
+`99-Operations/bin/` is render OUTPUT and is git-ignored; the source is the notes. It sits inside a
+protected silo, so `render` remains operator-only — the fleet moved into the tree, it did not become
+agent-writable.
 
 Nothing installs a schedule: `render` deploys code and marks it executable, and no script declares a
 `cron` runtime. Every entry below is invoked manually or by the hook that owns it.

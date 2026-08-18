@@ -9,7 +9,7 @@ updated: 2026-07-17
 ## Rationale
 Validates Treasury knowledge notes against the §10.1 frontmatter schema and checks
 name conformance (INV-11) across Treasury, Sites, Tailings, Claims, and Logbook.
-Imports the shared naming validator (naming.md → `~/bin/vault_naming.py`) so
+Imports the shared naming validator (naming.md → `99-Operations/bin/vault_naming.py`) so
 frontmatter rules and name rules share one authority. Run manually or as a pre-commit
 step; exits 1 (`EXIT_VIOLATION`) on any violation so CI can block merges. Root and the
 `PILLARS`/`GRADES`/`KNOWLEDGE_STAGES` vocabularies resolve via the shared `vault_lib`

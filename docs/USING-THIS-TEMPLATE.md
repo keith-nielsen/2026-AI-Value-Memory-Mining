@@ -131,16 +131,16 @@ python3 - << 'EOF'
 import re, pathlib, frontmatter, os
 note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 m = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M)
-target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+target = pathlib.Path("99-Operations/bin/vault-render.py")
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(m.group(1)); target.chmod(0o755)
 print(f"bootstrapped -> {target}")
 EOF
 
 # 4. deploy all scripts, emit naming-rules.json, verify zero drift
-python3 ~/bin/vault-render.py render
-python3 ~/bin/vault_naming.py
-python3 ~/bin/vault-render.py reconcile
+python3 99-Operations/bin/vault-render.py render
+python3 99-Operations/bin/vault_naming.py
+python3 99-Operations/bin/vault-render.py reconcile
 ```
 
 ---
@@ -228,8 +228,8 @@ daily note itself) went unread and stale. A cadence a framework cannot install i
 Run what you need, when you need it:
 
 ```bash
-python3 ~/bin/vault-refine-detect.py   # when you are about to refine
-python3 ~/bin/vault-render.py reconcile  # when a script note changed
+python3 99-Operations/bin/vault-refine-detect.py   # when you are about to refine
+python3 99-Operations/bin/vault-render.py reconcile  # when a script note changed
 ```
 
 If you want a cadence, own it deliberately — in your own crontab, your harness, or your habit. The
@@ -262,7 +262,7 @@ your inbox tidy), and how to trigger the maintenance scripts from inside Obsidia
 | Pillars | `99-Operations/config.env` → `PILLARS=...`; update Catalog indexes |
 | Grade gate | `config.env` → `REFINE_GATE_GRADES=...` (default: `silver gold`) |
 | Script behaviour | Edit the code block in the relevant `99-Operations/scripts/*.md` note, re-run `render`; verify with `reconcile` |
-| `~/bin` location | Change `deploy_target` values in script notes if you use a different local bin path |
+| Fleet location | **Not customizable, by design.** Every `deploy_target` must resolve inside the tree — a vault whose fleet lives elsewhere is not standalone (F15), and two vaults sharing one external directory make version skew unrepresentable. The `Standalone-vault lint` refuses an out-of-tree target. |
 
 **There are no cron schedules to customize.** `render` deploys code and marks it executable; it
 installs no schedules, and nothing reads a `schedule:` field. No script declares a `cron` runtime —
@@ -306,13 +306,13 @@ Then run any operation:
 
 | Task | Command |
 |------|---------|
-| Lint the vault | `python3 ~/bin/vault-lint.py` |
-| Find orphaned Treasury notes | `python3 ~/bin/vault-orphans.py` |
+| Lint the vault | `python3 99-Operations/bin/vault-lint.py` |
+| Find orphaned Treasury notes | `python3 99-Operations/bin/vault-orphans.py` |
 | Slag an effort | Set frontmatter, then `vault-slag.sh <slug>` |
 | Dump a husk | `vault-dump.sh <slug>` |
-| Re-prospect Tailings | `python3 ~/bin/vault-reprospect.py` |
-| Check for drift | `python3 ~/bin/vault-render.py reconcile` |
-| Re-deploy after source edit | `python3 ~/bin/vault-render.py render` |
+| Re-prospect Tailings | `python3 99-Operations/bin/vault-reprospect.py` |
+| Check for drift | `python3 99-Operations/bin/vault-render.py reconcile` |
+| Re-deploy after source edit | `python3 99-Operations/bin/vault-render.py render` |
 
 (`vault-slag.sh` and `vault-dump.sh` need only `VAULT_ROOT`; the others read the
 vocab variables too — sourcing `config.env` covers all of them.)

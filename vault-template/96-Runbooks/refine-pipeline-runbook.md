@@ -23,7 +23,7 @@ No other actor or path writes the Treasury.
 
 ## Steps
 
-1. `[script]` `~/bin/vault-refine-detect.py` — writes the queue to
+1. `[script]` `99-Operations/bin/vault-refine-detect.py` — writes the queue to
    `20-Claims/_refine-queue.json` (gitignored); prints `queued N`.
 2. `[agent]` For each queued Site: author a proposal JSON into `20-Claims/_refine-proposals/`
    per `99-Operations/schemas/refine-prompt-contract.md` (`target_note` under `40-Treasury/`,
@@ -32,12 +32,12 @@ No other actor or path writes the Treasury.
    AI in the pipeline.
 3. `[gate]` **Human review**: move accepted proposals from `_refine-proposals/` to
    `_refine-approved/`. The move *is* the approval — no agent may perform it.
-4. `[script]` `~/bin/vault-refine-execute.py` — pre-flights each proposal whole (schema,
+4. `[script]` `99-Operations/bin/vault-refine-execute.py` — pre-flights each proposal whole (schema,
    containment, INV-11 stem, INV-9 create-never-overwrites, vocab, link targets); banks each
    pass as **one atomic commit** (`bank: <stem>` — note + Catalog links + consumed proposal);
    REJECTs print all reasons, write nothing, and leave the proposal in place; any reject → exit 1.
-5. `[human]` Dispose the husk: verify the Treasury entry, then `~/bin/vault-dump.sh <slug>`
-   (→ `71-Spoil/`) — or `~/bin/vault-slag.sh <slug>` if the effort was uneconomic instead.
+5. `[human]` Dispose the husk: verify the Treasury entry, then `99-Operations/bin/vault-dump.sh <slug>`
+   (→ `71-Spoil/`) — or `99-Operations/bin/vault-slag.sh <slug>` if the effort was uneconomic instead.
 
 ## Pitfalls
 
@@ -54,7 +54,7 @@ No other actor or path writes the Treasury.
 
 - `git log` shows one `bank: <stem>` commit per applied proposal, containing exactly the note,
   its Catalog indexes, and the consumed proposal.
-- `~/bin/vault-lint.py` exits 0; `~/bin/vault-orphans.py` reports no new orphan.
+- `99-Operations/bin/vault-lint.py` exits 0; `99-Operations/bin/vault-orphans.py` reports no new orphan.
 
 ## Rollback
 

@@ -101,17 +101,17 @@ commit history rather than a second source.
 
 | Script note | Deploy target | Runtime | Purpose |
 |---|---|---|---|
-| `render-reconcile-script.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
-| `knowledge-lint-script.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
-| `treasury-orphan-script.md` | `~/bin/vault-orphans.py` | manual | Report Treasury notes not linked from any Catalog index (INV-12); detection only |
-| `secret-scan-script.md` | `~/bin/vault_secrets.py` | manual / pre-commit | Credential-format scanner (INV-7, ADR-0036): tiered patterns over staged content, a path set, or the object DB; `--selftest` proves the patterns fire |
-| `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
-| `bank-execute-script.md` | `~/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury; one atomic commit per banked proposal (`bank: <stem>`) |
-| `spoil-dump-script.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
-| `site-slag-script.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
-| `tailings-reprospect-script.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
-| `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
-| `vault-lib-script.md` | `~/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
+| `render-reconcile-script.md` | `99-Operations/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to their in-tree targets; detect drift |
+| `knowledge-lint-script.md` | `99-Operations/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
+| `treasury-orphan-script.md` | `99-Operations/bin/vault-orphans.py` | manual | Report Treasury notes not linked from any Catalog index (INV-12); detection only |
+| `secret-scan-script.md` | `99-Operations/bin/vault_secrets.py` | manual / pre-commit | Credential-format scanner (INV-7, ADR-0036): tiered patterns over staged content, a path set, or the object DB; `--selftest` proves the patterns fire |
+| `ore-detect-script.md` | `99-Operations/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
+| `bank-execute-script.md` | `99-Operations/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury; one atomic commit per banked proposal (`bank: <stem>`) |
+| `spoil-dump-script.md` | `99-Operations/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
+| `site-slag-script.md` | `99-Operations/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
+| `tailings-reprospect-script.md` | `99-Operations/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
+| `naming-rules-script.md` | `99-Operations/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
+| `vault-lib-script.md` | `99-Operations/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
 | `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
@@ -202,7 +202,7 @@ caller's environment.
 
 #### Scenario: A drive-path script runs bare with no pre-sourced environment
 - **WHEN** a rendered drive-path script is invoked by its bare exact form (e.g.
-  `~/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
+  `99-Operations/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
 - **THEN** it resolves the vault root via the config marker walk and completes normally
 - **WHEN** the same invocation happens with no `VAULT_ROOT` and cwd outside any vault
 - **THEN** it prints a `BLOCKED:` line and exits `3`
@@ -245,7 +245,7 @@ caller's environment.
 ### Requirement: Refine Executor Pre-Flight and Batch Isolation
 
 The refine executor SHALL validate every approved proposal whole, before any write. It is the
-sole automated writer of `40-Treasury/` (`bank-execute-script` → `~/bin/vault-refine-execute.py`),
+sole automated writer of `40-Treasury/` (`bank-execute-script` → `99-Operations/bin/vault-refine-execute.py`),
 and its pre-flight MUST cover:
 
 - **Schema:** required fields present with correct types (`target_note`, `mode`, `insight_md`,
@@ -533,7 +533,8 @@ a stem rather than stems themselves (ADR-0029).
 The framework repo SHALL provide a deterministic, offline, detection-only tool that verifies a
 deployed vault's LOCKSTEP scaffold is byte-identical to what the repo's `vault-template/` ships, so
 a post-merge mirror can be proven complete rather than assumed. It answers the axis `reconcile`
-cannot: `reconcile` compares a script note to its deployed `~/bin` target (note → host); this
+cannot: `reconcile` compares a script note to its deployed target, wherever its own
+`deploy_target` declares (note → deployed copy); this
 compares repo-shipped scaffold to live-deployed scaffold (template → vault). It is a
 maintainer/mirror-time check — NOT part of the deployed vault (which is standalone and never
 references the repo) and NOT a CI gate (CI has no live vault to compare against).
@@ -731,7 +732,7 @@ SHALL exit with a distinct status of **4** and a message that names the path, st
 traceback for this case, and SHALL re-raise any other `OSError` unchanged.
 
 The denial itself is correct and is not relaxed: `vault-render.py render` writes only
-`deploy_target`s (`~/bin/`, `99-Operations/hooks/`, `.claude/hooks/`) and `vault_naming.py` in emit
+`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py` in emit
 mode writes only `99-Operations/schemas/naming-rules.json` — all areas the matrix marks `A: —` or
 places outside the vault. What changes is legibility. A bare traceback carries no signal that the
 failure is intentional, so the reader's first hypothesis is a broken deploy, a missing dependency, or a

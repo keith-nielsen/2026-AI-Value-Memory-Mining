@@ -302,7 +302,7 @@ reduced-trust and must be declared, not assumed equivalent.
 
 #### Scenario: Driving a script is permitted only by exact invocation
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
-  `~/bin/vault-refine-execute.py`)
+  `99-Operations/bin/vault-refine-execute.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
 
 #### Scenario: Opening a protected area requires a governed change
@@ -316,7 +316,7 @@ reduced-trust and must be declared, not assumed equivalent.
 INV-7 SHALL be enforced mechanically at the commit boundary, not asserted as a prohibition and
 verified by inspecting configuration.
 
-A credential-format scanner (`~/bin/vault_secrets.py`, rendered from
+A credential-format scanner (`99-Operations/bin/vault_secrets.py`, rendered from
 `99-Operations/scripts/secret-scan-script.md`) SHALL classify matches into two tiers:
 
 - **HIGH** — anchored vendor token formats whose false-positive rate is effectively zero.

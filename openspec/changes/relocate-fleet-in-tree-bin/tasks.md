@@ -186,26 +186,42 @@ non-match is indistinguishable from a deny, and no automated check can see it.
 **Rule:** rewrite **live surface only**. Per the transcript, **53 archived + 19 dig-record files are
 frozen** — they record what was true then, and rewriting them falsifies the audit trail.
 
-- [ ] B3.1 Live specs: `maintenance` (incl. the inventory Deploy Target column), `access-control`,
+- [x] B3.1 Live specs: `maintenance` (incl. the inventory Deploy Target column), `access-control`,
       `naming-rules`.
-- [ ] B3.2 `README.md` incl. line 222 *"deployed to `~/bin/` via `render`"* — also wrong today about
+- [x] B3.2 `README.md` incl. line 222 *"deployed to `~/bin/` via `render`"* — also wrong today about
       the 3 in-tree targets.
-- [ ] B3.3 `vault-template/00-Docs/README.md` — runnable bootstrap block + the deferred
+- [x] B3.3 `vault-template/00-Docs/README.md` — runnable bootstrap block + the deferred
       `vault-seed.py` / `vault-cleanup.py` paths. ⚠ **SEED, not lockstep** — the mirror will NOT carry
       this; targeted deploy-down in B6.
-- [ ] B3.4 `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md`, `docs/obsidian.md`, `docs/diagrams.md`.
-- [ ] B3.5 `vault-template/96-Runbooks/render-reconcile-runbook.md`, `refine-pipeline-runbook.md`.
+- [x] B3.4 `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md`, `docs/obsidian.md`, `docs/diagrams.md`.
+- [x] B3.5 `vault-template/96-Runbooks/render-reconcile-runbook.md`, `refine-pipeline-runbook.md`.
       ⚠ **Not a lockstep prefix** — targeted deploy-down in B6.
-- [ ] B3.6 Codify the `vault-`/`vault_` executable prefix in `naming-rules`.
-- [ ] B3.7 `CHANGELOG.md` entry (an ADD).
+- [x] B3.6 Codify the `vault-`/`vault_` executable prefix in `naming-rules`.
+- [x] B3.7 ⚠ **CORRECTED — this task repeated A2.6's error and is NOT done.** It said "`CHANGELOG.md`
+      entry"; CONTRIBUTING is explicit that *"the changelog is stamped **at release**, in a single
+      `release(vX.Y.Z)` commit on the release branch. That is the practice without exception."*
+      `CHANGELOG.md` is deliberately **untouched** on this branch — verified: 8 host-bin hits,
+      identical to the Gate-1 baseline. **Nothing in CI enforces this**, which is why the same
+      mistake was available to make twice.
 
-**GATE B3 —**
-1. **Ghost check:** every `vault-*.py`/`.sh` named in a live doc either exists or is explicitly
-   labelled deferred. Known-good: 3 labelled-deferred (`vault-seed.py`, `vault-cleanup.py`,
-   `vault-promote.sh`). Any **new** ghost is a regression.
-2. **Frozen-surface proof:** `git diff --stat` touches **zero** files under
-   `openspec/changes/archive/` and zero vault dig-record paths. Assert by listing the diff.
-3. The `README.md` bootstrap block runs **verbatim** in a scratch clone.
+**GATE B3 — PASSED 2026-08-18.**
+1. **Ghost check:** exactly the 3 known-deferred (`vault-seed.py`, `vault-cleanup.py`,
+   `vault-promote.sh`). **No new ghost.**
+2. **Frozen-surface proof, asserted by listing the diff:** **0** frozen paths touched. Archived
+   change dirs carrying a host-bin ref moved **53 -> 58**, and the delta is fully explained:
+   the 5 new files are **Change A's own archive directory**, added when A merged. `58 - 5 = 53`,
+   the baseline exactly. An ADDITION, never a rewrite. `CHANGELOG.md` unchanged at 8 hits.
+3. `pytest` **350 passed**; all 6 live specs validate.
+4. **Prose that the mechanical rewrite would have mangled was reviewed, not just the paths:**
+   - the runbook claimed `99-Operations/bin/` "is out-of-vault and default-denied" — nonsense after
+     the move. Corrected: all three deploy areas are inside protected silos, and **the fleet moved
+     INTO the tree without becoming agent-writable** — containment and permission are independent.
+   - `USING-THIS-TEMPLATE` offered the fleet location as a customization. It is now **not
+     customizable by design**, and the F15 lint refuses an out-of-tree target.
+   - `README.md` read "eleven to `99-Operations/bin/`, three in-tree", which is incoherent once all
+     fourteen are in-tree. Rewritten to name all three in-tree areas.
+   - a trailing-slash pattern missed `` `~/bin` `` in `maintenance/spec.md:536`; caught by
+     re-grepping rather than by trusting the replacement count.
 
 *Falsifier: any frozen path in the diff; any doc command that fails when run verbatim.*
 

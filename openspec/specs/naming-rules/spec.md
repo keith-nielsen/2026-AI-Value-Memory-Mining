@@ -100,7 +100,7 @@ The JSON MUST contain: `slug_pattern`, `forbidden_chars`, `reserved_names`, `min
 `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`.
 
 #### Scenario: naming-rules.json is generated correctly
-- **WHEN** `python3 ~/bin/vault_naming.py` is run with no arguments
+- **WHEN** `python3 99-Operations/bin/vault_naming.py` is run with no arguments
 - **THEN** it writes `naming-rules.json` containing `slug_pattern`, `forbidden_chars`, `reserved_names`, `min_hyphen_tokens`, `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`
 
 ### Requirement: Token-Minimum Naming (≥3, silo-section-descriptor)
@@ -226,3 +226,39 @@ rename pass.
 - **THEN** the executor's whole-proposal pre-flight records a floor violation
 - **THEN** it exits `EXIT_VIOLATION` and **no** file is written under `40-Treasury/`
 - **THEN** the executor is never left half-applied by a gate rejection at commit time
+
+### Requirement: Fleet Executables Carry The Vault Prefix
+
+Every rendered fleet executable SHALL be named with a `vault-` or `vault_` prefix.
+
+The fleet's deploy directory is placed on the executable search path by the vault's configuration, so
+its names share a namespace with every other executable a shell can reach. Measured across every
+directory on a representative operator's path, the operation has **zero** name collisions, and the
+prefix is the sole reason — an accident that was never written down until it was about to matter.
+`vault` is a widely installed binary name, so the collision the prefix prevents is realistic rather
+than theoretical.
+
+The path contribution SHALL be **appended, not prepended**, and SHALL be idempotent under repeated
+sourcing. Prepending would give fleet executables precedence over system binaries throughout any
+shell that sourced the configuration — surface bought for nothing, since the prefix already
+guarantees no collision. A non-idempotent contribution accumulates a duplicate entry on every
+re-source, and the configuration is sourced by hand once per shell, so re-sourcing is ordinary rather
+than exceptional.
+
+The contribution SHALL come from the vault's own configuration only, never from a shell profile, so
+it is scoped to shells that opt in and ends when they exit.
+
+#### Scenario: An unprefixed fleet executable is refused
+
+- **WHEN** a script note declares a `deploy_target` whose basename lacks a `vault-` or `vault_` prefix
+- **THEN** the naming check fails, naming the note and the offending target
+
+#### Scenario: Repeated sourcing does not duplicate the path entry
+
+- **WHEN** the vault configuration is sourced three times in one shell
+- **THEN** the deploy directory appears exactly once on the executable search path
+
+#### Scenario: The fleet does not shadow a system binary
+
+- **WHEN** the vault configuration has been sourced
+- **THEN** the deploy directory appears **after** the system directories on the search path
