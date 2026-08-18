@@ -104,13 +104,13 @@ python3 - <<'PY'
 import re, os, pathlib, frontmatter
 note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M).group(1)
-out = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+out = pathlib.Path("99-Operations/bin/vault-render.py")
 out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
 print("bootstrapped", out)
 PY
 
-python3 ~/bin/vault-render.py render               # deploy all scripts
-python3 ~/bin/vault_naming.py                      # emit naming-rules.json
+python3 99-Operations/bin/vault-render.py render               # deploy all scripts
+python3 99-Operations/bin/vault_naming.py                      # emit naming-rules.json
 git config core.hooksPath 99-Operations/hooks      # activate commit gate
 ```
 
@@ -126,7 +126,7 @@ When ready to investigate, create a Site folder in `30-Sites/<slug>/` with an
 ### 4. Check for drift (ongoing)
 
 ```bash
-python3 ~/bin/vault-render.py reconcile
+python3 99-Operations/bin/vault-render.py reconcile
 ```
 
 ---
@@ -138,8 +138,8 @@ stored in `99-Operations/scripts/`. These are intentionally deferred — see the
 build PRD (§14) for details. Once built, invoke them as:
 
 ```bash
-python3 ~/bin/vault-seed.py       # populate with example efforts
-python3 ~/bin/vault-cleanup.py    # remove example data
+python3 99-Operations/bin/vault-seed.py       # populate with example efforts
+python3 99-Operations/bin/vault-cleanup.py    # remove example data
 ```
 
 ---

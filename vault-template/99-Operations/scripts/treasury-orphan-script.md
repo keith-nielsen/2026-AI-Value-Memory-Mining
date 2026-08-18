@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault-orphans.py
+deploy_target: 99-Operations/bin/vault-orphans.py
 runtime: manual
 class: script
 created: 2026-06-14
@@ -17,7 +17,8 @@ invocation works without a pre-sourced environment.
 ```python
 #!/usr/bin/env python3
 import pathlib, re, sys
-sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+sys.dont_write_bytecode = True                                    # no __pycache__ in a governed silo
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # co-located siblings; no $HOME
 from vault_lib import find_vault_root  # vault-lib-script.md
 vault = find_vault_root()
 index_text = "\n".join(p.read_text() for p in (vault / "40-Treasury" / "Catalog").glob("*.md"))

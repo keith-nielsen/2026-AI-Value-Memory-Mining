@@ -34,13 +34,13 @@ SETTINGS_FILES = [
 SCRIPT_PATH = re.compile(r"[\w$./~{}-]+\.(?:py|sh)")
 
 
-def deploy_target_basenames():
-    """Ground truth: the artifact each note deploys, by basename."""
+def deploy_targets():
+    """Ground truth: the FULL declared deploy_target of each note, not just its basename."""
     out = set()
     for note in NOTES_DIR.glob("*-script.md"):
         m = re.search(r"^deploy_target:\s*(.+?)\s*$", note.read_text(), re.M)
         if m:
-            out.add(pathlib.PurePosixPath(m.group(1).strip().strip("\"'")).name)
+            out.add(m.group(1).strip().strip("\"'"))
     return out
 
 
@@ -65,20 +65,45 @@ def script_paths_in(settings_path):
 
 def test_ground_truth_is_discoverable():
     """Guard the guard: with no deploy targets, every assertion below passes vacuously."""
-    targets = deploy_target_basenames()
+    targets = deploy_targets()
     assert targets, f"no deploy_target found under {NOTES_DIR} — assertions would be vacuous"
 
 
+def _normalise(raw):
+    """Strip the harness variable prefix and any leading ./ so a declared path can be
+    compared by its PATH, not merely by its last component."""
+    s = raw.strip().strip('"').strip("'")
+    for prefix in ("$CLAUDE_PROJECT_DIR/", "${CLAUDE_PROJECT_DIR}/", "./"):
+        if s.startswith(prefix):
+            s = s[len(prefix):]
+    return s
+
+
 def test_every_settings_script_path_resolves_to_a_deploy_target():
-    targets = deploy_target_basenames()
+    """Compared by PATH SUFFIX, never by basename.
+
+    ⚠ The first cut of this test compared basenames, and was measured FALSE-NEGATIVE on
+    2026-08-18: with the exclusion still naming `~/bin/vault-refine-execute.py` while the
+    deploy target had moved to `99-Operations/bin/vault-refine-execute.py`, it PASSED. The
+    two differ in every component except the last — which is precisely the mismatch this
+    test exists to catch, and precisely what a relocation produces.
+
+    A suffix match still tolerates a legitimate absolute or variable-rooted prefix
+    (`$CLAUDE_PROJECT_DIR/...`) while refusing a path that lives somewhere else entirely.
+    """
+    targets = deploy_targets()
     unresolved = []
 
     for settings in SETTINGS_FILES:
         if not settings.exists():
             continue
         for where, raw in script_paths_in(settings):
-            if pathlib.PurePosixPath(raw).name not in targets:
-                unresolved.append(f"{settings.relative_to(REPO)} at {where}: {raw!r}")
+            candidate = _normalise(raw)
+            if not any(candidate == t or candidate.endswith("/" + t) for t in targets):
+                unresolved.append(
+                    f"{settings.relative_to(REPO)} at {where}: {raw!r} "
+                    f"matches no declared deploy_target by path"
+                )
 
     assert not unresolved, (
         f"{len(unresolved)} settings path(s) name an artifact that no script note deploys. "

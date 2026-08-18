@@ -91,7 +91,7 @@ The deterministic scripts (`lint`, `reconcile`, `orphans`, …) normally
 run from the CLI or cron. To trigger them from inside Obsidian, use the community
 **Shell Commands** plugin — with one wrinkle if Obsidian is a **Flatpak**:
 
-A Flatpak sandbox can't see the host `python3` + `frontmatter` or `~/bin`, so you must
+A Flatpak sandbox can't see the host `python3` + `frontmatter` or `99-Operations/bin`, so you must
 bounce to the host. Grant host access once:
 
 ```bash
@@ -101,7 +101,7 @@ flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian
 Then define commands like:
 
 ```
-flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 ~/bin/vault-lint.py'
+flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 99-Operations/bin/vault-lint.py'
 ```
 
 Bind them to hotkeys. Good candidates: `lint`, `reconcile`, `orphans`.

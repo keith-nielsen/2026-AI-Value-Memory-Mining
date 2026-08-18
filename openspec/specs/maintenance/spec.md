@@ -101,17 +101,17 @@ commit history rather than a second source.
 
 | Script note | Deploy target | Runtime | Purpose |
 |---|---|---|---|
-| `render-reconcile-script.md` | `~/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to host targets; detect drift |
-| `knowledge-lint-script.md` | `~/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
-| `treasury-orphan-script.md` | `~/bin/vault-orphans.py` | manual | Report Treasury notes not linked from any Catalog index (INV-12); detection only |
-| `secret-scan-script.md` | `~/bin/vault_secrets.py` | manual / pre-commit | Credential-format scanner (INV-7, ADR-0036): tiered patterns over staged content, a path set, or the object DB; `--selftest` proves the patterns fire |
-| `ore-detect-script.md` | `~/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
-| `bank-execute-script.md` | `~/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury; one atomic commit per banked proposal (`bank: <stem>`) |
-| `spoil-dump-script.md` | `~/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
-| `site-slag-script.md` | `~/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
-| `tailings-reprospect-script.md` | `~/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
-| `naming-rules-script.md` | `~/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
-| `vault-lib-script.md` | `~/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
+| `render-reconcile-script.md` | `99-Operations/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to their in-tree targets; detect drift |
+| `knowledge-lint-script.md` | `99-Operations/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
+| `treasury-orphan-script.md` | `99-Operations/bin/vault-orphans.py` | manual | Report Treasury notes not linked from any Catalog index (INV-12); detection only |
+| `secret-scan-script.md` | `99-Operations/bin/vault_secrets.py` | manual / pre-commit | Credential-format scanner (INV-7, ADR-0036): tiered patterns over staged content, a path set, or the object DB; `--selftest` proves the patterns fire |
+| `ore-detect-script.md` | `99-Operations/bin/vault-refine-detect.py` | manual | Queue ore whose grade cleared the Sort gate |
+| `bank-execute-script.md` | `99-Operations/bin/vault-refine-execute.py` | manual | Apply approved proposals from `_refine-approved/`; writes Treasury; one atomic commit per banked proposal (`bank: <stem>`) |
+| `spoil-dump-script.md` | `99-Operations/bin/vault-dump.sh` | manual | Move a spent husk to `71-Spoil/`; one commit |
+| `site-slag-script.md` | `99-Operations/bin/vault-slag.sh` | manual | Move an uneconomic effort to `70-Tailings/`; one commit |
+| `tailings-reprospect-script.md` | `99-Operations/bin/vault-reprospect.py` | manual | List slagged efforts for re-evaluation; detection only |
+| `naming-rules-script.md` | `99-Operations/bin/vault_naming.py` | manual | Naming validator SSOT; also emits `naming-rules.json` |
+| `vault-lib-script.md` | `99-Operations/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
 | `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
@@ -129,9 +129,16 @@ The **`publish-manifest.json`** schema (`99-Operations/schemas/`) is a language-
 allowlist of publishable framework paths, consumed by `push-guard-script` and by any future
 public-export/mirror tool.
 
-Sibling scripts import the shared modules (`vault_naming`, `vault_lib`) from `~/bin` via
-`sys.path.insert(0, str(pathlib.Path.home() / "bin"))`; the underscore module names mark
-importable libraries (the `vault_naming` precedent).
+Sibling scripts import the shared modules (`vault_naming`, `vault_lib`) from **their own
+directory** via `sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))`; the underscore
+module names mark importable libraries (the `vault_naming` precedent).
+
+Resolution is from the executing file's location, never from `$HOME` or an environment variable.
+Under ordinary invocation the interpreter already places the script's directory first, so a
+home-relative insert is redundant and merely *appears* to be the mechanism. It stops being
+redundant exactly where it also stops being correct: with the script-directory prepend disabled
+(`python3 -P`) or when a fleet member is imported rather than executed, the home-relative path is
+the only resolver — and it names a location the fleet no longer occupies.
 
 #### Scenario: Retiring a script removes its deploy target in lockstep
 - **WHEN** a script note is removed from the inventory
@@ -195,7 +202,7 @@ caller's environment.
 
 #### Scenario: A drive-path script runs bare with no pre-sourced environment
 - **WHEN** a rendered drive-path script is invoked by its bare exact form (e.g.
-  `~/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
+  `99-Operations/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
 - **THEN** it resolves the vault root via the config marker walk and completes normally
 - **WHEN** the same invocation happens with no `VAULT_ROOT` and cwd outside any vault
 - **THEN** it prints a `BLOCKED:` line and exits `3`
@@ -238,7 +245,7 @@ caller's environment.
 ### Requirement: Refine Executor Pre-Flight and Batch Isolation
 
 The refine executor SHALL validate every approved proposal whole, before any write. It is the
-sole automated writer of `40-Treasury/` (`bank-execute-script` → `~/bin/vault-refine-execute.py`),
+sole automated writer of `40-Treasury/` (`bank-execute-script` → `99-Operations/bin/vault-refine-execute.py`),
 and its pre-flight MUST cover:
 
 - **Schema:** required fields present with correct types (`target_note`, `mode`, `insight_md`,
@@ -526,7 +533,8 @@ a stem rather than stems themselves (ADR-0029).
 The framework repo SHALL provide a deterministic, offline, detection-only tool that verifies a
 deployed vault's LOCKSTEP scaffold is byte-identical to what the repo's `vault-template/` ships, so
 a post-merge mirror can be proven complete rather than assumed. It answers the axis `reconcile`
-cannot: `reconcile` compares a script note to its deployed `~/bin` target (note → host); this
+cannot: `reconcile` compares a script note to its deployed target, wherever its own
+`deploy_target` declares (note → deployed copy); this
 compares repo-shipped scaffold to live-deployed scaffold (template → vault). It is a
 maintainer/mirror-time check — NOT part of the deployed vault (which is standalone and never
 references the repo) and NOT a CI gate (CI has no live vault to compare against).
@@ -724,7 +732,7 @@ SHALL exit with a distinct status of **4** and a message that names the path, st
 traceback for this case, and SHALL re-raise any other `OSError` unchanged.
 
 The denial itself is correct and is not relaxed: `vault-render.py render` writes only
-`deploy_target`s (`~/bin/`, `99-Operations/hooks/`, `.claude/hooks/`) and `vault_naming.py` in emit
+`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py` in emit
 mode writes only `99-Operations/schemas/naming-rules.json` — all areas the matrix marks `A: —` or
 places outside the vault. What changes is legibility. A bare traceback carries no signal that the
 failure is intentional, so the reader's first hypothesis is a broken deploy, a missing dependency, or a
@@ -1866,4 +1874,76 @@ An uncovered fleet member is code whose relocation, refactor or retirement nothi
 #### Scenario: A detection-only member is proven not to mutate
 - **WHEN** a detection-only fleet member runs against a fixture vault
 - **THEN** it reports its findings, and the vault's git status and commit count are unchanged
+
+### Requirement: The Rendered Fleet Deploys Inside The Tree It Serves
+
+Every Layer-0 script note SHALL declare a `deploy_target` that resolves **inside the vault tree**. No
+`deploy_target` SHALL name a path outside it, including any path under the invoking user's home
+directory.
+
+A deployed vault is standalone (F15). A vault whose operational fleet is installed into a user-global
+location is a tree plus a side-load: two vaults, or a vault and a fork at a different version, share
+one installation directory and the last render silently wins, with no way to tell. Containment SHALL
+be structural rather than conventional, because the existing standalone lint inspects only
+framework-repo references and cannot observe a host-path deploy target.
+
+A user-global installation directory is also **not reliably on the executable search path**. Where
+the path is contributed by a login-shell profile, a non-login shell — the shell used by scheduled
+jobs, remote command invocation, and most tooling — does not receive it, so the fleet is present and
+unreachable in exactly the environments that cannot be interactively corrected.
+
+Fleet members SHALL resolve sibling modules from **their own location** — the directory containing
+the executing file — and SHALL NOT resolve them through an environment variable or the invoking
+user's home directory. ADR-0023 established root self-resolution for the same reason: a fleet that
+depends on a caller's environment fails in the environments that have none.
+
+Fleet members SHALL NOT write bytecode into the deployed location. Generated bytecode inside a
+protected silo is ungoverned content that no drift check can observe: `reconcile` iterates notes, so
+a compiled artifact whose source note has been retired persists invisibly.
+
+The deploy directory SHALL be contributed to the executable search path by the vault's own
+configuration only, never by a shell profile, so the contribution is scoped to shells that opt in and
+ends when they exit.
+
+#### Scenario: A note declaring a host deploy target is refused
+- **WHEN** a script note declares a `deploy_target` outside the vault tree
+- **THEN** the standalone lint fails, naming the note and the offending target
+
+#### Scenario: The fleet runs with no usable home directory
+- **WHEN** a fleet member that imports a sibling module is invoked with `HOME` set to a nonexistent path
+- **THEN** it resolves its sibling and completes normally
+
+#### Scenario: The fleet is reachable from a non-login shell
+- **WHEN** the vault configuration is sourced in a non-login shell
+- **THEN** every fleet member is reachable by name
+
+#### Scenario: A fleet run leaves no bytecode in the deployed location
+- **WHEN** every Python fleet member has been invoked at least once
+- **THEN** no `__pycache__` directory exists in the deploy directory
+
+### Requirement: Render Output Is Not Tracked And Not Mirror-Compared
+
+The deploy directory SHALL be excluded from version control, and SHALL NOT be declared a lockstep
+prefix for template↔vault parity comparison.
+
+Its contents are **generated output whose single source is the script notes**. Tracking them would
+give one piece of code two homes — the note and its committed copy — which is the duplication the
+literate meta-script model exists to prevent (INV-3), and would make every render a diff to review.
+Declaring it a lockstep prefix would compare a template that ships generators against a vault that
+holds their output, reporting permanent drift; the template ships the generator, not its output, and
+the existing exclusion of the generated naming schema is the same case.
+
+The division of responsibility SHALL be: parity compares hand-maintained scaffold; render/reconcile
+compares generated output against the note that produced it. Neither substitutes for the other.
+
+The exclusion SHALL name the generated output directory specifically, never a parent that also holds
+tracked scaffold, because a blanket rule silently hides the next artifact deployed beneath it.
+
+#### Scenario: A render leaves the working tree clean
+- **WHEN** `render` deploys the full fleet into a vault with no other pending changes
+- **THEN** the vault's version-control status reports no modifications
+
+#### Scenario: Parity is unaffected by the deploy directory
+- **WHEN** template↔vault parity runs after a render
+- **THEN** it reports zero drift and does not compare the deploy directory
 

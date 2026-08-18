@@ -95,8 +95,8 @@ silo stays kernel-denied, and whether it becomes an agent working area is a sepa
 decision (a write-scope widening on the ADR-0025 model) — not an assumption to make.
 
 **Drive contract:** to run a `[script]` step, invoke the rendered script by its **bare exact
-invocation** (e.g. `~/bin/vault-refine-execute.py`) — that form is sandbox-excluded so the script can
-write what it owns. An interpreter-prefixed (`python3 ~/bin/…`), chained, or relative invocation runs
+invocation** (e.g. `99-Operations/bin/vault-refine-execute.py`) — that form is sandbox-excluded so the script can
+write what it owns. An interpreter-prefixed (`python3 99-Operations/bin/…`), chained, or relative invocation runs
 *sandboxed* and its protected writes fail closed. The sandbox is a fence you operate inside, not a
 gate you acknowledge; a kernel denial means *surface it to the operator*, never route around it.
 
@@ -186,7 +186,7 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   `schemas/`) repo → live, one direction only, never deletes, and ends by re-deriving and printing
   the same parity tally `tools/template-parity.py <VAULT_ROOT>` prints on its own (run that alone
   any time you only need to *check*, not fix). `reconcile` does NOT cover this axis (it is
-  note → `~/bin`, not template → live).
+  note → `99-Operations/bin`, not template → live).
 - **A checklist step that says *enumerate* or *verify* is satisfied only by a pasted,
   re-runnable command transcript** — the command plus its full output, never a list or a
   verdict composed from reasoning, and never `head`/`tail`-truncated (narrowing the output

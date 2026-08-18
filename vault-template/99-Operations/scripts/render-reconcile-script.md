@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault-render.py
+deploy_target: 99-Operations/bin/vault-render.py
 runtime: manual
 class: script
 created: 2026-06-14
@@ -63,9 +63,11 @@ for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
             if exc.errno != errno.EROFS:
                 raise
             # Denied by design, not broken. EVERY deploy_target lives in an area the
-            # Area Access Matrix withholds from the agent (~/bin is out-of-vault;
-            # 99-Operations/ and .claude/ are A:-), so a sandboxed agent can render
-            # NOTHING. Without this branch the reader sees a bare traceback and debugs
+            # Area Access Matrix withholds from the agent (99-Operations/ and .claude/
+            # are A:-), so a sandboxed agent can render NOTHING. Relocating the fleet
+            # INTO 99-Operations/bin/ does not change that: containment and permission
+            # are independent axes, and the agent must not be able to rewrite its own
+            # guards. Without this branch the reader sees a bare traceback and debugs
             # a deploy fault that does not exist. Inline rather than in vault_lib:
             # ADR-0023's bootstrap exception forbids this script importing it.
             print(f"BLOCKED: cannot write {target}")

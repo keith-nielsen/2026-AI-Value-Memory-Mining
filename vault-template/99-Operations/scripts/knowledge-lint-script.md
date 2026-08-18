@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault-lint.py
+deploy_target: 99-Operations/bin/vault-lint.py
 runtime: manual
 class: script
 created: 2026-06-14
@@ -9,7 +9,7 @@ updated: 2026-07-17
 ## Rationale
 Validates Treasury knowledge notes against the §10.1 frontmatter schema and checks
 name conformance (INV-11) across Treasury, Sites, Tailings, Claims, and Logbook.
-Imports the shared naming validator (naming.md → `~/bin/vault_naming.py`) so
+Imports the shared naming validator (naming.md → `99-Operations/bin/vault_naming.py`) so
 frontmatter rules and name rules share one authority. Run manually or as a pre-commit
 step; exits 1 (`EXIT_VIOLATION`) on any violation so CI can block merges. Root and the
 `PILLARS`/`GRADES`/`KNOWLEDGE_STAGES` vocabularies resolve via the shared `vault_lib`
@@ -34,7 +34,8 @@ switch is safe.
 ```python
 #!/usr/bin/env python3
 import sys, pathlib
-sys.path.insert(0, str(pathlib.Path.home() / "bin"))
+sys.dont_write_bytecode = True                                    # no __pycache__ in a governed silo
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # co-located siblings; no $HOME
 from vault_naming import validate_name, is_valid_slug, is_exempt, has_min_hyphen_tokens  # naming.md
 from vault_lib import EXIT_VIOLATION, find_vault_root, fm, vocab
 vault = find_vault_root()

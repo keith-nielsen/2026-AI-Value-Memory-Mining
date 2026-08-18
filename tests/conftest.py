@@ -31,6 +31,12 @@ class Fleet:
     vault: pathlib.Path
     home: pathlib.Path
 
+    @property
+    def bindir(self):
+        """The fleet's deploy directory. ONE definition — tests must not restate the layout,
+        or a relocation has to be applied in as many places as there are tests."""
+        return self.vault / "99-Operations" / "bin"
+
     def env(self, vault_root=True):
         e = dict(os.environ)
         e["HOME"] = str(self.home)
@@ -41,7 +47,7 @@ class Fleet:
 
     def run(self, script, *args, vault_root=True, cwd=None):
         """Invoke a deployed script (`vault-*.py` via PY, `*.sh` via its shebang)."""
-        exe = self.home / "bin" / script
+        exe = self.bindir / script
         cmd = ([PY, str(exe)] if script.endswith(".py") else [str(exe)])
         cmd += [str(a) for a in args]
         return subprocess.run(cmd, cwd=str(cwd or self.vault), env=self.env(vault_root),
@@ -84,12 +90,17 @@ def _render_fleet(source_vault, home):
     """Bootstrap the renderer from its source note, then render every script + hook.
 
     Mirrors validate-scripts.sh: a meta-script note is Markdown, so its code fence is
-    extracted rather than executed. Run with cwd == the vault so the vault-relative hook
-    targets (`99-Operations/hooks/pre-commit`, …) land inside the vault.
+    extracted rather than executed. Run with cwd == the vault so the vault-relative
+    targets (`99-Operations/bin/`, `99-Operations/hooks/pre-commit`, …) land inside it.
+
+    Every deploy target is now IN-TREE, so isolation comes from the throwaway vault alone.
+    The throwaway HOME is retained deliberately: it is no longer an isolation boundary, but
+    it keeps a stray home-relative path in a fleet script from silently resolving against
+    the real one — such a path would be a defect, and this makes it fail loudly.
     """
     import frontmatter  # same dependency the fleet declares
 
-    bindir = home / "bin"
+    bindir = source_vault / "99-Operations" / "bin"
     bindir.mkdir(parents=True, exist_ok=True)
     note = source_vault / "99-Operations" / "scripts" / "render-reconcile-script.md"
     code = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content,

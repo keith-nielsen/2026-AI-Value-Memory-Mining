@@ -26,7 +26,7 @@ Copyright 2026 Keith Nielsen
 
 2. **An OpenSpec SDD showcase** — the repository is itself governed by
    [OpenSpec v1.4.1](openspec/project.md): a formal project spec, a constitution with
-   constitutional protection, 43 ADRs, 6 capability specs, and a live change-management
+   constitutional protection, 44 ADRs, 6 capability specs, and a live change-management
    workflow. It demonstrates what a principled, spec-driven personal-tools project
    looks like.
 
@@ -97,7 +97,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
 │   ├── constitution.md          #   constitutional protection + Informed-Upheaval Protocol
-│   ├── adr/                     #   43 Architecture Decision Records (ADR-0001–0043)
+│   ├── adr/                     #   44 Architecture Decision Records (ADR-0001–0044)
 │   ├── specs/                   #   6 capability specs (vault-structure, value-pipeline, …)
 │   └── changes/                 #   change workflow: archive/, live/, templates/
 │
@@ -197,13 +197,13 @@ python3 - << 'EOF'
 import re, pathlib, frontmatter, os
 note = pathlib.Path("99-Operations/scripts/render-reconcile-script.md")
 m = re.search(r"^```python\n(.*?)^```", frontmatter.load(note).content, re.S | re.M)
-target = pathlib.Path(os.path.expanduser("~/bin/vault-render.py"))
+target = pathlib.Path("99-Operations/bin/vault-render.py")
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(m.group(1)); target.chmod(0o755)
 EOF
 
-python3 ~/bin/vault-render.py render
-python3 ~/bin/vault_naming.py                        # emit naming-rules.json
+python3 99-Operations/bin/vault-render.py render
+python3 99-Operations/bin/vault_naming.py                        # emit naming-rules.json
 
 # 5. Initial commit
 git add -A
@@ -220,7 +220,13 @@ Full walkthrough: [`docs/USING-THIS-TEMPLATE.md`](docs/USING-THIS-TEMPLATE.md)
 
 All scripts are stored as literate meta-script notes in
 `vault-template/99-Operations/scripts/` and deployed via `render` to the `deploy_target` each note
-declares — eleven to `~/bin/`, three in-tree (the two git hooks and the harness guard).
+declares. **Every target is inside the vault tree** — eleven to `99-Operations/bin/`, two git hooks to
+`99-Operations/hooks/`, and the harness guard to `.claude/hooks/`. A deployed vault is standalone
+(F15): it carries its own tools and installs nothing into the user's home.
+
+`99-Operations/bin/` is render OUTPUT and is git-ignored; the source is the notes. It sits inside a
+protected silo, so `render` remains operator-only — the fleet moved into the tree, it did not become
+agent-writable.
 
 Nothing installs a schedule: `render` deploys code and marks it executable, and no script declares a
 `cron` runtime. Every entry below is invoked manually or by the hook that owns it.
@@ -255,7 +261,7 @@ the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 |----------|---------|
 | [`openspec/project.md`](openspec/project.md) | Standing goals, 14 invariants, tech stack |
 | [`openspec/constitution.md`](openspec/constitution.md) | Constitutional protection, Informed-Upheaval Protocol |
-| [`openspec/adr/`](openspec/adr/) | 43 ADRs: framework choice → the driver-emission downgrade |
+| [`openspec/adr/`](openspec/adr/) | 44 ADRs: framework choice → the in-tree fleet relocation |
 | [`openspec/specs/`](openspec/specs/) | 6 capability specs with `protects:` tags |
 | [`openspec/changes/`](openspec/changes/) | 14 archived changes, 1 live (deferred), override template |
 

@@ -308,7 +308,7 @@ flowchart TD
 flowchart LR
     SRC>99-Operations/scripts/*.md<br/>literate meta-script notes]:::infra
     REN[render<br/>user-invoked]:::human
-    HOST>~/bin/vault-*.py<br/>deployed artifacts]:::infra
+    HOST>99-Operations/bin/vault-*.py<br/>deployed artifacts]:::infra
     REC[reconcile]:::script
     OK([✓ ok<br/>in sync]):::ok
     DRIFT([⚠ DRIFT<br/>alert]):::drift

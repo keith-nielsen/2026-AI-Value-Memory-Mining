@@ -1,6 +1,6 @@
 ---
 type: meta-script
-deploy_target: ~/bin/vault-slag.sh
+deploy_target: 99-Operations/bin/vault-slag.sh
 runtime: manual
 class: script
 created: 2026-06-14
@@ -41,7 +41,7 @@ else
     exit 3
   fi
 fi
-python3 "${HOME}/bin/vault_naming.py" --check "$slug" || exit 1   # INV-11 boundary
+python3 "$(dirname "$0")/vault_naming.py" --check "$slug" || exit 1   # INV-11 boundary; sibling, not $HOME
 src="30-Sites/$slug"; dest="70-Tailings/$slug"
 [[ -d "$root/$src" ]] || { echo "BLOCKED: no such site: $src" >&2; exit 3; }
 [[ ! -e "$root/$dest" ]] || { echo "BLOCKED: destination exists: $dest" >&2; exit 3; }
