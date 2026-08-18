@@ -262,7 +262,16 @@ frozen** — they record what was true then, and rewriting them falsifies the au
 
 Walk the driver; do not hand-compose the sequence.
 
-- [ ] B5.1 **Human sign-off recorded in `proposal.md`** — human-only, not agent-delegatable (§5).
+- [x] B5.1 **Approved** — Keith Nielsen, 2026-08-18. Constitution §3 Gate 4 / §5: human-only, not
+      agent-delegatable. The operator reviewed `proposal.md`, `ADR-0044` and this task list, and
+      replied `Approved`. Recorded **here in `tasks.md`, inside a heading matching `Gate 4`**, because
+      that is where `pr-flow.approval_state()` reads it — Change A recorded its sign-off only in
+      `proposal.md`, the driver reported `MEASURED no`, and the lesson was that **a sign-off recorded
+      where the gate does not read it is the same as not recording it.**
+      Approved on measured evidence, not assertion: `preflight.py` EXIT 0 / 0 FAIL / `CAN ARCHIVE`,
+      `pytest` 350 passed, constitutional-diff-gate PASS across all three protected specs, and the
+      two self-corrections (B1's overstated severity; Change A's false-negative settings check)
+      surfaced in the proposal rather than patched silently.
 - [ ] B5.2 Branch from `main`.
 - [ ] B5.3 `tools/preflight.py .` **before the first push** (ADR-0041). ⚠ **Run it from a shell where
       `config.env` has NOT been sourced** — sourcing puts the vault venv first on `PATH` and that venv
