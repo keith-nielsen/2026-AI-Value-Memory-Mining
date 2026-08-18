@@ -229,12 +229,31 @@ frozen** — they record what was true then, and rewriting them falsifies the au
 
 ## B4 — ADR *(Gate 4 prerequisite)*
 
-- [ ] B4.1 **ADR-0044** capturing context / options / choice / consequence / **sacrifice** for the four
-      architectural decisions: in-tree `bin/`; **no `$VAULT_BINS`**; render output git-ignored; the
-      new prefix deliberately **not** lockstep. §3 Gate 4 requires an ADR; Change A has none because
-      it weighed no options.
+- [x] B4.1 **ADR-0044** written — `openspec/adr/0044-relocate-fleet-in-tree-bin.md`, 123 lines,
+      covering the four architectural decisions: in-tree `bin/`; **no `$VAULT_BINS`**; render output
+      git-ignored and not lockstep; append-and-idempotent PATH. §3 Gate 4 requires an ADR; Change A
+      has none because it weighed no options.
+- [x] B4.2 README ADR count **43 -> 44** in both places, and the "latest ADR" description updated.
+      `adr-count-lint` and `adr-contiguity` both read these; contiguity verified 0001-0044, no gaps.
+- [x] B4.3 Every ADR cited anywhere in this change resolves (8 checked). ⚠ Change A had to strip a
+      forward citation to this very number because it was unallocated then — it is allocated now.
 
-**GATE B4 —** ADR exists, is referenced from `proposal.md`, and states the sacrifice explicitly.
+**GATE B4 — PASSED 2026-08-18.**
+1. ADR exists at `openspec/adr/0044-relocate-fleet-in-tree-bin.md`, sections
+   Context / Decision / Options considered / Consequence / **Sacrifice**.
+2. Referenced from `proposal.md` by relative link.
+3. **Five sacrifices stated, not one**: a fresh clone has no runnable fleet until `render`; a bare
+   `vault-lint.py` stops working in shells that did not source the config (a real ergonomic loss for
+   the operator's habitual shell); the agent cannot self-repair a broken deployment because the
+   output now sits in a protected silo; `__pycache__` becomes a NEW hazard class pointed at governed
+   space; and the vault `.gitignore` is SEED, so a vault that misses the deploy-down will track its
+   own render output.
+4. **Five options weighed**, incl. `~/.local/bin` — the systemd `file-hierarchy(7)` standard — which
+   is genuinely better than `~/bin` and still rejected, because it is user-global and therefore
+   fixes only ground 5 of 5.
+5. The first sacrifice names its own symmetry: the convenience being given up **is** ground 2 seen
+   from the other side. Convenience and version skew were one mechanism, removed together.
+
 *Falsifier: an ADR that lists only benefits.*
 
 ---

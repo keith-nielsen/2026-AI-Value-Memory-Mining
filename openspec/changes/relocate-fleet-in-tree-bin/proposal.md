@@ -9,8 +9,10 @@ the inventory, cadence, settings-resolution and coverage instruments. B is the f
 could ever break the settings-resolution check — that is the point of the split, and it is stronger
 evidence than a check manufactured red inside the change that makes it green.
 
-**Decisions recorded in ADR-0044** (context / options / choice / consequence / sacrifice), per
-constitution §3 Gate 4.
+**Decisions recorded in [ADR-0044](../../adr/0044-relocate-fleet-in-tree-bin.md)** — context /
+options / choice / consequence / **sacrifice**, per constitution §3 Gate 4. Five options were
+weighed, including `~/.local/bin` (the systemd `file-hierarchy(7)` standard location, rejected
+because it is still user-global and fixes only one of the five grounds).
 
 ## Why
 
