@@ -1,0 +1,110 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+# Tasks — gh-invocation-form-allowlist
+
+**Marker contract:** `[ ]` not started · `[~]` **built, untested** · `[x]` **tested — the check was
+observed to FAIL without the change, and its evidence is cited.**
+
+**Evidence rule (constitution §3 Gate 3):** every result is evidenced by **its command and output** —
+a tally with its denominator, a diff, or an exit status. Never a prose assertion, never a
+shell-printed verdict string.
+
+| Constitution §3 | Phase here |
+|---|---|
+| Gate 1 — CHECK (impact analysis) | G0 + G1 |
+| Gate 2 — PLAN (migration + regression) | this file |
+| Gate 3 — EXECUTE + REGRESSION-TEST | G2 – G4 |
+| Gate 4 — RE-CHECK + HUMAN SIGN-OFF | G5 |
+
+## Who performs what
+
+| Surface | Scope | Who |
+|---|---|---|
+| `openspec/` · `vault-template/**` · `tools/` · `tests/` · framework `.claude/settings.json` | **WRITABLE** | agent |
+| live vault `99-Operations/**` · live vault `.claude/**` | **PROTECTED** | operator |
+| `git push` · PR · merge · release | INV-14 authority / keyring | operator |
+| vault `render` | writes protected paths | **operator only** |
+
+---
+
+## G0 — Blast radius *(Gate 1)*
+
+- [ ] G0.1 Sweep every `gh ` invocation across `tools/ tests/ .github/ docs/ openspec/
+      vault-template/ README.md AGENTS.md CONTRIBUTING.md`; partition live surface vs frozen record.
+      Paste commands **and full output** into `blast-radius-transcript.md`. Never a composed table.
+- [ ] G0.2 Enumerate every fleet consumer of `gh`. **`ship-release.py` is already recorded as using
+      raw `gh` for reads** and `pr-flow.py` invokes `gh`. For each: does it run as a subprocess of a
+      Bash tool call (hook sees only the launching command) or is it typed by the agent (hook sees
+      it)? Record the partition — this is the asymmetry the spec must state.
+- [ ] G0.3 Record the three `settings.json` files' current `PreToolUse` registrations and
+      `permissions` blocks verbatim as the pre-change baseline.
+
+## G1 — The precedence question, answered before anything is built
+
+**G1.1 BLOCKS EVERY OTHER TASK.** The design assumes a second hook can refuse what the first allows.
+That assumption is unmeasured.
+
+- [ ] G1.1 Measure Claude Code multi-hook `PreToolUse` decision precedence: register two Bash hooks
+      where one returns `allow` and the other `deny` for the same command, and observe which wins.
+      Evidence = the observed harness behaviour, not the documentation.
+      **If an earlier `allow` can pre-empt a later `deny`, STOP** — record the reversal in ADR-0045
+      and fall back to extending `outbound-publish-guard.py`. Do not proceed on hope.
+- [ ] G1.2 Confirm the outbound guard's ASK and this guard's DENY raised by the *same* command
+      resolve to DENY. A refusal that an ASK can override is not a refusal.
+
+## G2 — The matcher state space, written as failing tests FIRST
+
+Each row states its intended disposition **before** implementation. Write the test, watch it fail
+against an absent hook, then implement. A matcher that reports coverage it does not have is the
+specific failure being defended against.
+
+- [ ] G2.1 `gh api repos/o/r/pulls` → **allow**
+- [ ] G2.2 `gh auth status` → **allow**
+- [ ] G2.3 `gh api graphql -f query=...` → **deny** (the one `gh api` form that must not pass)
+- [ ] G2.4 `gh pr list` / `gh issue list` / `gh run list` / `gh workflow view` → **deny**
+      (`gh run` and `gh workflow` are unlisted in Layer 1 and run today — this is the red)
+- [ ] G2.5 `/usr/bin/gh pr list` (absolute path) → **deny**
+- [ ] G2.6 `GH_TOKEN=x gh pr list` (leading env assignment) → **deny**
+- [ ] G2.7 `cd /tmp && gh pr list` (compound) → **deny**
+- [ ] G2.8 `echo "run gh pr list"` (the token is data, not a command) → **allow**; a guard that
+      refuses prose about itself is unusable
+- [ ] G2.9 `git push` → falls through untouched; **assert the outbound guard's behaviour is
+      byte-identical to the pre-change baseline.** This change must not perturb INV-14 enforcement.
+- [ ] G2.10 Malformed / empty stdin → exit 0, no output. Document explicitly that this **fails open**
+      and is the reason Layer 1 is retained.
+- [ ] G2.11 Record the cases the matcher provably does **not** catch (variable indirection, alias,
+      base64/eval). Do not claim them. **Do not execute an evasion of a live control to test one** —
+      any such measurement is operator-instructed, per the standing guard-denial rule.
+
+## G3 — Build
+
+- [ ] G3.1 Write `99-Operations/scripts/gh-invocation-guard-script.md` as a literate meta-script note
+      (INV-3). No subprocess invocation; no network (INV-6).
+- [ ] G3.2 Stem conforms to the naming ruleset — silo-section-descriptor, ≥3 hyphen-tokens (INV-11).
+- [ ] G3.3 Deny message carries the REST mapping and states the reason once
+      (GraphQL requires auth unconditionally; REST does not).
+- [ ] G3.4 Register the hook in `vault-template/.claude/settings.json`; add the five Layer-1
+      `Bash(gh …)` deny entries there. **Red first:** show the template lacks both today.
+- [ ] G3.5 Add a `permissions` block plus the hook registration to
+      `value-memory-mining/.claude/settings.json`. **Red first:** its top-level keys are `['hooks']`.
+- [ ] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
+      (proving generated output is ignored, not merely uncommitted).
+
+## G4 — Regression, by instruments that did not perform the work
+
+- [ ] G4.1 Full `pytest` green. `inv6-offline-check` green — including on the **unmodified**
+      outbound guard, proving this change did not touch it.
+- [ ] G4.2 **Operator step, through the real harness:** invoke a denied form and an allowed form in a
+      live session. No unit test traverses hook registration; a passing test suite is not evidence
+      that the hook is loaded. Record both outcomes.
+- [ ] G4.3 `template-parity` still reports 0 drift. `preflight.py` CLEAR — noting its recorded hard
+      bound: it runs the shipped check, so it moves findings earlier and adds no coverage.
+- [ ] G4.4 Constitutional diff gate green on the `constitutional-impact` block.
+
+## G5 — Gate 4
+
+- [ ] G5.1 Re-run the G0 sweeps; diff output against `blast-radius-transcript.md`.
+- [ ] G5.2 ADR-0045 header flipped from Proposed to Accepted **on merge** — the three stale ADR
+      headers (0032, 0033, 0042) are the recorded reason this is a task and not an intention.
+- [ ] G5.3 Human sign-off (§3 Gate 4, human-only). Full absolute `view <path>` + explicit
+      "reply Approved".
+- [ ] G5.4 Operator re-runs `render` in the live vault after deploy-down.
