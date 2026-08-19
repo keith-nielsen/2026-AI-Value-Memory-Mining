@@ -12,6 +12,139 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.50] - 2026-08-19
+
+Covers the three changes merged since v0.1.49:
+
+| PR | Change |
+|---|---|
+| #97 | fleet enumerations checked against ground truth |
+| #98 | the rendered fleet lives inside the tree it serves |
+| #100 | the PRD is retired as a referent — a Site is not an authority |
+
+### Added
+
+- **The rendered Layer-0 fleet moved from the user-global `~/bin/` into `99-Operations/bin/`**
+  (`relocate-fleet-in-tree-bin`, PR #98, ADR-0044). Eleven deploy targets moved; the two git hooks
+  and the harness guard were already in-tree.
+
+  Four grounds of principle and one measured defect. The principle was **already codified** — F15's
+  *"a deployed vault is standalone"* — and there is a CI job named for it, yet **`~/bin` walked
+  straight past `Standalone-vault lint (F15)` for months**, because that job only checked for
+  framework-repo paths. Two vaults sharing one `~/bin` made version skew unrepresentable: the last
+  render silently won, with no way to tell.
+
+  The defect was that **`~/bin` was not reliably on `PATH`**. `~/.profile` adds it and is read only
+  by login shells; `~/.bashrc` is read only by interactive ones, and the two never both run:
+
+  ```
+  bash -lc  (login, non-interactive) → /home/administrator/bin/vault-lint.py
+  bash -ic  (interactive, non-login) → NOT-FOUND
+  bash -c   (neither)                → NOT-FOUND
+  ```
+
+  The fleet was invisible to cron, systemd user units, `ssh host 'cmd'`, and any plain `bash -c`.
+  The corpus had flip-flopped on this — *"not on PATH"* corrected to *"IS on PATH"* — because both
+  readings are half-right and neither states the condition.
+
+  **The fleet moved INTO the tree; it did not become agent-writable.** `99-Operations/bin/` sits in a
+  protected silo and `render` stays operator-only. Containment and permission are independent axes,
+  and the agent must not be able to rewrite its own guards.
+
+  Sibling modules now resolve from the executing file's own location, extending ADR-0023 from *root*
+  to *module* resolution. Render output is git-ignored and deliberately **not** a lockstep prefix:
+  parity compares hand-maintained scaffold, render/reconcile compares generated output against the
+  note that produced it. The `vault-`/`vault_` prefix — the sole reason the estate has zero name
+  collisions across every directory on `PATH` — is finally written down as a rule rather than left an
+  accident, together with the requirement that the path contribution be **appended** and idempotent
+  and come from the vault configuration alone, never a shell profile.
+
+- **Conformance checks for the corpus's fleet enumerations** (`add-fleet-inventory-conformance`,
+  PR #97). Three checks governed the fleet — `render`/`reconcile` for note → deployed,
+  `template-parity` for template → live vault — leaving one seam open: **nothing governed spec →
+  note.** A script could ship, deploy and enforce an invariant while absent from the specification
+  that governs it, indefinitely, with every build green.
+
+  Not hypothetical: `secret-scan-script.md` enforces INV-7, shipped 2026-07-28 under ADR-0036,
+  reconciled clean, and appeared **zero times** in `openspec/specs/maintenance/spec.md` — ungoverned
+  for 21 days. `README.md` simultaneously headed its table *"Operational Scripts (13)"* above **10
+  rows**, for a fleet of **14**. These survived because **an absence has no string to match**: only
+  an enumeration compared against ground truth finds a missing row.
+
+  Both enumerations are now checked in **both directions** — a note with no row, and a row with no
+  note, since a check that detects only omissions passes on a table naming a script deleted last
+  month. Added alongside: cadence conformance, resolution checking for every script path in both
+  `.claude/settings.json` files, and behavioural coverage for `vault-orphans.py` and
+  `vault-reprospect.py`, which had **none** in either harness. Fleet coverage 9/11 → 11/11.
+
+- **The PRD is retired as a referent** (`retire-prd-referent`, PR #100). A planning document that was
+  **never under version control** was cited as a live authority in **twelve files** — including
+  `openspec/constitution.md`, which attributed the criticality bands to "PRD §5", and
+  `openspec/project.md`, which claimed its own invariant list was *"extracted from the PRD"* in the
+  same sentence that called itself authoritative. Searched all history: never committed, never
+  deleted, never there.
+
+  The framing is **not a new rule**. It is CONST-01 — the Value Mining Metaphor, Tier-1, ADR-0002 —
+  applied to the operation's own design process: the PRD was a **Site**, it was **dug**, what proved
+  valuable was refined and **banked** into the corpus, and the husk went to **Spoil**. A Site is not
+  an authority; the Treasury is. Some seams were **slagged rather than dumped** — retained and
+  re-minable — and carry their own records: n8n (ADR-0005) and Hermes (ADR-0006) remain
+  `Accepted (build deferred)`.
+
+  Three fates, not one. **§5** (criticality bands) and **§14.1** (deferred build) were superseded by
+  `project.md` and the ADRs. **§6.1** was worse than dangling: `docs/diagrams.md` claimed the
+  per-area R/W matrix *"lives in the build PRD"* while it sits in the `Area Access Matrix`
+  Requirement of a `protects:`-tagged capability spec. **§13** (acceptance tests) was **orphaned with
+  no successor** — `CLAUDE.md` instructed every fork to run tests that were never written, and the
+  constitution-override template asked each Tier-0 override to cite them, an unsatisfiable step in
+  the ceremony for the most consequential changes in the operation. The template now names the real
+  suite.
+
+  **A constitution cannot delegate its authority to a document hanging open.** It is self-founding;
+  citing an ungoverned document makes that document a de facto higher authority and opens an
+  unamendable back door — edit the cited file and constitutional meaning shifts with no override
+  protocol and no record. The first fix in this change was only half of one: it swapped an ungoverned
+  source for a governed one while leaving the grammatical slot unchanged, so the sentence still read
+  as attribution. The ordering is now **asserted** as constitutional, the pointer to `project.md` is
+  marked a **locator, not a source**, and precedence on disagreement is stated explicitly.
+
+  Also removes the temporal build-order block from `vault-template/CLAUDE.md`. A file auto-loaded
+  into every session should carry only statements that stay true when the project changes phase,
+  ships, or is forked — phase numbering is not one, and it shipped to every fork from the initial
+  commit.
+
+  **Nothing mechanical caught any of this.** No check reads prose citations, and `constitution.md`
+  sits outside the constitutional diff gate's subject set — confirmed on the platform by this very
+  pull request, which edited the constitution while that gate reported *not applicable*. It survived
+  44 ADRs and 50 releases.
+
+### Fixed
+
+- **A harness exclusion could name an artifact that no longer existed, silently.** `excludedCommands`
+  appeared nowhere in `tests/`, `.github/` or `tools/`. An exclusion is an **exact string match**:
+  when its artifact moves the entry does not error, it stops matching, and the resulting refusal is
+  indistinguishable from a genuine deny — the false negative the SE-5 probe was built to detect. Now
+  verified, and **compared by path rather than basename**: the first cut compared basenames and was
+  measured false-negative on exactly the mismatch a relocation produces.
+
+- **Five statements that contradicted the tree**, and three ADR-0028 cadence stragglers advertising
+  schedules that nothing installs and instructing readers to edit a `schedule:` field nothing reads.
+
+### Notes on what these changes cost to get right
+
+Recorded because the mechanism recurs. **The ADR-0040 archive mutates things after they are written**
+— it moves the change directory and applies each capability delta. That broke three separate things
+across the two changes: the declared scope (PR #97's `Scope review` gate), a requirement that had
+been applied to the live spec by hand (the archive aborted, cleanly), and a relative link that was
+correct at authoring depth and one level too shallow afterwards (PR #98's `Link check`). PR #98
+pre-declared its scope and passed that gate first time; the other two were not anticipated.
+
+Two claims were **corrected rather than quietly patched**: the assertion that deleting `~/bin` would
+cause hard `ImportError`s was false (the interpreter already places a script's own directory on
+`sys.path`, so the obvious test passes before and after and proves nothing — the real dependency
+appears only under `python3 -P` or when a member is imported), and the claim that PR #98 would be the
+first change able to trip the settings check was false while that check still compared basenames.
+
 ## [0.1.49] - 2026-08-17
 
 ### Added
