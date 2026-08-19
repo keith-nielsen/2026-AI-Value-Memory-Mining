@@ -346,7 +346,8 @@ flowchart LR
 *What can each actor touch, and what paths are structurally impossible?*
 
 This diagram tells the containment story, not the full permission grid. The exhaustive
-per-area R/W/— matrix lives in the build PRD §6.1 — this diagram complements it by
+per-area R/W/— matrix is the `Area Access Matrix` Requirement in
+`openspec/specs/access-control/spec.md` — this diagram complements it by
 making the boundary visible: the agent's reachable set, the single human gate, and the
 protected zone it cannot enter.
 

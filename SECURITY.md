@@ -39,7 +39,7 @@ is a reportable vulnerability:
 
 ## Known Deferred Security Work
 
-The following hardening items are explicitly deferred (PRD §14.1) and are **not**
+The following hardening items are explicitly deferred (ADR-0005, ADR-0006) and are **not**
 vulnerabilities in the current release:
 
 - OS-level write-protection of `99-Operations/` (INV-5 is honored by design;

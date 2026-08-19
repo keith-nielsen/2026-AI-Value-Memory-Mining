@@ -1,6 +1,6 @@
 ---
 title: "Value Mining — Glossary"
-source: "vault-system-PRD.md §2"
+source: "openspec/ corpus — constitution, capability specs, ADRs"
 ---
 
 # Value Mining — Glossary

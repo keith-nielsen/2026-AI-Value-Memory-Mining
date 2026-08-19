@@ -127,7 +127,8 @@ pillar-validation logic both assume a flat Treasury.
 
 Two lenses classify constitutional elements. Keep them distinct.
 
-**The criticality bands** (PRD §5) order INVs by how fundamental they are:
+**The criticality bands** (`openspec/project.md`, IDs frozen by ADR-0008) order INVs by how
+fundamental they are:
 Substrate → Safety → Value → Consistency.
 
 **The tiers below** classify by overridability and required ceremony:

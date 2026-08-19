@@ -5,7 +5,8 @@ engage the gates (governance-first · re-read-before-acting · autonomy-bans · 
 measure-don't-infer), run the capability probe before asserting what this session can reach or write,
 and know the just-in-time pointers. A Claude Code SessionStart hook surfaces it automatically.
 
-This vault is a Value Mining operation governed by 99-Operations/ and the build PRD.
+This vault is a Value Mining operation governed by 99-Operations/ and the OpenSpec corpus
+(constitution, capability specs, ADRs).
 Content flows: Capture (20-Claims) -> Dig -> Ore -> Sort -> Refine ->
   bullion deposited in 40-Treasury -> Polish (perpetual).
 Side paths: Slagged (70-Tailings, retained, re-minable) and Spoil (71-Spoil, terminal:
@@ -37,6 +38,3 @@ Always obey:
   never trust a producer to self-comply. (INV-11)
 - grade = value only (coal<bronze<silver<gold); never an effort measure.
 - Config lives in 99-Operations/config.env. Pillar list there is authoritative.
-
-Build order: Phase 0 -> 1 -> 2. Phase 3 is spec-only/disabled. Phase 4 is deferred.
-Run each phase's acceptance tests (PRD §13) and report before continuing.

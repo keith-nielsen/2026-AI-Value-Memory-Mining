@@ -101,7 +101,8 @@ $ <search command(s) sweeping openspec/ vault-template/ docs/ .github/ README.md
 - [ ] `openspec validate` passes
 - [ ] `constitution-lint` passes (after this PR's changes are applied)
 - [ ] `vocabulary-lint` passes with updated glossary
-- [ ] Acceptance tests: <list relevant A-tests from PRD §13>
+- [ ] Regression evidence: `fleet-pytest`, `validate-scripts`, `inv6-offline-static`,
+      `openspec-validate` — cite each by its command and exit status, never a printed verdict (§3 Gate 3)
 - [ ] <Any additional tests specific to this override>
 
 ---

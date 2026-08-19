@@ -117,8 +117,8 @@ This system's architectural response:
 - Agent write scope bounded to assigned Site + `_refine-proposals/` (INV-4)
 - `99-Operations/` is human-write-only (INV-5)
 - Deterministic scripts make no network or LLM calls (INV-6)
-- Exfiltration telemetry (osquery FIM, egress monitoring) was scoped in the build PRD
-  §14 and has been **retracted** — its FIM half is now served by the OS-enforced agent
+- Exfiltration telemetry (osquery FIM, egress monitoring) was scoped during design and has been
+  **retracted** — its FIM half is now served by the OS-enforced agent
   write scope (ADR-0022/ADR-0035) and its egress half by the INV-6 offline check
   (ADR-0037), while its own egress rule was written before the egress topology was
   measured. Runtime detection remains re-proposable on measured premises.

@@ -134,8 +134,8 @@ python3 99-Operations/bin/vault-render.py reconcile
 ## Seed and Cleanup Scripts
 
 Example data for testing and familiarization is provided via seed/cleanup scripts
-stored in `99-Operations/scripts/`. These are intentionally deferred — see the
-build PRD (§14) for details. Once built, invoke them as:
+stored in `99-Operations/scripts/`. These are intentionally deferred and not yet
+specified anywhere in the corpus. Once built, invoke them as:
 
 ```bash
 python3 99-Operations/bin/vault-seed.py       # populate with example efforts

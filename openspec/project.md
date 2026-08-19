@@ -24,8 +24,25 @@ spec-driven process on their own vault.
 
 ## Architectural Principles (INV-1 – INV-14)
 
-These are extracted from the PRD and are the authoritative invariant list.
-INV IDs are **frozen** — see ADR-0008.
+This is the **authoritative** invariant list. INV IDs are **frozen** — see ADR-0008.
+
+> **The corpus is the whole of the design.** Earlier drafting happened in a planning document
+> ("the PRD") that was never under version control. Its content was extracted into this file, the
+> constitution, the capability specs, the ADRs and the runbooks — and **anything that did not make
+> that journey does not exist.** There is no external authority to consult, defer to, or cite:
+> unspecified is abandoned, by definition.
+>
+> This is recorded because the opposite was written down for a long time. Twelve citations across
+> twelve files pointed at PRD §5, §13, §14.1 and §6.1 as live authorities — including this sentence,
+> which claimed derivation from a document nobody could open, and `constitution.md`, which
+> attributed the criticality bands to it. Every one of them pointed **backwards from the ratified
+> form to a draft it had already superseded**, and one (§13, acceptance tests) had no successor at
+> all: `CLAUDE.md` instructed every fork to run tests that were never written, and the
+> constitution-override template asked each Tier-0 override to cite them.
+>
+> Nothing mechanical caught this. No check reads prose citations, and `constitution.md` sits outside
+> the constitutional diff gate's subject set. It survived from the initial commit through 44 ADRs and
+> 50 releases.
 
 ### Substrate — fundamental to every operation
 
