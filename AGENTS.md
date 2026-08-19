@@ -104,7 +104,7 @@ gate you acknowledge; a kernel denial means *surface it to the operator*, never 
 
 ## Invariants (quick reference)
 
-Full text and band groupings: `openspec/specs/access-control/spec.md` and PRD §5.
+Full text and band groupings: `openspec/specs/access-control/spec.md` and `openspec/project.md`.
 
 **Substrate** — INV-1 (Format) · INV-2 (One commit) · INV-3 (Layer-0 SSOT)
 **Safety** — INV-4 (Bounded write) · INV-5 (Actor≠owner) · INV-6 (Offline scripts) · INV-7 (No secrets) · INV-8 (Crucible independence)

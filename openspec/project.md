@@ -24,8 +24,24 @@ spec-driven process on their own vault.
 
 ## Architectural Principles (INV-1 – INV-14)
 
-These are extracted from the PRD and are the authoritative invariant list.
-INV IDs are **frozen** — see ADR-0008.
+This is the **authoritative** invariant list. INV IDs are **frozen** — see ADR-0008.
+
+> **The PRD was a Site, and this corpus is what was banked from it.** Design began in a planning
+> document that was never under version control. It was **dug**: what proved valuable was refined and
+> banked here, into the constitution, the capability specs, the ADRs and the runbooks. The husk went
+> to Spoil. Some seams were **slagged rather than dumped** — retained and re-minable, and they carry
+> their own records: n8n (ADR-0005) and Hermes (ADR-0006) are `Accepted (build deferred)`, not
+> abandoned.
+>
+> A Site is not an authority; the Treasury is. So the PRD is **not a document to cite, defer to, or
+> consult** — it did its job and was consumed, which is what CONST-01 describes happening to every
+> Site. This is recorded because the opposite was written down for a long time: twelve citations
+> across twelve files named PRD §5, §13, §14.1 and §6.1 as live authorities, including this sentence,
+> which claimed derivation from it, and `constitution.md`, which attributed the criticality bands to
+> it. Each pointed **backwards from the banked form to the Site it came out of**.
+>
+> Nothing mechanical caught it: no check reads prose citations, and `constitution.md` sits outside
+> the constitutional diff gate's subject set.
 
 ### Substrate — fundamental to every operation
 

@@ -13,4 +13,4 @@ updated: {{date}}
 ## Active digs
 
 ## Auto-catch (unlinked notes in this pillar)
-<!-- Optional Dataview block may be added later. Not required by this PRD. -->
+<!-- Optional Dataview block may be added later. -->

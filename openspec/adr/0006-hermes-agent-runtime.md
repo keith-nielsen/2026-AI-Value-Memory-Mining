@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0006 — Hermes Agent as the Phase 3 Runtime
 
-**Status:** Accepted (build deferred — see PRD §14.1)  
+**Status:** Accepted (build deferred)  
 **Date:** 2026-06-10
 
 ## Context
