@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0005 — n8n as the Orchestration/Firewall Layer
 
-**Status:** Accepted (build deferred — see PRD §14.1)  
+**Status:** Accepted (build deferred)  
 **Date:** 2026-06-10
 
 ## Context
