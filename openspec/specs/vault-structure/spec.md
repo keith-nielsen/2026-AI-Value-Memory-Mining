@@ -48,6 +48,7 @@ The vault SHALL use the numbered folder structure below. `10-Logbook/` retains `
 10-Logbook/
   Daily/
   Reviews/
+  vmm-working-memory/        # optional; harness-owned, git-ignored
 20-Claims/
   _refine-proposals/
   _refine-approved/
@@ -93,6 +94,17 @@ CONST-04, and conforms to the numbering scheme — it does not override it.
 - **THEN** `10-Logbook/` sorts above `20-Claims/` per CONST-04 — the touch-frequency ordering is
   unchanged, and no claim is made about what occupies the silo
 
+An agent harness MAY maintain a working-memory store under `10-Logbook/`; the conventional path is
+`10-Logbook/vmm-working-memory/`. Where such a store is present it SHALL be git-ignored, and the
+framework SHALL NOT generate, read, validate or police its contents. This follows ADR-0032: the
+framework owns no artifact in the silo, and a store the framework does not own is a store it does not
+govern. The directory is named in the structure above so that a deployment which has one is not
+reading an undeclared folder, never to require that a deployment have one.
+
+The store SHALL NOT be tracked. Its contents are machine-local and rewritten many times per session,
+so tracking produces either noise commits or a permanently dirty tree, and an INV-14 vault has no
+remote for tracking to reach — durability comes from the filesystem backup, not from git.
+
 #### Scenario: Runbooks sort in the infra region
 - **WHEN** the vault root is listed in any file explorer
 - **THEN** `96-Runbooks/` sorts below `80-Crucible/` and above `97-Molds/`, keeping operational procedures in the low-touch infra band (CONST-04 upheld)
@@ -108,6 +120,15 @@ CONST-04, and conforms to the numbering scheme — it does not override it.
 #### Scenario: Warehouse shelves take human-friendly names
 - **WHEN** a Warehouse shelf folder (e.g. `Books`, `Pictures`) is created or listed
 - **THEN** it must only satisfy the universal path-component rule (cross-platform-safe characters, no reserved device names); the kebab-case / ≥3-token convention does not apply to it, because that convention is scoped to `.md` stems and to `30-Sites/`/`70-Tailings/` effort folders and `40-Treasury/` stems
+
+#### Scenario: A harness working-memory store is present
+- **WHEN** a deployment carries `10-Logbook/vmm-working-memory/`
+- **THEN** the directory is git-ignored, and no framework script generates, validates or reports on
+  the notes inside it
+
+#### Scenario: No harness working-memory store exists
+- **WHEN** a deployment carries no such directory
+- **THEN** the vault is conformant — the store is optional and its absence is not a finding
 
 ### Requirement: Format Invariant
 
@@ -166,3 +187,4 @@ validates every note's `pillars` field against the configured set.
 #### Scenario: index count matches pillar count
 - **WHEN** Phase 1 build completes
 - **THEN** `count(PILLARS) + 1` Catalog index files exist (one per pillar + `pillar: home`)
+
