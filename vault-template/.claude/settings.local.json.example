@@ -1,0 +1,25 @@
+{
+  "_comment_1": "TEMPLATE — copy to .claude/settings.local.json in the deployed vault and edit. This file is an EXAMPLE and is never read by Claude Code. settings.local.json itself is git-ignored: it holds machine-specific absolute paths that must not reach the template or another instance.",
+
+  "_comment_2": "autoMemoryDirectory — where Claude Code keeps this vault's auto-memory store (a MEMORY.md index plus one topic file per memory). REPLACE the path below with this machine's absolute vault path. The value must be an absolute path or start with '~/'; $VAULT_ROOT is NOT expanded.",
+
+  "_comment_3": "SCOPE IS LOAD-BEARING. This key belongs in the VAULT's .claude/settings.local.json (project scope), so only sessions launched inside the vault use this store. The same key in ~/.claude/settings.json (user scope) points EVERY project on the machine at this directory, which is the cross-contamination this arrangement exists to prevent.",
+
+  "_comment_4": "Do NOT put this key in the tracked .claude/settings.json: that file is reconciled against vault-template/ and a machine-specific absolute path would report as drift on every deploy-down.",
+
+  "_comment_5": "The store directory is git-ignored in the deployed vault (see .gitignore). It is working memory — dynamic, machine-local, and covered by the filesystem backup rather than by git, since an INV-14 vault has no remote to push to.",
+
+  "autoMemoryDirectory": "/ABSOLUTE/PATH/TO/YOUR/Vault/10-Logbook/vmm-working-memory",
+
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+
+  "permissions": {
+    "allow": [
+      "Read(//home/YOUR-USER/.claude/**)",
+      "Read(//etc/claude-code/**)"
+    ]
+  }
+}
