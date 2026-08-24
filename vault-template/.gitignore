@@ -25,3 +25,15 @@ __pycache__/
 # NOTE the narrowness: this ignores the generated output DIRECTORY only, never a parent that
 # also holds tracked scaffold. A blanket rule silently hides the next artifact deployed beneath it.
 99-Operations/bin/
+
+# Claude Code auto-memory store for this vault (`autoMemoryDirectory` in
+# .claude/settings.local.json; seed from .claude/settings.local.json.example).
+# Working memory for the CURRENT effort: dynamic, rewritten several times a session, and
+# machine-local by design. Untracked on purpose - tracking it would produce either noise commits
+# or a permanently dirty tree, and INV-2 wants one structured commit per automated change, not a
+# memory write per session. Durability comes from the filesystem backup, not from git: an INV-14
+# vault has no remote, so tracking would add history and never an offsite copy.
+# NOTE the narrowness: this ignores the store directory only. 10-Logbook/ itself stays tracked,
+# and the leading slash anchors the rule to the vault root so a same-named directory nested
+# elsewhere in a deployment is never silently hidden.
+/10-Logbook/vmm-working-memory/
