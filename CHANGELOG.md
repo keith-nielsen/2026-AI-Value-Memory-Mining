@@ -12,6 +12,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **The vault's agent working-memory store is governed** (`seed-auto-memory-store`). A deployed vault
+  may keep a Claude Code auto-memory store in-tree at `10-Logbook/vmm-working-memory/`, activated by
+  one `autoMemoryDirectory` key. The key cannot live in the tracked `.claude/settings.json` — its value
+  is a machine-specific absolute path (the setting expands no variables) and that file is reconciled
+  against the template, so the path would report as drift on every deploy-down. It therefore belongs in
+  the git-ignored `.claude/settings.local.json`, which the mirror cannot seed; `a4deb6e` added the
+  `.example` to copy from and recorded itself as **NOT YET GOVERNED**. This is that governance.
+  `vault-template/.gitignore` gains the store rule the reference vault already had — a divergence that
+  would have made a fresh deployment **track** its own working memory. `vault-structure` declares the
+  directory optional and harness-owned: the framework owns no artifact in `10-Logbook/` (ADR-0032), so
+  the linter now **skips** the store's notes rather than validating them, which it had been doing.
+- **The linter refuses an unresolvable memory-store path** (`maintenance`, ADDED Requirement). The seed
+  ships a placeholder that cannot exist, and a placeholder is a comment asking an installer to act —
+  `CONTRIBUTING.md:92`: *a rule which cannot refuse does not bind*. Three cases, reported distinctly
+  because each has a different remedy: the path does not exist · it is not a directory · it resolves
+  **outside** the vault root. The third is why a check beat an install-time prompt: an escaping path
+  *works*, so nothing else would ever notice it, and it silently merges one deployment's memory with
+  another's or with a user-global store. Symlinks are resolved **before** the containment test — the
+  case a `startswith` check waves through. An absent file or absent declaration passes: the store is
+  optional, and a check that demanded it would invent a requirement the specification does not make.
+  The guard reports the declared path verbatim, never a verdict string (F20), and never reads, edits
+  or reports on the notes inside. `tests/test_memory_store_guard.py` executes the **shipped** note text
+  rather than a reimplementation; 9 tests, 6 of which were observed to fail with the guard removed.
+
 ## [0.1.50] - 2026-08-19
 
 Covers the three changes merged since v0.1.49:

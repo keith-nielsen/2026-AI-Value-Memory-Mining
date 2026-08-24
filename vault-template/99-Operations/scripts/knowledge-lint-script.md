@@ -4,7 +4,7 @@ deploy_target: 99-Operations/bin/vault-lint.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-17
+updated: 2026-08-25
 ---
 ## Rationale
 Validates Treasury knowledge notes against the §10.1 frontmatter schema and checks
@@ -30,10 +30,20 @@ Honors the special-file exemptions (`is_exempt`): tool-mandated / convention fil
 until mechanical enforcement is switched on; the exemption gate is wired now so that
 switch is safe.
 
+Checks the harness working-memory store's declared path (`autoMemoryDirectory` in
+`.claude/settings.local.json`, seeded from `settings.local.json.example`). The store itself is
+optional and its **contents are ungoverned** — the framework owns no artifact in `10-Logbook/`
+(ADR-0032), so the note files inside are skipped by the stem walk rather than validated. What is
+checked is only that a *declared* path is real and lives in this vault: absent file or absent
+declaration passes; a path that does not exist, is not a directory, or resolves **outside** the vault
+is refused, each reported distinctly because each has a different remedy. The escape case is the one
+worth the code: it works, so nothing else would ever notice it, and it silently merges one
+deployment's memory with another's.
+
 ## Implementation
 ```python
 #!/usr/bin/env python3
-import sys, pathlib
+import sys, json, pathlib
 sys.dont_write_bytecode = True                                    # no __pycache__ in a governed silo
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # co-located siblings; no $HOME
 from vault_naming import validate_name, is_valid_slug, is_exempt, has_min_hyphen_tokens  # naming.md
@@ -87,9 +97,42 @@ for area in ["30-Sites", "70-Tailings"]:
             violations.append((d, f"effort folder not a kebab slug: {validate_name(d.name) or 'non-kebab'}"))
         elif not has_min_hyphen_tokens(d.name):
             violations.append((d, "effort folder not >=3-token kebab (INV-11)"))
+# --- harness working-memory store: the declared path must resolve inside this vault ---
+# The framework ships .claude/settings.local.json.example carrying a placeholder path. A
+# placeholder is a comment asking an installer to act, and a rule that cannot refuse does not
+# bind - so the seed travels with the check that refuses it. Three cases, reported distinctly
+# because they have different remedies. The ESCAPE case matters most and looks least like an
+# error: a path resolving outside the vault works perfectly, and silently merges one
+# deployment's memory with another's, or with a user-global store.
+store = None
+settings_local = vault / ".claude" / "settings.local.json"
+if settings_local.is_file():
+    declared = None
+    try:
+        declared = json.loads(settings_local.read_text(encoding="utf-8")).get("autoMemoryDirectory")
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        violations.append((settings_local, f"settings.local.json is not readable JSON: {exc}"))
+    if declared:
+        cand = pathlib.Path(declared).expanduser()
+        if not cand.is_absolute():
+            violations.append((settings_local, f"autoMemoryDirectory is not an absolute path: {declared}"))
+        elif not cand.exists():
+            violations.append((settings_local, f"autoMemoryDirectory does not exist: {declared}"))
+        elif not cand.is_dir():
+            violations.append((settings_local, f"autoMemoryDirectory is not a directory: {declared}"))
+        else:
+            real, root = cand.resolve(), vault.resolve()   # resolve FIRST: a symlink inside the
+            if root not in real.parents:                   # vault pointing out of it is an escape
+                violations.append((settings_local, f"autoMemoryDirectory resolves outside the vault: {declared} -> {real}"))
+            else:
+                store = real
+# The store's contents are harness-owned and ungoverned (vault-structure, ADR-0032): the
+# framework declares where it may live and refuses a broken path, and stops there.
 # All other content file stems.
 for area in ["20-Claims", "10-Logbook", "40-Treasury/Catalog"]:
     for p in (vault / area).rglob("*.md"):
+        if store and store in p.parents:   # harness-owned working memory; not ours to validate
+            continue
         if is_exempt(p.name):          # README.md, dailies, *.example, .obsidian/*.json, ...
             continue
         bad = validate_name(p.stem)
