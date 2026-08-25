@@ -98,23 +98,60 @@ Each row states its intended disposition **before** implementation. Write the te
 against an absent hook, then implement. A matcher that reports coverage it does not have is the
 specific failure being defended against.
 
-- [ ] G2.1 `gh api repos/o/r/pulls` → **allow**
-- [ ] G2.2 `gh auth status` → **allow**
-- [ ] G2.3 `gh api graphql -f query=...` → **deny** (the one `gh api` form that must not pass)
-- [ ] G2.4 `gh pr list` / `gh issue list` / `gh run list` / `gh workflow view` → **deny**
+- [~] G2.1 `gh api repos/o/r/pulls` → **allow**
+- [~] G2.2 `gh auth status` → **allow**
+- [~] G2.3 `gh api graphql -f query=...` → **deny** (the one `gh api` form that must not pass)
+- [~] G2.4 `gh pr list` / `gh issue list` / `gh run list` / `gh workflow view` → **deny**
       (`gh run` and `gh workflow` are unlisted in Layer 1 and run today — this is the red)
-- [ ] G2.5 `/usr/bin/gh pr list` (absolute path) → **deny**
-- [ ] G2.6 `GH_TOKEN=x gh pr list` (leading env assignment) → **deny**
-- [ ] G2.7 `cd /tmp && gh pr list` (compound) → **deny**
-- [ ] G2.8 `echo "run gh pr list"` (the token is data, not a command) → **allow**; a guard that
+- [~] G2.5 `/usr/bin/gh pr list` (absolute path) → **deny**
+- [~] G2.6 `GH_TOKEN=x gh pr list` (leading env assignment) → **deny**
+- [~] G2.7 `cd /tmp && gh pr list` (compound) → **deny**
+- [~] G2.8 `echo "run gh pr list"` (the token is data, not a command) → **allow**; a guard that
       refuses prose about itself is unusable
-- [ ] G2.9 `git push` → falls through untouched; **assert the outbound guard's behaviour is
+- [~] G2.9 `git push` → falls through untouched; **assert the outbound guard's behaviour is
       byte-identical to the pre-change baseline.** This change must not perturb INV-14 enforcement.
-- [ ] G2.10 Malformed / empty stdin → exit 0, no output. Document explicitly that this **fails open**
+- [~] G2.10 Malformed / empty stdin → exit 0, no output. Document explicitly that this **fails open**
       and is the reason Layer 1 is retained.
-- [ ] G2.11 Record the cases the matcher provably does **not** catch (variable indirection, alias,
+- [~] G2.11 Record the cases the matcher provably does **not** catch (variable indirection, alias,
       base64/eval). Do not claim them. **Do not execute an evasion of a live control to test one** —
       any such measurement is operator-instructed, per the standing guard-denial rule.
+
+
+### G2 evidence — RED observed 2026-08-25T21:1x+08:00
+
+Tests written FIRST, in `tests/test_gh_invocation_guard.py`, and run against the absent note:
+
+```
+python3 -m pytest tests/test_gh_invocation_guard.py -q
+1 failed, 16 errors in 0.08s          # 17/17 fail
+
+E  AssertionError: vault-template/99-Operations/scripts/gh-invocation-guard-script.md
+   does not exist — this is the RED state these tests were written in
+   (task G2, before G3.1 builds the note).
+```
+
+The rest of the suite is unperturbed by the new module:
+
+```
+python3 -m pytest tests/ -q --ignore=tests/test_gh_invocation_guard.py
+359 passed in 81.08s
+```
+
+**All G2 rows are `[~]`, not `[x]`.** They are written and observed to fail without the guard;
+they tick to `[x]` only when they pass WITH it, after G3.1. Marker discipline: `[~]` built,
+`[x]` tested.
+
+Two implementation obligations the tests already bind, so G3 cannot quietly skip them:
+
+- **G2.3 asserts the refusal names the REST replacement**, not merely that it refuses — G3.3's
+  requirement, enforced by the suite rather than left to review.
+- **G2.9 asserts `defer` (no output at all)** for `git push`, not `allow`. An `allow` is a
+  decision; emitting one on the outbound guard's subject matter would perturb the exfil path this
+  change must leave byte-identical.
+- **G2.11 asserts on the NOTE's text**, requiring it to name the four evasions it cannot catch
+  (indirection, alias, base64, subprocess). Written as a documentation assertion rather than an
+  xfail behavioural test, because proving an evasion would mean executing one against a live
+  control — operator-instructed only, per the standing guard-denial rule.
 
 ## G3 — Build
 
