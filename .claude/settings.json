@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/outbound-publish-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-invocation-guard.py\""
           }
         ]
       }
@@ -20,6 +24,15 @@
           }
         ]
       }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh project:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api graphql:*)"
     ]
   }
 }

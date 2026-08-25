@@ -208,10 +208,10 @@ It **adds** a refusal. No existing requirement is modified, weakened or narrowed
 is unchanged; the outbound guard is untouched. It is strictly a narrowing of what the agent may run.
 
 ```constitutional-impact
-touches: openspec/specs/access-control/spec.md
-protects: [INV-3, INV-4, INV-5, INV-6, INV-14]
+touches: openspec/specs/access-control/spec.md, openspec/specs/maintenance/spec.md
+protects: [INV-2, INV-3, INV-4, INV-5, INV-6, INV-14]
 overrides: none
-basis: ADD of a refusal on an agent-invoked command form; no existing requirement is modified, weakened or narrowed; agent write scope is byte-for-byte unchanged; the outbound-publish guard is not edited
+basis: ADD of a refusal on an agent-invoked command form; agent write scope is byte-for-byte unchanged; the outbound-publish guard is not edited. The `maintenance` touch is the Script Inventory row the new fleet note obliges - a MODIFIED requirement that ADDS one table row and alters no sentence, no scenario and no SHALL; all three of its scenarios are preserved verbatim. No existing requirement is weakened or narrowed in either spec.
 ```
 
 ## Blast radius *(constitution §3 Gate 1)*

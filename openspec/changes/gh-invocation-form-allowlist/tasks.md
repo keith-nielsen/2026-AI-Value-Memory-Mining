@@ -98,21 +98,21 @@ Each row states its intended disposition **before** implementation. Write the te
 against an absent hook, then implement. A matcher that reports coverage it does not have is the
 specific failure being defended against.
 
-- [~] G2.1 `gh api repos/o/r/pulls` → **allow**
-- [~] G2.2 `gh auth status` → **allow**
-- [~] G2.3 `gh api graphql -f query=...` → **deny** (the one `gh api` form that must not pass)
-- [~] G2.4 `gh pr list` / `gh issue list` / `gh run list` / `gh workflow view` → **deny**
+- [x] G2.1 `gh api repos/o/r/pulls` → **allow**
+- [x] G2.2 `gh auth status` → **allow**
+- [x] G2.3 `gh api graphql -f query=...` → **deny** (the one `gh api` form that must not pass)
+- [x] G2.4 `gh pr list` / `gh issue list` / `gh run list` / `gh workflow view` → **deny**
       (`gh run` and `gh workflow` are unlisted in Layer 1 and run today — this is the red)
-- [~] G2.5 `/usr/bin/gh pr list` (absolute path) → **deny**
-- [~] G2.6 `GH_TOKEN=x gh pr list` (leading env assignment) → **deny**
-- [~] G2.7 `cd /tmp && gh pr list` (compound) → **deny**
-- [~] G2.8 `echo "run gh pr list"` (the token is data, not a command) → **allow**; a guard that
+- [x] G2.5 `/usr/bin/gh pr list` (absolute path) → **deny**
+- [x] G2.6 `GH_TOKEN=x gh pr list` (leading env assignment) → **deny**
+- [x] G2.7 `cd /tmp && gh pr list` (compound) → **deny**
+- [x] G2.8 `echo "run gh pr list"` (the token is data, not a command) → **allow**; a guard that
       refuses prose about itself is unusable
-- [~] G2.9 `git push` → falls through untouched; **assert the outbound guard's behaviour is
+- [x] G2.9 `git push` → falls through untouched; **assert the outbound guard's behaviour is
       byte-identical to the pre-change baseline.** This change must not perturb INV-14 enforcement.
-- [~] G2.10 Malformed / empty stdin → exit 0, no output. Document explicitly that this **fails open**
+- [x] G2.10 Malformed / empty stdin → exit 0, no output. Document explicitly that this **fails open**
       and is the reason Layer 1 is retained.
-- [~] G2.11 Record the cases the matcher provably does **not** catch (variable indirection, alias,
+- [x] G2.11 Record the cases the matcher provably does **not** catch (variable indirection, alias,
       base64/eval). Do not claim them. **Do not execute an evasion of a live control to test one** —
       any such measurement is operator-instructed, per the standing guard-denial rule.
 
@@ -137,9 +137,9 @@ python3 -m pytest tests/ -q --ignore=tests/test_gh_invocation_guard.py
 359 passed in 81.08s
 ```
 
-**All G2 rows are `[~]`, not `[x]`.** They are written and observed to fail without the guard;
-they tick to `[x]` only when they pass WITH it, after G3.1. Marker discipline: `[~]` built,
-`[x]` tested.
+**All G2 rows are now `[x]`.** Observed to FAIL without the guard (transcript above) and to PASS
+with it: `17 passed in 1.43s`, first run after G3.1. Both halves of the red-first cycle are
+recorded, which is what `[x]` requires.
 
 Two implementation obligations the tests already bind, so G3 cannot quietly skip them:
 
@@ -155,17 +155,57 @@ Two implementation obligations the tests already bind, so G3 cannot quietly skip
 
 ## G3 — Build
 
-- [ ] G3.1 Write `99-Operations/scripts/gh-invocation-guard-script.md` as a literate meta-script note
+- [x] G3.1 Write `99-Operations/scripts/gh-invocation-guard-script.md` as a literate meta-script note
+      EVIDENCE: local · `pytest tests/test_gh_invocation_guard.py` · **17 passed** · 2026-08-25T21:3x+08:00
+      `vault-template/99-Operations/scripts/gh-invocation-guard-script.md` written. Deterministic
+      (INV-6): `json`/`shlex`/`sys` only, no subprocess, no network. **Design decision beyond the
+      task text: it emits `deny` or NOTHING, never `allow`** — an allow is a decision, and expressing
+      one about `git push` would perturb the outbound guard's ASK; G1.1 already showed a deny wins
+      regardless, so an allow would buy nothing.
       (INV-3). No subprocess invocation; no network (INV-6).
-- [ ] G3.2 Stem conforms to the naming ruleset — silo-section-descriptor, ≥3 hyphen-tokens (INV-11).
-- [ ] G3.3 Deny message carries the REST mapping and states the reason once
+- [x] G3.2 Stem conforms to the naming ruleset — silo-section-descriptor, ≥3 hyphen-tokens (INV-11).
+      EVIDENCE: `gh-invocation-guard-script` — 4 hyphen-tokens, silo-section-descriptor (INV-11).
+- [x] G3.3 Deny message carries the REST mapping and states the reason once
+      EVIDENCE: bound by test G2.3, which asserts the refusal string contains the REST mapping —
+      enforced by the suite rather than left to review.
       (GraphQL requires auth unconditionally; REST does not).
-- [ ] G3.4 Register the hook in `vault-template/.claude/settings.json`; add the five Layer-1
+- [x] G3.4 Register the hook in `vault-template/.claude/settings.json`; add the five Layer-1
+      EVIDENCE: local · `vault-template/.claude/settings.json` Bash PreToolUse hooks **1 -> 2**;
+      its five Layer-1 deny entries already landed in `33e9ba4`. JSON re-parsed clean.
       `Bash(gh …)` deny entries there. **Red first:** show the template lacks both today.
-- [ ] G3.5 Add a `permissions` block plus the hook registration to
+- [x] G3.5 Add a `permissions` block plus the hook registration to
+      EVIDENCE: local · `$FRAMEWORK_ROOT/.claude/settings.json` — **`permissions.deny` 0 -> 5** and
+      Bash hooks **1 -> 2**. RED confirmed at G0.3: its only top-level key had been `hooks`.
       `value-memory-mining/.claude/settings.json`. **Red first:** its top-level keys are `['hooks']`.
 - [ ] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
       (proving generated output is ignored, not merely uncommitted).
+
+
+### G3 — obligations discovered during execution, not in the task text
+
+- **Script Inventory conformance.** `tests/test_inventory_conformance.py` verifies **in both
+  directions** that the fleet, the `maintenance` Script Inventory and the README name the same set.
+  Adding a note therefore obliged: a **second spec delta** (`specs/maintenance/spec.md`, MODIFIED —
+  generated from the live text so nothing was transcribed: 14 -> 15 rows, **all 3 scenarios
+  preserved verbatim**); a README row; the README count **14 -> 15**; and the prose "the harness
+  guard" -> "two harness guards".
+- **`constitutional-impact` widened.** The block declared only `access-control`. It now declares
+  both specs and `protects` gains INV-2 — `maintenance/spec.md` carries
+  `protects: [INV-2, INV-3, INV-6]`, and the diff gate refuses a declaration that does not match
+  the diff.
+- **F15 defect found and fixed in the shipped note.** The first draft cited `tools/pr-state.py` as
+  the subprocess example. `vault-template/` ships to deployed vaults, which have no `tools/`, and
+  the standalone-vault lint refused it. The measurement stays in this change's
+  `blast-radius-transcript.md` (repo-only); the note now states the principle without naming a
+  framework-repo path. **F15 findings: 0.**
+- **README ADR count 44 -> 45** in three places, plus the range `ADR-0001–0044` -> `–0045`.
+  Pre-existing on this branch since `ac6db32` added ADR-0045 without updating the README.
+
+⚠ **One test is expected-RED until landing:**
+`test_maintenance_spec_inventory_names_exactly_the_note_set` reads the **main** spec, and the
+Script Inventory row reaches it only when `openspec archive` syncs the delta. This repo archives on
+the feature branch **before opening the PR**, so CI sees it green; it cannot be green before then
+without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the only issue.
 
 ## G4 — Regression, by instruments that did not perform the work
 
