@@ -28,15 +28,39 @@ shell-printed verdict string.
 
 ## G0 — Blast radius *(Gate 1)*
 
-- [ ] G0.1 Sweep every `gh ` invocation across `tools/ tests/ .github/ docs/ openspec/
+- [x] G0.1 Sweep every `gh ` invocation across `tools/ tests/ .github/ docs/ openspec/
       vault-template/ README.md AGENTS.md CONTRIBUTING.md`; partition live surface vs frozen record.
       Paste commands **and full output** into `blast-radius-transcript.md`. Never a composed table.
-- [ ] G0.2 Enumerate every fleet consumer of `gh`. **`ship-release.py` is already recorded as using
+      EVIDENCE: local · recursive grep, command + full output pasted · 2026-08-25T21:0x+08:00
+      LIVE (executes gh): `gh_read.py`, `pr-state.py`, `pr-flow.py`, `ship-release.py`,
+      `openspec-canary.yml`. FROZEN (record only): all of `changes/archive/`, the ADRs, the
+      capability specs, AGENTS/CONTRIBUTING/docs. TEST (asserts on strings, never executes):
+      five `tests/test_*.py`. Transcript: `blast-radius-transcript.md`.
+- [x] G0.2 Enumerate every fleet consumer of `gh`. **`ship-release.py` is already recorded as using
       raw `gh` for reads** and `pr-flow.py` invokes `gh`. For each: does it run as a subprocess of a
       Bash tool call (hook sees only the launching command) or is it typed by the agent (hook sees
       it)? Record the partition — this is the asymmetry the spec must state.
-- [ ] G0.3 Record the three `settings.json` files' current `PreToolUse` registrations and
+      EVIDENCE: local · argv call-site grep across the four tools · 2026-08-25T21:0x+08:00
+      **EVERY fleet call site is a Python subprocess — the hook sees NONE of them.**
+        `gh_read.py:112`   `["gh","api",path]`                    permitted anyway
+        `pr-flow.py:1419`  `["gh","auth","status"]`               permitted anyway
+        `pr-state.py:83`   `["gh","pr","view",…]`                 WOULD be refused if typed
+        `pr-state.py:168`  `["gh","run","list",…]`                WOULD be refused if typed
+      `ship-release.py` no longer shells out (item 21 moved it onto `gh_read`).
+      **Landing the allowlist breaks no live caller**: `pr-state.py:83` is GraphQL, already 401s in a
+      confined session, and line 86 sets `graphql=False` and degrades to anonymous REST; the
+      `gh run list` path at 168 is gated on `graphql` and is unreachable in that state.
+      ⚠ Third surface neither layer reaches: `openspec-canary.yml` runs `gh label create`,
+      `gh issue list`, `gh issue create` on GitHub runners, where no harness — and therefore no hook
+      and no `permissions` block — exists at all.
+- [x] G0.3 Record the three `settings.json` files' current `PreToolUse` registrations and
       `permissions` blocks verbatim as the pre-change baseline.
+      EVIDENCE: local · keys + block counts for all three roots · 2026-08-25T21:0x+08:00
+        `$HOME/.claude/settings.json`            PreToolUse=0  deny=0
+        `$VAULT_ROOT/.claude/settings.json`      PreToolUse=1  deny=10
+        `$FRAMEWORK_ROOT/.claude/settings.json`  PreToolUse=1  deny=0, keys=['hooks'] only
+      **RED confirmed for G3.5**: the framework repo has no `permissions` block at all. USER
+      carrying no hooks and no deny entries is also what made the G1.1 lab uncontaminated.
 
 ## G1 — The precedence question, answered before anything is built
 
