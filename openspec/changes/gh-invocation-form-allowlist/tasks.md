@@ -177,6 +177,23 @@ Two implementation obligations the tests already bind, so G3 cannot quietly skip
       EVIDENCE: local · `$FRAMEWORK_ROOT/.claude/settings.json` — **`permissions.deny` 0 -> 5** and
       Bash hooks **1 -> 2**. RED confirmed at G0.3: its only top-level key had been `hooks`.
       `value-memory-mining/.claude/settings.json`. **Red first:** its top-level keys are `['hooks']`.
+- [x] G3.5b **(found during G4 prep, not in the original task text)** Render the guard to
+      `$FRAMEWORK_ROOT/.claude/hooks/gh-invocation-guard.py`.
+      EVIDENCE: local · byte-identical to the note's `## Implementation` block, sha `6fed3595d3fce101`
+      · smoke-tested on the harness payload shape: `gh pr list` -> deny with the REST mapping,
+      `gh api repos/o/r/pulls` -> no output (defer) · 2026-08-26T00:1x+08:00
+      **Why this was nearly missed:** G3.5 registered the hook in the framework settings, but the
+      framework repo carries its own **tracked, byte-identical** copy of each hook (verified:
+      `outbound-publish-guard.py` sha matches its note exactly). Without this render the registration
+      pointed at a nonexistent file — the hook would fail to start, the harness would defer, and
+      **G4.2 would have measured nothing while appearing to pass.** A registered hook pointing at a
+      missing file is not a loaded hook.
+      ⚠ **OWED, not fixed here (F29):** *nothing verifies that `.claude/hooks/*.py` in the framework
+      repo still matches its note.* `render`/`reconcile` govern note → deployed **vault**, and
+      `template-parity` governs template → live vault, but the framework repo's own hook copies are
+      governed by neither. That is the same seam the Script Inventory requirement was written to
+      close, in a different place.
+
 - [ ] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
       (proving generated output is ignored, not merely uncommitted).
 
