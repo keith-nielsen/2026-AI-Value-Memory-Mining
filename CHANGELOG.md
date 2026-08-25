@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Fixed
+- **The OpenSpec badge reads the pin live instead of restating it**
+  (`openspec-badge-live-version`). `README.md` advertised `v1.4.1` in three places — the badge, the
+  intro paragraph and the OpenSpec Layer section — while `package.json` had pinned `1.6.0` since the
+  archived `relocate-override-template-openspec-16` change. The front page was six weeks and four
+  upstream releases stale. The badge is now a shields.io `dynamic/json` badge querying
+  `$.devDependencies['@fission-ai/openspec']` from `package.json` on `main`, so it derives from the
+  pin rather than mirroring it; the two prose occurrences are de-versioned rather than re-pinned,
+  because a live badge above literal prose is a self-contradicting page on the next bump.
+  **Measured both directions:** correct query → `spec-driven: OpenSpec v1.6.0` (HTTP 200); bogus
+  query → `spec-driven: query not supported`. The badge reads the file; it does not display a baked
+  string. `README.md` now contains no hardcoded OpenSpec version — the pin is stated in exactly one
+  place, `package.json`, which is where CI installs from.
+
 ## [0.1.52] - 2026-08-25
 
 Covers the one change merged since v0.1.51:

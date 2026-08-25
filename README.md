@@ -10,7 +10,7 @@ Copyright 2026 Keith Nielsen
 > high-grade material into lasting Bullion, Polish indefinitely.
 
 [![CI](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml/badge.svg)](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml)
-[![OpenSpec](https://img.shields.io/badge/spec--driven-OpenSpec%20v1.4.1-blue)](openspec/project.md)
+[![OpenSpec](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fkeith-nielsen%2F2026-AI-Value-Memory-Mining%2Fmain%2Fpackage.json&query=%24.devDependencies%5B%27%40fission-ai%2Fopenspec%27%5D&label=spec-driven&prefix=OpenSpec%20v&color=blue)](openspec/project.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/vault-Obsidian-7C3AED)](https://obsidian.md)
 
@@ -25,7 +25,7 @@ Copyright 2026 Keith Nielsen
    Catalog indexes, a commit-gate hook, and a documented methodology.
 
 2. **An OpenSpec SDD showcase** — the repository is itself governed by
-   [OpenSpec v1.4.1](openspec/project.md): a formal project spec, a constitution with
+   [OpenSpec](openspec/project.md): a formal project spec, a constitution with
    constitutional protection, 44 ADRs, 6 capability specs, and a live change-management
    workflow. It demonstrates what a principled, spec-driven personal-tools project
    looks like.
@@ -253,8 +253,10 @@ Nothing installs a schedule: `render` deploys code and marks it executable, and 
 
 ## The OpenSpec Layer
 
-This repo is governed by [OpenSpec v1.4.1](https://github.com/Fission-AI/OpenSpec)
-using the `spec-driven` schema. ADRs are implemented as a project convention alongside
+This repo is governed by [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+using the `spec-driven` schema. The version is pinned in [`package.json`](package.json)
+and the badge at the top of this file reads that pin live — it is not restated here,
+so it cannot drift. ADRs are implemented as a project convention alongside
 the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 
 | Document | Purpose |
