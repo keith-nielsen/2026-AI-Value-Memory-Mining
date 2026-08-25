@@ -43,13 +43,30 @@ shell-printed verdict string.
 **G1.1 BLOCKS EVERY OTHER TASK.** The design assumes a second hook can refuse what the first allows.
 That assumption is unmeasured.
 
-- [ ] G1.1 Measure Claude Code multi-hook `PreToolUse` decision precedence: register two Bash hooks
+- [x] G1.1 Measure Claude Code multi-hook `PreToolUse` decision precedence: register two Bash hooks
       where one returns `allow` and the other `deny` for the same command, and observe which wins.
       Evidence = the observed harness behaviour, not the documentation.
       **If an earlier `allow` can pre-empt a later `deny`, STOP** — record the reversal in ADR-0045
       and fall back to extending `outbound-publish-guard.py`. Do not proceed on hope.
-- [ ] G1.2 Confirm the outbound guard's ASK and this guard's DENY raised by the *same* command
+      **MEASURED — the assumption HOLDS. `deny` wins unconditionally, in either registration order.**
+      EVIDENCE: local · `claude -p` in `lab/`, probes A(first)/B(second) · 2026-08-25T20:53+08:00
+        `PRECEDENCE_AD`  A=allow B=deny  -> REFUSED, `[probe hook B] DENY for PRECEDENCE_AD`
+        `PRECEDENCE_DA`  A=deny  B=allow -> REFUSED, `[probe hook A] DENY for PRECEDENCE_DA`
+      The second case closes a gap this task did not ask about: a `deny` is **not** reversible by a
+      later `allow`, so the control cannot be undone by a hook registered after it. Procedure and
+      full reasoning: `lab/hook-precedence-measurement-procedure.md`. The option-3 fallback is NOT
+      needed and ADR-0045's Decision stands unamended.
+- [~] G1.2 Confirm the outbound guard's ASK and this guard's DENY raised by the *same* command
       resolve to DENY. A refusal that an ASK can override is not a refusal.
+      **MEASURED with probes, `[~]` not `[x]` — one confound remains.**
+      EVIDENCE: local · `claude -p` in `lab/` · 2026-08-25T20:53+08:00
+        `PRECEDENCE_ASKDENY`  A=ask B=deny -> REFUSED with no prompt,
+        `[probe hook B] DENY for PRECEDENCE_ASKDENY`
+      ⚠ Run non-interactively, where `ask` **cannot prompt** — so the refusal could in principle come
+      from non-interactivity rather than from `deny` beating `ask`. The reason string names hook B's
+      DENY specifically rather than a generic refusal, which argues against that reading but does not
+      settle it. **Ticks to `[x]` only after one interactive-session confirmation**, and against the
+      REAL outbound guard rather than a probe emitting `ask`.
 
 ## G2 — The matcher state space, written as failing tests FIRST
 
