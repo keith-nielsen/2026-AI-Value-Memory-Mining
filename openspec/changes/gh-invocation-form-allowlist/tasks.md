@@ -568,6 +568,21 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
       and how it was found.
 - [ ] G5.2 ADR-0045 header flipped from Proposed to Accepted **on merge** — the three stale ADR
       headers (0032, 0033, 0042) are the recorded reason this is a task and not an intention.
-- [ ] G5.3 Human sign-off (§3 Gate 4, human-only). Full absolute `view <path>` + explicit
+- [x] G5.3 Human sign-off (§3 Gate 4, human-only). Full absolute `view <path>` + explicit
       "reply Approved".
+      **APPROVED — Keith Nielsen, 2026-08-26 (+08:00).**
+      Requested in the standing format: `Proposal to review/approve:` + full absolute `view` paths
+      for `proposal.md`, `openspec/adr/0045-gh-invocation-form-allowlist.md` and `tasks.md`, with the
+      consequences and the ADR's Sacrifice restated for explicit acceptance, and an explicit
+      "reply `Approved`" prompt. Operator replied **`Approved`**.
+
+      Recorded by the agent, attributed and dated. The human made the decision; the agent only
+      transcribes it — §5 reserves the sign-off act to the human and it is not agent-delegatable.
+
+      Consequences explicitly accepted at sign-off: refusal of working-but-unlisted `gh` forms
+      (`gh run watch`, `gh release view`); two overlapping Bash `PreToolUse` guards rather than one;
+      a control bounded to the agent's typed channel — every fleet `gh` call is a subprocess it
+      cannot see — and defeated by composition or indirection, making it a **tripwire for a
+      cooperating agent**, not an anti-evasion control; and no governance of prose, so a denied
+      command may still be proposed to the operator in writing.
 - [ ] G5.4 Operator re-runs `render` in the live vault after deploy-down.
