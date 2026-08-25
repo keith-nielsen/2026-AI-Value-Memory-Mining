@@ -17,16 +17,19 @@ grep -rn --include='*.py' --include='*.sh' --include='*.yml' --include='*.md' \
 ```
 
 ```
+     39 openspec/changes/gh-invocation-form-allowlist/tasks.md
      29 openspec/changes/gh-invocation-form-allowlist/proposal.md
      28 tests/test_pr_flow.py
+     20 tests/test_gh_invocation_guard.py
+     19 vault-template/99-Operations/scripts/gh-invocation-guard-script.md
      18 tools/pr-flow.py
+     16 openspec/changes/gh-invocation-form-allowlist/blast-radius-transcript.md
      12 tools/ship-release.py
      12 tools/pr-state.py
-     11 openspec/changes/gh-invocation-form-allowlist/tasks.md
+     12 openspec/adr/0045-gh-invocation-form-allowlist.md
      10 openspec/specs/maintenance/spec.md
       9 tests/test_ceremony_tools.py
       9 tests/test_capability_vocabulary.py
-      8 openspec/adr/0045-gh-invocation-form-allowlist.md
       7 openspec/changes/archive/2026-07-14-release-object-per-tag/proposal.md
       6 openspec/changes/archive/2026-08-17-probe-vocabulary-and-json/proposal.md
       6 openspec/changes/archive/2026-08-04-add-pr-flow-driver/proposal.md
@@ -47,7 +50,48 @@ grep -rn --include='*.py' --include='*.sh' --include='*.yml' --include='*.md' \
       3 CONTRIBUTING.md
       2 tests/test_inv6_offline.py
       2 openspec/changes/archive/2026-08-16-estate-scoped-capability-probe/proposal.md
+      2 openspec/changes/archive/2026-07-19-fix-operator-only-path-diagnostics/tasks.md
+      2 openspec/changes/archive/2026-07-18-require-transcript-verification/tasks.md
+      2 openspec/changes/archive/2026-07-18-add-ship-ceremony-tools/tasks.md
+      2 openspec/changes/archive/2026-07-17-retire-effort-projections/tasks.md
+      2 openspec/changes/archive/2026-07-14-release-object-per-tag/tasks.md
+      2 openspec/adr/0034-branch-and-tag-rulesets.md
+      1 vault-template/.claude/hooks/outbound-publish-guard.py
+      1 vault-template/96-Runbooks/session-bootstrap-loader.md
+      1 tools/inv6-offline-check.py
+      1 tests/test_secret_scan.py
+      1 README.md
+      1 openspec/changes/gh-invocation-form-allowlist/specs/maintenance/spec.md
+      1 openspec/changes/archive/2026-08-25-document-venv-path-shadowing/tasks.md
+      1 openspec/changes/archive/2026-08-18-relocate-fleet-in-tree-bin/tasks.md
+      1 openspec/changes/archive/2026-08-18-add-fleet-inventory-conformance/tasks.md
+      1 openspec/changes/archive/2026-08-17-probe-vocabulary-and-json/tasks.md
+      1 openspec/changes/archive/2026-08-17-emission-record-downgrades-ask/proposal.md
+      1 openspec/changes/archive/2026-08-16-constitutional-diff-gate/tasks.md
+      1 openspec/changes/archive/2026-08-06-flip-scope-review-blocking/tasks.md
+      1 openspec/changes/archive/2026-08-04-add-pr-flow-driver/tasks.md
+      1 openspec/changes/archive/2026-08-04-add-pr-flow-driver/specs/maintenance/spec.md
+      1 openspec/changes/archive/2026-07-28-enforce-inv6-offline-check/specs/maintenance/spec.md
+      1 openspec/changes/archive/2026-07-28-enforce-inv6-offline-check/proposal.md
+      1 openspec/changes/archive/2026-07-17-enforce-pillar-slug-tokens/tasks.md
+      1 openspec/changes/archive/2026-07-17-enforce-naming-token-floor/tasks.md
+      1 openspec/adr/0038-complete-required-status-checks.md
+      1 docs/USING-THIS-TEMPLATE.md
 ```
+
+⚠ **This output was TRUNCATED when first recorded, and G5.1's re-run diff is what found it.**
+The original block ended after 30 lines, at the point where per-file counts drop to
+`2` — a `head`-shaped cut, not a filter. The full sweep returns **60** lines. Gate 1 requires the
+*full, untruncated* output precisely so a Gate 4 re-run can diff against it; a truncated record
+cannot distinguish a NEW match from one that was always there and simply went unrecorded.
+
+**No live caller was hidden by it — verified, not assumed.** Every file revealed by the untruncated
+sweep was checked against `git diff --name-only main...HEAD`: this branch touches **nothing** under
+`openspec/changes/archive/`, `docs/`, `openspec/adr/0034`, `openspec/adr/0038`,
+`tools/inv6-offline-check.py`, `tests/test_secret_scan.py`, `vault-template/96-Runbooks/` or
+`vault-template/.claude/hooks/`. They therefore matched when G0.1 was first run and were simply cut
+off. Each was then read: all are prose, docstrings, test strings or documentation tables —
+**none executes `gh`**. The LIVE partition below is unchanged at five surfaces.
 
 ### Partition
 

@@ -528,7 +528,44 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
 
 ## G5 — Gate 4
 
-- [ ] G5.1 Re-run the G0 sweeps; diff output against `blast-radius-transcript.md`.
+- [x] G5.1 Re-run the G0 sweeps; diff output against `blast-radius-transcript.md`.
+      EVIDENCE: local · all three sweeps re-run and diffed · 2026-08-26T03:2x+08:00
+
+      | Sweep | Result |
+      |---|---|
+      | G0.1 | **DEFECT FOUND — the record was truncated.** Fixed; see below |
+      | G0.2 | **IDENTICAL** — same four executing call sites, same line numbers (`gh_read.py:112`, `pr-flow.py:1419`, `pr-state.py:83`, `pr-state.py:168`); a widened sweep of all of `tools/` finds no fifth |
+      | G0.3 | **IDENTICAL** — byte-for-byte against the post-change block, zero drift |
+
+      **G0.1 — the recorded output stopped at 30 lines; the sweep returns 60.** The cut falls exactly
+      where per-file counts drop to `2`, which is a `head`-shaped truncation, not a filter. Gate 1
+      requires *full, untruncated* output for this precise reason: a truncated record cannot
+      distinguish a NEW match from one that was always present and merely unrecorded, so the Gate 4
+      diff it exists to support cannot be read.
+
+      **This is Gate 4 working as designed.** The constitution defines it as re-running the Gate-1
+      transcript and diffing, *"not by re-reading the composed sections"* — and re-reading would
+      never have found this, because the composed partition below the block was correct.
+
+      **No live caller was hidden — verified, not assumed.** Each of the ~27 newly-revealed files was
+      checked against `git diff --name-only main...HEAD`: this branch touches none of them, so they
+      matched at G0.1 time and were cut off. Each was then read directly:
+
+      ```
+      tools/inv6-offline-check.py:11    docstring naming outward verbs inside regex literals
+      tests/test_secret_scan.py:64      an assertion's message string
+      vault-template/.claude/hooks/outbound-publish-guard.py:9   comment
+      vault-template/96-Runbooks/session-bootstrap-loader.md:113 runbook prose
+      README.md:250                     the Script Inventory table row
+      docs/USING-THIS-TEMPLATE.md:187   documentation prose
+      ```
+
+      **All prose, docstrings, test strings or doc tables. None executes `gh`.** The LIVE partition
+      is unchanged at five surfaces, and G0.2's conclusion — that landing the allowlist breaks no
+      live caller — is unaffected.
+
+      The transcript now carries the full 60-line output plus a note recording what was truncated
+      and how it was found.
 - [ ] G5.2 ADR-0045 header flipped from Proposed to Accepted **on merge** — the three stale ADR
       headers (0032, 0033, 0042) are the recorded reason this is a task and not an intention.
 - [ ] G5.3 Human sign-off (§3 Gate 4, human-only). Full absolute `view <path>` + explicit
