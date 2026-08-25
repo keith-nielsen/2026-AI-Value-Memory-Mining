@@ -80,17 +80,41 @@ That assumption is unmeasured.
       later `allow`, so the control cannot be undone by a hook registered after it. Procedure and
       full reasoning: `lab/hook-precedence-measurement-procedure.md`. The option-3 fallback is NOT
       needed and ADR-0045's Decision stands unamended.
-- [~] G1.2 Confirm the outbound guard's ASK and this guard's DENY raised by the *same* command
+- [x] G1.2 Confirm the outbound guard's ASK and this guard's DENY raised by the *same* command
       resolve to DENY. A refusal that an ASK can override is not a refusal.
-      **MEASURED with probes, `[~]` not `[x]` — one confound remains.**
-      EVIDENCE: local · `claude -p` in `lab/` · 2026-08-25T20:53+08:00
-        `PRECEDENCE_ASKDENY`  A=ask B=deny -> REFUSED with no prompt,
-        `[probe hook B] DENY for PRECEDENCE_ASKDENY`
-      ⚠ Run non-interactively, where `ask` **cannot prompt** — so the refusal could in principle come
-      from non-interactivity rather than from `deny` beating `ask`. The reason string names hook B's
-      DENY specifically rather than a generic refusal, which argues against that reading but does not
-      settle it. **Ticks to `[x]` only after one interactive-session confirmation**, and against the
-      REAL outbound guard rather than a probe emitting `ask`.
+      **CONFOUND CLOSED — interactive session, real guards, no probes.**
+      EVIDENCE: local · command TYPED into an interactive session at `6fe549d` (not a subprocess,
+      not `claude -p`) · 2026-08-26T01:2x+08:00
+
+      Command typed: `gh release create --help` — inert if it executes, covered by NO Layer-1
+      `permissions.deny` entry (the five are `gh pr`, `gh issue`, `gh project`, `gh repo view`,
+      `gh api graphql`), and trips BOTH guards. Verbatim result — **refused with NO permission
+      prompt**, reason string is the gh-invocation guard's:
+
+      ```
+      `gh release` is refused: the `gh` invocation-form allowlist permits only `gh api` with a
+      REST path and `gh auth status`; every other form is refused by default rather than permitted
+      by omission (ADR-0045). Use `gh api` with an explicit REST path instead — e.g.
+      `gh api repos/{owner}/{repo}/pulls`. Permitted forms: `gh api <REST path>`, `gh auth status`.
+      ```
+
+      The other half of the pair, proving an ASK was genuinely raised on the SAME command and did
+      not merely fail to fire — the REAL `outbound-publish-guard.py`, not a probe:
+
+      ```
+      $ echo '{"tool_name":"Bash","tool_input":{"command":"gh release create --help"}}' \
+          | python3 .claude/hooks/outbound-publish-guard.py
+      {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+        "permissionDecision": "ask",
+        "permissionDecisionReason": "... OUTBOUND — CODE / DATA LEAVING THIS MACHINE — HARD STOP ...
+        command: gh release create --help ..."}}
+      EXIT=0
+      ```
+
+      Both confounds the `[~]` recorded are now excluded: the session was **interactive**, so `ask`
+      *could* have prompted and did not; and the ASK came from the **real** outbound guard rather
+      than a probe. `deny` beats `ask` on the same command. A refusal an ASK could override would
+      have surfaced a prompt; none appeared.
 
 ## G2 — The matcher state space, written as failing tests FIRST
 
@@ -239,9 +263,52 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
       which reads the **main** spec. The Script Inventory row reaches it only when `openspec archive`
       syncs the delta, which this repo does on the feature branch **before** opening the PR. Ticks to
       `[x]` after archive.
-- [ ] G4.2 **Operator step, through the real harness:** invoke a denied form and an allowed form in a
+- [x] G4.2 **Operator step, through the real harness:** invoke a denied form and an allowed form in a
       live session. No unit test traverses hook registration; a passing test suite is not evidence
       that the hook is loaded. Record both outcomes.
+      EVIDENCE: local · three commands TYPED, one per tool call, into an interactive session at
+      `6fe549d` with both Bash `PreToolUse` hooks loaded from `$CLAUDE_PROJECT_DIR` · never wrapped
+      in a script, because a subprocess is invisible to the hook (G0.2) · 2026-08-26T01:2x+08:00
+
+      Every form below is covered by **no** Layer-1 `permissions.deny` entry, so only the hook can
+      account for the outcomes — this measures hook *registration*, which is what no unit test can.
+
+      **DENIED form — `gh run list`.** Refused, verbatim, and the reason names the REST replacement
+      as G3.3 requires:
+
+      ```
+      `gh run` is refused: the `gh` invocation-form allowlist permits only `gh api` with a REST
+      path and `gh auth status`; every other form is refused by default rather than permitted by
+      omission (ADR-0045). Use `gh api` with an explicit REST path instead — e.g.
+      `gh api repos/{owner}/{repo}/pulls`. Permitted forms: `gh api <REST path>`, `gh auth status`.
+      ```
+
+      **ALLOWED form — `gh auth status`.** Executed untouched, no prompt, real output:
+
+      ```
+      github.com
+        ✓ Logged in to github.com account keith-nielsen (keyring)
+        - Active account: true
+        - Git operations protocol: https
+        - Token: gho_************************************
+        - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+      ```
+
+      **ALLOWED form — `gh api repos/keith-nielsen/2026-AI-Value-Memory-Mining/pulls`.** Executed
+      untouched; returned 102.7 KB of live PR JSON, first object
+      `"number":101 … "state":"open" … "title":"deps(openspec): Bump @fission-ai/openspec from
+      1.6.0 to 1.10.0"`.
+
+      ⚠ **One recorded expectation was wrong, in the direction that strengthens the evidence:** the
+      session was expected to be UNAUTHENTICATED, so an auth failure *after* execution would have
+      counted as a pass (the hook having stood aside). `gh` is in fact authenticated via keyring, so
+      both allowed forms returned real data. There is no auth-error ambiguity to interpret: the two
+      allowed forms demonstrably reached GitHub and the denied form demonstrably never ran.
+
+      This is also the first end-to-end proof that G3.5b's rendered
+      `.claude/hooks/gh-invocation-guard.py` is *loaded*, not merely registered — the failure mode
+      G3.5b warns of (a registration pointing at a missing file, deferring silently) would have
+      shown `gh run list` executing.
 - [~] G4.3 `template-parity` still reports 0 drift. `preflight.py` CLEAR — noting its recorded hard
       bound: it runs the shipped check, so it moves findings earlier and adds no coverage.
       EVIDENCE: local · 2026-08-26T00:0x+08:00
