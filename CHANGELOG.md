@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.51] - 2026-08-24
+
+Covers the one change merged since v0.1.50:
+
+| PR | Change |
+|---|---|
+| #102 | the agent working-memory store is governed, and its declared path is guarded |
+
+The entry records the mechanism rather than the outcome. What this change cost to get right, stated
+because the route is the reusable part: a placeholder path is a comment asking an installer to act, so
+the seed had to travel with a check that refuses it — and the case that decided *check* over
+*install-time prompt* was the one that looks like success, a declared path resolving **outside** the
+vault, which works perfectly while silently merging one deployment's memory with another's.
+
 ### Added
 - **The vault's agent working-memory store is governed** (`seed-auto-memory-store`). A deployed vault
   may keep a Claude Code auto-memory store in-tree at `10-Logbook/vmm-working-memory/`, activated by
