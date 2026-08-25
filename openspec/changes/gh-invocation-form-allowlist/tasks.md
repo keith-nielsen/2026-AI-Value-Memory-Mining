@@ -165,6 +165,41 @@ python3 -m pytest tests/ -q --ignore=tests/test_gh_invocation_guard.py
 with it: `17 passed in 1.43s`, first run after G3.1. Both halves of the red-first cycle are
 recorded, which is what `[x]` requires.
 
+### Per-row attribution of the 17 — added 2026-08-26
+
+The tally above is an aggregate, and an aggregate does not show that **each** row was exercised.
+Traceability was structural but unrecorded: every test function is named for the row it discharges.
+Stated here so the mapping is in the record rather than only in the test file.
+
+```
+$ python3 -m pytest tests/test_gh_invocation_guard.py -v
+test_g2_3_gh_api_graphql_is_the_one_api_form_that_must_not_pass                PASSED
+test_g2_4_unlisted_subcommands_are_refused_by_default[gh pr list]              PASSED
+test_g2_4_unlisted_subcommands_are_refused_by_default[gh issue list]           PASSED
+test_g2_4_unlisted_subcommands_are_refused_by_default[gh run list]             PASSED
+test_g2_4_unlisted_subcommands_are_refused_by_default[gh workflow view ci.yml] PASSED
+test_g2_5_absolute_path_invocation_is_refused                                  PASSED
+test_g2_6_leading_env_assignment_is_refused                                    PASSED
+test_g2_7_compound_command_is_refused                                          PASSED
+test_g2_1_gh_api_rest_path_is_allowed                                          PASSED
+test_g2_2_gh_auth_status_is_allowed                                            PASSED
+test_g2_8_the_token_as_data_is_not_a_command                                   PASSED
+test_g2_9_unrelated_commands_fall_through_untouched                            PASSED
+test_g2_10_malformed_input_fails_open_and_says_so[]                            PASSED
+test_g2_10_malformed_input_fails_open_and_says_so[not json]                    PASSED
+test_g2_10_malformed_input_fails_open_and_says_so[{}]                          PASSED
+test_g2_10_malformed_input_fails_open_and_says_so[{"tool_input":{}}]           PASSED
+test_g2_11_uncaught_evasions_are_recorded_not_claimed                          PASSED
+============================== 17 passed in 1.33s ==============================
+```
+
+**11 rows, 17 tests, every row represented** — `G2.4` and `G2.10` are parametrised ×4 each
+(4 + 4 + 9 singles = 17), which is where the count exceeds the row total. G2.4's four parameters are
+exactly the four forms its row names.
+
+⚠ The `-v` listing is what makes the aggregate resolvable. A future re-run that reports only
+`17 passed` re-opens this gap: the number is unchanged whether or not a row still has a test.
+
 Two implementation obligations the tests already bind, so G3 cannot quietly skip them:
 
 - **G2.3 asserts the refusal names the REST replacement**, not merely that it refuses — G3.3's
@@ -188,7 +223,44 @@ Two implementation obligations the tests already bind, so G3 cannot quietly skip
       regardless, so an allow would buy nothing.
       (INV-3). No subprocess invocation; no network (INV-6).
 - [x] G3.2 Stem conforms to the naming ruleset — silo-section-descriptor, ≥3 hyphen-tokens (INV-11).
-      EVIDENCE: `gh-invocation-guard-script` — 4 hyphen-tokens, silo-section-descriptor (INV-11).
+      EVIDENCE: local · `vault_naming.py --check-strict`, exit status · 2026-08-26T01:4x+08:00
+      ⚠ **This row previously read `EVIDENCE: gh-invocation-guard-script — 4 hyphen-tokens,
+      silo-section-descriptor (INV-11)`, which is a PROSE ASSERTION** — a restatement of the claim,
+      forbidden by name in constitution §3 Gate 3 (*"never by a prose assertion"*). Replaced with an
+      exit status from the governing instrument, rendered from
+      `vault-template/99-Operations/scripts/naming-rules-script.md`.
+
+      **Adversarial cases first**, so the exit-0 below is not vacuous — a checker that passes
+      everything would pass this stem too:
+
+      ```
+      $ python3 vault_naming.py --check-strict "GH_Invocation Guard.md"
+      INVALID 'GH_Invocation Guard.md': not a kebab slug (^[a-z0-9]+(?:-[a-z0-9]+)*$);
+        fewer than 3 hyphen-tokens (INV-11 floor)
+      EXIT=1
+
+      $ python3 vault_naming.py --check-strict "gh-guard.md"
+      INVALID 'gh-guard.md': fewer than 3 hyphen-tokens (INV-11 floor)
+      EXIT=1
+
+      $ python3 vault_naming.py --check-strict "gh-invocation-guard-script.md"
+      EXIT=0
+      ```
+
+      ⚠ **`--check` is the WRONG mode and was measured to be so.** It validates cross-platform
+      safety only and its contract is deliberately unchanged for existing callers; run against it,
+      `GH_Invocation Guard.md` exits **0**. The INV-11 content rule this row claims lives behind
+      `--check-strict` (ADR-0030). Recording a `--check` exit-0 here would have looked like evidence
+      and proved nothing.
+
+      ⚠ **DEFECT FOUND, recorded not fixed — `validate-scripts.sh` cannot evidence this row.**
+      Line 47 runs `python3 "$BIN/vault_naming.py" >/dev/null` with **no `|| exit`**, and the script
+      sets `set -uo pipefail` with **no `-e`** (line 8). The validator's exit code is therefore
+      discarded and line 48's `ok "render + naming-rules.json"` prints unconditionally — a
+      shell-printed verdict string, which §3 Gate 3 names explicitly as not-evidence. Same vacuity
+      class as the known `md-lint || true`. The CI job `naming-validator` inlines its own copy of the
+      logic and is unaffected; `validate-scripts.sh` is the surface that lies. Out of scope here —
+      belongs to the GitHub platform hardening queue.
 - [x] G3.3 Deny message carries the REST mapping and states the reason once
       EVIDENCE: bound by test G2.3, which asserts the refusal string contains the REST mapping —
       enforced by the suite rather than left to review.

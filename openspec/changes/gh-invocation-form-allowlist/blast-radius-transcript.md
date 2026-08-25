@@ -123,10 +123,33 @@ spec should not imply otherwise.
 
 ## G0.3 — pre-change baseline of the three `settings.json`
 
+⚠ **This block previously carried a PSEUDOCODE description in place of a command**
+(`for each of USER / VAULT / FRAMEWORK settings.json: keys, len(...)`). Its output was real, but
+Gate 1 requires *"the exact search command(s) plus their full, untruncated output"*, and **G5.1 is
+"re-run the G0 sweeps; diff output against this transcript"** — which was not performable for G0.3.
+The exact command is restored below. Both runs are kept, because this row is a *pre-change baseline*
+and therefore cannot reproduce after the change lands; the diff between them is this change's own
+footprint, which is what G5.1 should expect to see.
+
+The command (re-runnable; requires `config.env` sourced for the two root variables):
+
 ```
-for each of USER / VAULT / FRAMEWORK settings.json:
-    keys, len(hooks.PreToolUse), len(permissions.deny)
+python3 - "$HOME/.claude/settings.json" \
+         "$VAULT_ROOT/.claude/settings.json" \
+         "$FRAMEWORK_ROOT/.claude/settings.json" <<'PY'
+import json, sys
+for label, path in zip(("USER", "VAULT", "FRAMEWORK"), sys.argv[1:]):
+    d = json.load(open(path))
+    blocks = d.get("hooks", {}).get("PreToolUse", [])
+    hooks = sum(len(b.get("hooks", [])) for b in blocks)
+    deny = d.get("permissions", {}).get("deny", [])
+    print(f"  {label:10} keys={sorted(d)}")
+    print(f"  {'':10} PreToolUse-blocks={len(blocks)}  hooks-within={hooks}  permissions.deny={len(deny)}")
+PY
 ```
+
+**PRE-CHANGE baseline, 2026-08-25** (as originally recorded; `keys` in file order, and counting
+matcher-blocks only):
 
 ```
   USER       keys=['permissions','model','effortLevel','tui','enabledPlugins','autoMode']
@@ -136,6 +159,25 @@ for each of USER / VAULT / FRAMEWORK settings.json:
   FRAMEWORK  keys=['hooks']
              PreToolUse-blocks=1   permissions.deny=0
 ```
+
+**POST-CHANGE re-run at `eb14905`, 2026-08-26** (`keys` sorted by the command above):
+
+```
+  USER       keys=['autoMode', 'effortLevel', 'enabledPlugins', 'model', 'permissions', 'tui']
+             PreToolUse-blocks=0  hooks-within=0  permissions.deny=0
+  VAULT      keys=['hooks', 'permissions', 'sandbox']
+             PreToolUse-blocks=1  hooks-within=1  permissions.deny=10
+  FRAMEWORK  keys=['hooks', 'permissions']
+             PreToolUse-blocks=1  hooks-within=2  permissions.deny=5
+```
+
+**The delta is exactly this change, and nothing else:** FRAMEWORK gains a `permissions` key,
+`permissions.deny` 0 -> 5, and `hooks-within` 1 -> 2. USER and VAULT are byte-for-byte unchanged in
+every counted field. ⚠ **Unit note, added because the two rows are easy to read as contradictory:**
+G0.3 counts `PreToolUse` **matcher-blocks** (1 both before and after), while G3.5's evidence records
+"Bash hooks 1 -> 2" — the **hooks *within*** that single block. Both are true; they count different
+things. `hooks-within` is emitted above so the two rows can be diffed without reconciling units by
+hand.
 
 Paths, root-prefixed to avoid the overloaded-basename trap:
 
