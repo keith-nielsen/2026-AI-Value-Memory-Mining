@@ -5,7 +5,7 @@ Replace the enumerated `Bash(gh …:*)` deny entries with an **inverted rule** i
 PreToolUse hook: `gh api` and `gh auth status` are permitted; **every other `gh` form is refused**,
 and the refusal names the REST replacement that works.
 
-**Decisions recorded in [ADR-0045](../../adr/0045-gh-invocation-form-allowlist.md)** — context /
+**Decisions recorded in [ADR-0045](../../../adr/0045-gh-invocation-form-allowlist.md)** — context /
 options / choice / consequence / **sacrifice**, per constitution §3 Gate 4.
 
 ## Why

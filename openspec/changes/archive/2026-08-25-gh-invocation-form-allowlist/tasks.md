@@ -429,15 +429,21 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
 
 ## G4 — Regression, by instruments that did not perform the work
 
-- [~] G4.1 Full `pytest` green. `inv6-offline-check` green — including on the **unmodified**
+- [x] G4.1 Full `pytest` green. `inv6-offline-check` green — including on the **unmodified**
       outbound guard, proving this change did not touch it.
       EVIDENCE: local · 2026-08-26T00:0x+08:00
       `inv6-offline-check` **GREEN — 15 fleet notes analysed, 0 violations, 0 unresolved** (14 before
       this change; the new note is included and passes).
       **The outbound guard is byte-identical to `main`**, proven by blob SHA rather than an empty
       diff: `44b66baf1132da21f3ab35c4ad1dfca9e3e79933` on both sides.
-      `pytest tests/ -q` -> **1 failed, 375 passed**. `[~]` NOT `[x]` because "full pytest green" is
-      not yet true: the single failure is
+      **TICKED AFTER ARCHIVE, 2026-08-26.** `pytest tests/ -q` -> **382 passed, 0 failed**. The
+      archive commit synced the Script Inventory delta into the main spec and the expected-red
+      cleared exactly as predicted, with no other test perturbed (375 + 6 new F29 tests + this one).
+
+      The pre-archive reading is kept below rather than overwritten, because the prediction and its
+      confirmation are the evidence together:
+      `pytest tests/ -q` -> **1 failed, 375 passed**. `[~]` NOT `[x]` because "full pytest green" was
+      not yet true: the single failure was
       `test_inventory_conformance::test_maintenance_spec_inventory_names_exactly_the_note_set`,
       which reads the **main** spec. The Script Inventory row reaches it only when `openspec archive`
       syncs the delta, which this repo does on the feature branch **before** opening the PR. Ticks to
@@ -515,7 +521,7 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
       above. STEP 11 reports **CAN ARCHIVE gh-invocation-form-allowlist**.
       Recorded hard bound (unchanged): preflight runs the SHIPPED check, so it moves findings earlier
       and adds no coverage.
-- [~] G4.4 Constitutional diff gate green on the `constitutional-impact` block.
+- [x] G4.4 Constitutional diff gate green on the `constitutional-impact` block.
       EVIDENCE: local · `preflight.py` STEP 7b, against the real merge-base diff ·
       2026-08-26T00:0x+08:00
       Result: **`constitutional-diff-gate: no protected element touched -- not applicable`.**
@@ -566,8 +572,12 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
 
       The transcript now carries the full 60-line output plus a note recording what was truncated
       and how it was found.
-- [ ] G5.2 ADR-0045 header flipped from Proposed to Accepted **on merge** — the three stale ADR
+- [x] G5.2 ADR-0045 header flipped from Proposed to Accepted **on merge** — the three stale ADR
       headers (0032, 0033, 0042) are the recorded reason this is a task and not an intention.
+      **DONE on this branch, which IS "on merge" from `main`'s point of view:** `main` receives
+      `Accepted` at the merge commit and at no earlier moment. Flipping here rather than as a
+      post-merge step is deliberate — a post-merge step with no owner scheduled is exactly how
+      0032, 0033 and 0042 were left stale, which is the recorded reason this is a task at all.
 - [x] G5.3 Human sign-off (§3 Gate 4, human-only) — **Approved** — Keith Nielsen, 2026-08-26
       Requested with full absolute `view <path>` paths + an explicit "reply Approved" prompt.
       ⚠ The operator's approval, the name and the ISO date sit on the TICKED LINE ITSELF, and
