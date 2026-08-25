@@ -209,14 +209,45 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
 
 ## G4 — Regression, by instruments that did not perform the work
 
-- [ ] G4.1 Full `pytest` green. `inv6-offline-check` green — including on the **unmodified**
+- [~] G4.1 Full `pytest` green. `inv6-offline-check` green — including on the **unmodified**
       outbound guard, proving this change did not touch it.
+      EVIDENCE: local · 2026-08-26T00:0x+08:00
+      `inv6-offline-check` **GREEN — 15 fleet notes analysed, 0 violations, 0 unresolved** (14 before
+      this change; the new note is included and passes).
+      **The outbound guard is byte-identical to `main`**, proven by blob SHA rather than an empty
+      diff: `44b66baf1132da21f3ab35c4ad1dfca9e3e79933` on both sides.
+      `pytest tests/ -q` -> **1 failed, 375 passed**. `[~]` NOT `[x]` because "full pytest green" is
+      not yet true: the single failure is
+      `test_inventory_conformance::test_maintenance_spec_inventory_names_exactly_the_note_set`,
+      which reads the **main** spec. The Script Inventory row reaches it only when `openspec archive`
+      syncs the delta, which this repo does on the feature branch **before** opening the PR. Ticks to
+      `[x]` after archive.
 - [ ] G4.2 **Operator step, through the real harness:** invoke a denied form and an allowed form in a
       live session. No unit test traverses hook registration; a passing test suite is not evidence
       that the hook is loaded. Record both outcomes.
-- [ ] G4.3 `template-parity` still reports 0 drift. `preflight.py` CLEAR — noting its recorded hard
+- [~] G4.3 `template-parity` still reports 0 drift. `preflight.py` CLEAR — noting its recorded hard
       bound: it runs the shipped check, so it moves findings earlier and adds no coverage.
-- [ ] G4.4 Constitutional diff gate green on the `constitutional-impact` block.
+      EVIDENCE: local · 2026-08-26T00:0x+08:00
+      `template-parity` -> **19 lockstep files across 2 prefixes, 1 drift**, and the drift names
+      itself: `MISSING-IN-LIVE: 99-Operations/scripts/gh-invocation-guard-script.md`. That is the new
+      note present in the template and not yet mirrored to the live vault — it resolves at operator
+      deploy-down, not on this branch. **No other drift exists** (enumerated: exactly 1 line).
+      template-parity is **not a CI job** (it needs a live vault CI does not have), so this does not
+      gate the PR.
+      `preflight.py .` -> 12/16 CI jobs reproduced, **1 issue**, and that issue is G4.1's expected-red
+      above. STEP 11 reports **CAN ARCHIVE gh-invocation-form-allowlist**.
+      Recorded hard bound (unchanged): preflight runs the SHIPPED check, so it moves findings earlier
+      and adds no coverage.
+- [~] G4.4 Constitutional diff gate green on the `constitutional-impact` block.
+      EVIDENCE: local · `preflight.py` STEP 7b, against the real merge-base diff ·
+      2026-08-26T00:0x+08:00
+      Result: **`constitutional-diff-gate: no protected element touched -- not applicable`.**
+      That is a DEFERRAL, not a pass. The gate reads the diff, and this change's
+      `specs/maintenance/spec.md` lives under `openspec/changes/`; the **main**
+      `openspec/specs/maintenance/spec.md` is untouched until archive. The widened declaration
+      (`touches:` both specs, `protects` gains INV-2) is therefore correct and necessary but **not yet
+      exercised**. It ticks `[x]` when the archive commit makes the gate fire — the same sequence
+      ADR-0042's own change recorded when it became its gate's first live subject.
 
 ## G5 — Gate 4
 
