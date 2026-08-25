@@ -292,11 +292,66 @@ Two implementation obligations the tests already bind, so G3 cannot quietly skip
       pointed at a nonexistent file — the hook would fail to start, the harness would defer, and
       **G4.2 would have measured nothing while appearing to pass.** A registered hook pointing at a
       missing file is not a loaded hook.
-      ⚠ **OWED, not fixed here (F29):** *nothing verifies that `.claude/hooks/*.py` in the framework
-      repo still matches its note.* `render`/`reconcile` govern note → deployed **vault**, and
-      `template-parity` governs template → live vault, but the framework repo's own hook copies are
-      governed by neither. That is the same seam the Script Inventory requirement was written to
-      close, in a different place.
+      ⚠ **F29 was OWED here and is now CLOSED by G3.5c below** — it bit a second time on
+      2026-08-26 (a note edit left the rendered copy stale, full suite green throughout), and a
+      deferral that has drawn blood twice in one day is not a deferral.
+
+- [x] G3.5c **(added 2026-08-26, operator-approved: close F29 rather than ship it owed)**
+      Verify every `$FRAMEWORK_ROOT/.claude/hooks/*.py` against the note that governs it.
+      EVIDENCE: local · red observed twice, then green · 2026-08-26T02:4x+08:00
+
+      Added to `tests/test_inventory_conformance.py` — the module that exists to close exactly this
+      class of seam, and whose docstring already diagrammed three of them. The fourth is now in that
+      diagram rather than in a parallel file:
+
+      ```
+      render / reconcile  ->  note -> deployed vault
+      template-parity     ->  template -> live vault
+      (nothing)           ->  SPEC -> NOTE
+      (nothing)           ->  NOTE -> THIS REPO'S OWN .claude/hooks/ COPY   <- F29, closed
+      ```
+
+      **RED 1 — the drift that actually occurred**, reproduced against the live repo by restoring
+      the pre-`0b07ddc` hook while the note carried the corrected message:
+
+      ```
+      $ git show 21b1925:.claude/hooks/gh-invocation-guard.py > .claude/hooks/gh-invocation-guard.py
+      $ python3 -m pytest tests/test_inventory_conformance.py -k byte_identical
+      E  AssertionError: 1 hook file(s) have DRIFTED from their note. The harness loads the file,
+      E    not the note, so this drift is live:
+      E      .claude/hooks/gh-invocation-guard.py differs from
+      E      vault-template/99-Operations/scripts/gh-invocation-guard-script.md
+      $ git checkout .claude/hooks/gh-invocation-guard.py     # 1 passed
+      ```
+
+      **RED 2 — the detector itself**, sabotaged to always report clean, proving the branch tests
+      are not vacuous:
+
+      ```
+      $ # parity_report() stubbed to `return [], []`
+      $ python3 -m pytest tests/test_inventory_conformance.py -k parity
+      3 failed, 1 passed
+      ```
+
+      The partition is the point: the three *detection* tests go red, while the confirming case
+      stays green — a blind-clean detector still reports clean on a matching pair. A suite where all
+      four flipped would mean the fixtures, not the detector, were doing the work.
+
+      **Design note — why `parity_report()` is a pure function.** The first draft asserted directly
+      against the live `.claude/`, which made its failure branches reachable only by mutating the
+      real repository. One such probe was refused by a permission control mid-task; rather than
+      compose a variant to get around it (standing rule: a control's denial is handed over, never
+      routed around), the check was refactored to take its subjects as arguments. Both failure
+      branches are now exercised against `tmp_path` fixtures. An assertion nobody has watched fail
+      is an assumption wearing a test's clothes, and one that *cannot* be watched fail is worse.
+
+      **Fails closed in both directions**: a hook with no note, and a note with no `python` block,
+      are both refused — INV-3 forbids a shipped control with no literate source. Ground truth is
+      the hook set on disk, never a literal list in the test.
+
+      ⚠ **Bound, stated so it is not over-read.** This governs THIS repository's copies only. The
+      deployed vault's `.claude/hooks/` remains `render`/`reconcile`'s subject, and template → live
+      vault remains `template-parity`'s. The seam closed is the third arrow, not all three.
 
 - [ ] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
       (proving generated output is ignored, not merely uncommitted).
