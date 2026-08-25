@@ -353,8 +353,52 @@ Two implementation obligations the tests already bind, so G3 cannot quietly skip
       deployed vault's `.claude/hooks/` remains `render`/`reconcile`'s subject, and template → live
       vault remains `template-parity`'s. The seam closed is the third arrow, not all three.
 
-- [ ] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
+- [x] G3.6 `render` → `reconcile` reports zero drift; `git status --porcelain` clean afterwards
       (proving generated output is ignored, not merely uncommitted).
+      EVIDENCE: OPERATOR ran `render` in `$VAULT_ROOT` (writes protected paths); agent ran the
+      read-only halves · 2026-08-26T03:0x+08:00
+
+      ```
+      $ python3 99-Operations/bin/vault-render.py render
+      rendered bank-execute-script.md -> 99-Operations/bin/vault-refine-execute.py
+      … 14 targets …
+      RENDER_EXIT=0
+
+      $ python3 99-Operations/bin/vault-render.py reconcile
+      ok: … 14 targets, every one ok …
+      RECONCILE_EXIT=0
+
+      $ git status --porcelain
+      ?? 10-Logbook/vmm-working-memory-notes.md
+      ?? 30-Sites/verification-provenance-audit/
+      ```
+
+      **14 targets rendered, 14 reconciled ok, zero drift, exit 0 both ways.** No render target
+      appears in `git status`. The two untracked entries are pre-existing and unrelated to render
+      (a memory-notes file and a parked Site); neither is a render target.
+
+      ⚠ **The parenthetical in this task's own text is wrong for 3 of the 14, and the truth is
+      stronger.** Render targets do not form one class — measured, by asking git rather than by
+      reading `.gitignore`:
+
+      | Class | Count | Why it is absent from `git status` |
+      |---|---|---|
+      | `99-Operations/bin/*` | **11** | **ignored** — `.gitignore:58` (`99-Operations/bin/`) |
+      | `99-Operations/hooks/pre-commit`, `pre-push`, `.claude/hooks/outbound-publish-guard.py` | **3** | **TRACKED** — absent because render reproduced them **byte-identically** to the committed content |
+
+      For the 11, a clean status proves the output is ignored. For the 3 it proves something the
+      task did not think to claim: **`render` is idempotent against committed content**. Had render
+      altered any of those three by even a byte, they would have shown as modified. Reading all 14
+      as "ignored" would have discarded that, and would also have been a false statement about the
+      three files most worth watching — two git hooks and the INV-14 outbound guard.
+
+      ⚠ **Scope: 14 targets, not 15.** `gh-invocation-guard-script.md` is not in the live vault yet
+      (`template-parity` MISSING-IN-LIVE, recorded at G4.3). It arrives at deploy-down, and
+      re-rendering there is **G5.4**. This run therefore proves the change did not perturb the
+      EXISTING fleet; it does not exercise the new note.
+
+      **Pre-render baseline** (agent, before the operator's write): `reconcile` already reported
+      14 ok / zero drift / exit 0, so this render was expected to be a no-op and was.
 
 
 ### G3 — obligations discovered during execution, not in the task text
