@@ -88,12 +88,50 @@ sessions without notice, so the prime also **measures** its own reach rather tha
 
    Then separate **can** from **may**: a channel the agent *can* run may still be the operator's to
    authorize (INV-14). This step measures capability; it never confers authority.
-4. `[agent]` **Know the just-in-time pointers** (read only when a task touches them):
+4. `[agent]` **Route state — invoke the driver, never describe it from memory.** If
+   `FRAMEWORK_ROOT` is declared and holds work in flight — a branch other than the default, or
+   commits ahead of `origin/<default>` — run:
+
+   ```
+   python3 "$FRAMEWORK_ROOT/tools/pr-flow.py" --plan
+   ```
+
+   Report the **CURRENT** step as `<slug> step:<name>`, with its `runs:` and `authority:`. With no
+   work in flight, say so and run nothing — a route printed for a clean default branch is
+   degenerate, and a step that prints noise every session teaches its reader to skip it.
+
+   **The standing rule this step exists to enforce:** the lifecycle is `tools/pr-flow.py` and the
+   operator's *entire* side of it is one invariant command —
+
+   ```
+   bash "$FRAMEWORK_ROOT/.git/pr-flow/next.sh"
+   ```
+
+   — written by the driver only when the pending step is theirs, carrying the resolved PR number,
+   head SHA and preconditions, re-asserting the state they were shown, expiring after 24h. The
+   operator never varies it, never passes a flag, never hand-composes a `gh` command. Neither does
+   the agent: `gh pr merge` is **never** emitted, and the merge goes through the REST endpoint
+   carrying `sha` so a raced head is refused rather than merged unreviewed.
+
+   ⚠ **`next.sh` is a single mutable slot.** Re-running the driver — on any branch, for any reason,
+   including to check status — **overwrites a step still pending the operator**, who then runs
+   something they were never shown. Once an operator step is emitted, **stop touching the driver**
+   until they report it done. The wrapper's guards catch a *stale* command, not a *substituted* one;
+   only this discipline prevents substitution.
+
+   ⚠ **Describing this route from recall is the failure this step replaces.** On 2026-08-20 the
+   agent asserted `next.sh` did not exist — while holding a memory entry recording a defect in it —
+   and "confirmed" that with a `find` whose `-not -path "*/.git/*"` excluded the only directory it
+   lives in. Three prose statements of the workflow were already on disk. **Prose lost to
+   recollection; the instrument does not.** `CONTRIBUTING.md` §"Landing a change" is the SSOT and
+   says the same thing: run `--plan` *before writing a plan of your own — that is what it is for.*
+
+5. `[agent]` **Know the just-in-time pointers** (read only when a task touches them):
    - Built-but-unexercised ops + their docs → the `llm-context-reboot` Site load-list.
    - Deferred / not-built — do **not** attempt or assume available: Crucible, Mint, Forge, Hermes, n8n.
    - Other runbooks: `provenance-seal-runbook`.
    - Durable rules: the auto-loaded memories (`MEMORY.md`).
-5. `[script]` **Verify** — `: "${VAULT_ROOT:?}"` (env set); optionally `vault-render.py reconcile`
+6. `[script]` **Verify** — `: "${VAULT_ROOT:?}"` (env set); optionally `vault-render.py reconcile`
    (zero drift).
 
 ## Pitfalls
@@ -133,6 +171,9 @@ sessions without notice, so the prime also **measures** its own reach rather tha
 - The five gates are acknowledged before any governed action this session.
 - The step-3 probe has been run against the DECLARED estate and its layers reported, before
   any capability claim. `VAULT_ROOT` and `FRAMEWORK_ROOT` are both echoed by the probe itself.
+- Route state came from `pr-flow.py --plan`, not from recollection, and any pending operator
+  step was reported as `<slug> step:<name>`. No description of the lifecycle was given from
+  memory in place of invoking the driver.
 - (Optional) `vault-render.py reconcile` reports zero drift.
 
 ## Rollback

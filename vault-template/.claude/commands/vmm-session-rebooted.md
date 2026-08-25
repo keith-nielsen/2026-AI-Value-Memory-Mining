@@ -17,7 +17,17 @@ the cold-start prime. Perform its steps in order:
    - an empty `FRAMEWORK_ROOT` makes those layers **UNDECLARED**, an honest absence, never a failure.
    If step 1 left `FRAMEWORK_ROOT` empty, say so and continue — do **not** substitute the current
    directory, and do **not** hand-roll a replacement probe.
-4. Note (do not load) the just-in-time pointers from the runbook.
-5. Verify `VAULT_ROOT` is set, then briefly confirm readiness.
+4. Report route state — **invoke the driver, never describe it from memory.** With work in flight
+   in `FRAMEWORK_ROOT` (a non-default branch, or commits ahead of `origin/<default>`), run
+   `python3 "$FRAMEWORK_ROOT/tools/pr-flow.py" --plan` and report the CURRENT step as
+   `<slug> step:<name>` with its `runs:` / `authority:`. With nothing in flight, say so and run
+   nothing.
+   State the standing rule either way: the operator's entire side of the lifecycle is one invariant
+   command — `bash "$FRAMEWORK_ROOT/.git/pr-flow/next.sh"` — written by the driver only when the
+   pending step is theirs. Never hand-compose a `gh` mutation, and once an operator step is emitted,
+   **stop touching the driver** until they report it done: `next.sh` is a single mutable slot and
+   re-running the driver overwrites a step they have not yet run.
+5. Note (do not load) the just-in-time pointers from the runbook.
+6. Verify `VAULT_ROOT` is set, then briefly confirm readiness.
 
 Do not duplicate the runbook here — open it if anything is unclear; it is the SSOT.

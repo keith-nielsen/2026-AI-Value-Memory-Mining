@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **The cold-start prime reports route state from the driver, not from recall**
+  (`bootstrap-route-state-priming`). `session-bootstrap-loader` gains a step: with work in
+  flight in `FRAMEWORK_ROOT`, invoke `tools/pr-flow.py --plan` and report the CURRENT step;
+  with nothing in flight, say so and run nothing. It states the standing rule that the
+  operator's entire side of the lifecycle is one invariant command,
+  `bash "$FRAMEWORK_ROOT/.git/pr-flow/next.sh"`, and names the hazard that has no structural
+  guard: **`next.sh` is a single mutable slot** — re-running the driver overwrites a step still
+  pending the operator, and the wrapper catches a *stale* command but not a *substituted* one.
+  **Validated three times by the 2026-08-25 session before the content was read:** the prime
+  reported "nothing in flight" while two branches held unmerged work; the agent hand-composed
+  a browser URL in place of `next.sh`; and the agent rewrote the slot while a step was pending.
+
 ### Fixed
 - **The OpenSpec badge reads the pin live instead of restating it**
   (`openspec-badge-live-version`). `README.md` advertised `v1.4.1` in three places — the badge, the
