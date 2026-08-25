@@ -33,9 +33,10 @@ own redirect hint. A bare denial therefore generates a retry rather than a corre
 denial teaches the agent that the control is an obstacle rather than an instruction.
 
 #### Scenario: The refusal carries the replacement
-- **WHEN** a `gh` invocation is refused for routing through an endpoint the session cannot reach
-- **THEN** the message names the REST equivalent and states that GraphQL requires authentication
-  unconditionally while REST does not
+- **WHEN** a `gh` invocation is refused for routing through an endpoint this estate has measured
+  non-deterministic
+- **THEN** the message names the REST equivalent and states the ground for the refusal in terms that
+  hold independently of the session's credential state
 
 ### Requirement: Command-Form Policy Is Expressed As An Allowlist
 

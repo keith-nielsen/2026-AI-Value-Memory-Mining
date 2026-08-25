@@ -47,9 +47,17 @@ shell-printed verdict string.
         `pr-state.py:83`   `["gh","pr","view",…]`                 WOULD be refused if typed
         `pr-state.py:168`  `["gh","run","list",…]`                WOULD be refused if typed
       `ship-release.py` no longer shells out (item 21 moved it onto `gh_read`).
-      **Landing the allowlist breaks no live caller**: `pr-state.py:83` is GraphQL, already 401s in a
+      **Landing the allowlist breaks no live caller** — because every call site above is a Python
+      subprocess the hook cannot see. That conclusion stands; the reasoning first written under it
+      did not, and is corrected here rather than deleted.
+
+      ⚠ **CORRECTED 2026-08-26.** This read: *"`pr-state.py:83` is GraphQL, already 401s in a
       confined session, and line 86 sets `graphql=False` and degrades to anonymous REST; the
-      `gh run list` path at 168 is gated on `graphql` and is unreachable in that state.
+      `gh run list` path at 168 is gated on `graphql` and is unreachable in that state."* Measured
+      false. A session started in `$FRAMEWORK_ROOT` has no `sandbox` block, reaches the keyring, and
+      `gh` authenticates with `repo` + `workflow` scopes — GraphQL then **succeeds**, `graphql` stays
+      `True`, and line 168's `gh run list` **is reachable**. The safety of landing this change never
+      rested on that degradation; it rests on subprocess invisibility, which holds in both states.
       ⚠ Third surface neither layer reaches: `openspec-canary.yml` runs `gh label create`,
       `gh issue list`, `gh issue create` on GitHub runners, where no harness — and therefore no hook
       and no `permissions` block — exists at all.
@@ -381,6 +389,20 @@ without bypassing the delta flow. `preflight.py`: 12/16 reproduced, this the onl
       `.claude/hooks/gh-invocation-guard.py` is *loaded*, not merely registered — the failure mode
       G3.5b warns of (a registration pointing at a missing file, deferring silently) would have
       shown `gh run list` executing.
+
+      ⚠ **The credential state this proof ran under, recorded because it changes what it proves.**
+      `gh auth status` in that same session returned **authenticated** — account `keith-nielsen`, via
+      keyring, scopes `gist`, `read:org`, `repo`, `workflow`. The session was unsandboxed:
+      `$FRAMEWORK_ROOT/.claude/settings.json` carries no `sandbox` key, while
+      `$VAULT_ROOT/.claude/settings.json` sets `sandbox.enabled: true` with
+      `allowUnsandboxedCommands: false`. Credential reach is therefore a property of the project
+      directory the session started in.
+
+      **This makes G4.2 a stronger result, not a weaker one.** The guard refused a channel that
+      genuinely worked, with real mutation capability behind it — not one already broken by an
+      unreadable credential. It also invalidated the auth-based rationale the change originally
+      shipped with; see the ADR-0045 Context correction of the same date, and the corrected G0.2
+      reasoning above.
 - [~] G4.3 `template-parity` still reports 0 drift. `preflight.py` CLEAR — noting its recorded hard
       bound: it runs the shipped check, so it moves findings earlier and adds no coverage.
       EVIDENCE: local · 2026-08-26T00:0x+08:00

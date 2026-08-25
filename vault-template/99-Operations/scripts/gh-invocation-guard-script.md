@@ -15,10 +15,33 @@ touches no network. This note is its source of truth (INV-3) — `render` deploy
 `reconcile` guards it like every other fleet member. `.claude/` is agent-write-denied in a live
 vault, so rendering there is an operator action, matching the `outbound-publish-guard` precedent.
 
-**Why an allowlist and not a longer deny list.** GitHub's GraphQL endpoint requires authentication
-unconditionally, while a confined session's `gh` credential measures `UNAUTHENTICATED`. So
-`gh pr *`, `gh issue *`, `gh run *` and friends 401 while `gh api <REST path>` returns 200. That
-finding was recorded three times as prose and misled the agent twice anyway. An enumerated deny list
+**Why GraphQL is prohibited: it is non-deterministic, and a production system cannot be built on
+it.** The `gh pr` / `gh issue` / `gh run` family routes through GitHub's GraphQL endpoint, and this
+estate has met its **silent no-op** failure four times: a mutation reports nothing actionable and
+changes nothing, so a caller that trusts its exit status proceeds on a false belief. The record:
+
+| Date | Instance |
+|---|---|
+| 2026-07-18 | `add-ship-ceremony-tools` — *"a GraphQL mutation can fail silently where REST succeeds"*; the mandatory post-mutation re-read exists because of this |
+| 2026-07-19 | **F21** — `gh pr edit --body-file` exit 1 behind the Projects-classic deprecation, body **unchanged**; caught only because it was re-read |
+| 2026-08-04 | **F21·3** — `gh pr edit --base` **silently no-opped**; `pr-flow.py` replaced it with `gh api -X PATCH` plus a re-read of the base |
+| 2026-08-24 | `seed-auto-memory-store` — `gh pr edit` *"changed nothing, while reporting nothing actionable"* |
+
+A channel that reports success without effect is unsuitable to task at any authentication state. The
+cost is already paid and visible: `AGENTS.md` mandates a re-read after **every** `gh`/GraphQL
+mutation — a permanent workaround for a channel that cannot be trusted to have acted. REST is the
+recorded working route in every one of the four instances.
+
+⚠ **This paragraph previously argued from `UNAUTHENTICATED`/401** — that GraphQL 401s because a
+confined session's credential is unreadable. That ground was **measured false on 2026-08-26**: a
+session launched with `$FRAMEWORK_ROOT` as its project directory has no `sandbox` block, reaches the
+keyring, and `gh auth status` reports authenticated with `repo` and `workflow` scopes. The
+credential state is a property of *which directory the session started in*, not of the platform, so
+it could never have carried this rule. It was also a **regression against what this corpus already
+knew**: `seed-auto-memory-store` had recorded that `gh pr *` is denied *"precisely for"* the silent
+no-op. The determinism ground is session-independent and is the real one.
+
+An enumerated deny list
 cures the forms already known to have failed and permits every subcommand GitHub ships next — that
 is enumeration drift, and curing it with a longer enumeration reproduces the disease. Inverting the
 rule makes the unlisted case *refused* rather than *permitted*.
@@ -150,12 +173,16 @@ def verdict(segment):
     sub = positional[0] if positional else ""
 
     if sub == "api":
-        # `gh api` is permitted EXCEPT the one form that cannot work: graphql.
+        # `gh api` is permitted EXCEPT the one form this estate has measured unsuitable: graphql.
+        # The reason states only what is invariant. A hook is deterministic and offline (INV-6), so
+        # it can never measure the session's credential -- any message asserting one would be a
+        # claim the control cannot check, and was wrong in the field on 2026-08-26.
         if len(positional) > 1 and positional[1] == "graphql":
             return (
-                "`gh api graphql` is refused: GitHub's GraphQL endpoint requires authentication "
-                "unconditionally, and this session's `gh` credential is unauthenticated, so it "
-                "returns 401 rather than data. " + REST_HINT
+                "`gh api graphql` is refused: GitHub's GraphQL endpoint has failed "
+                "non-deterministically in this estate four times, each a SILENT NO-OP -- the "
+                "mutation reported nothing actionable and changed nothing (F21, F21-3). A channel "
+                "that reports success without effect is unsuitable for production use. " + REST_HINT
             )
         return None
 

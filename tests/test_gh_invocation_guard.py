@@ -70,7 +70,9 @@ def decide(guard, cmd, *, raw=None):
 def test_g2_3_gh_api_graphql_is_the_one_api_form_that_must_not_pass(guard):
     """G2.3 — `gh api` is permitted, but `gh api graphql` is excepted back into deny.
 
-    GraphQL requires authentication unconditionally, so this form 401s in a confined session.
+    GraphQL is prohibited for non-determinism, not for authentication: four recorded silent
+    no-ops (F21, F21-3), a channel that reports success without effect. The ground is deliberately
+    session-independent -- an auth-based ground was measured false on 2026-08-26.
     It is the single carve-out inside the permitted prefix, and an allowlist that matched on
     `gh api` alone would let it through.
     """

@@ -7,10 +7,41 @@
 
 ## Context
 
-The estate has repeatedly established that GitHub must be read through `gh api` with an explicit
-REST path, never through a `gh pr` / `gh issue` subcommand, because GitHub's GraphQL endpoint
-requires authentication unconditionally while the confined session's `gh` credential measures
-`UNAUTHENTICATED`. REST reads work; GraphQL reads 401.
+The estate has repeatedly established that GitHub must be read and mutated through `gh api` with an
+explicit REST path, never through a `gh pr` / `gh issue` subcommand, **because the GraphQL endpoint
+those subcommands route through is non-deterministic and therefore unsuitable to task in a
+production system.** Its failure signature is the worst kind: a **silent no-op** — the command
+reports nothing actionable and changes nothing, so a caller trusting its exit status proceeds on a
+false belief.
+
+Four recorded instances, all resolved by moving to REST:
+
+| Date | Instance |
+|---|---|
+| 2026-07-18 | `add-ship-ceremony-tools` — *"a GraphQL mutation can fail silently where REST succeeds"* |
+| 2026-07-19 | **F21** — `gh pr edit --body-file` exit 1 behind the Projects-classic deprecation, body unchanged |
+| 2026-08-04 | **F21·3** — `gh pr edit --base` silently no-opped; the driver moved to `gh api -X PATCH` + re-read |
+| 2026-08-24 | `seed-auto-memory-store` — *"changed nothing, while reporting nothing actionable"* |
+
+The cost is already sunk and visible in `AGENTS.md`, which mandates a re-read after **every**
+`gh`/GraphQL mutation. That is a standing workaround for a channel that cannot be trusted to have
+acted, and it is cheaper to prohibit the channel than to keep paying for it.
+
+⚠ **Correction, 2026-08-26 — this Context previously argued from authentication.** It read: *"because
+GitHub's GraphQL endpoint requires authentication unconditionally while the confined session's `gh`
+credential measures `UNAUTHENTICATED`. REST reads work; GraphQL reads 401."* The first clause is a
+true platform fact; the second was **measured false**. A session launched with `$FRAMEWORK_ROOT` as
+its project directory carries no `sandbox` block, reaches the keyring, and `gh auth status` reports
+authenticated with `repo` and `workflow` scopes — so GraphQL is reachable there and the stated ground
+evaporates exactly where the guard is most needed. Credential state is a property of *which directory
+the session started in*, not of the platform, and could never have carried this rule. It was
+additionally a regression against the corpus's own record: `seed-auto-memory-store` had already
+written that `gh pr *` is denied *"precisely for"* the silent no-op. Corrected here to describe
+reality rather than deleted, per the ADR-0042 precedent.
+
+**This strengthens the decision rather than weakening it.** The G4.2 live proof was performed in a
+session holding `repo` and `workflow` scopes: the guard refused a channel that genuinely worked, with
+real mutation capability behind it, rather than one already broken by a missing credential.
 
 That finding has been recorded three times as prose — a memory entry, an index-line caveat, and a
 runbook note — and by the memory file's own account it **misled the agent twice anyway**.

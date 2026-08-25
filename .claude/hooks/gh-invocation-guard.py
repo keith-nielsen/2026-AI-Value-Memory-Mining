@@ -67,12 +67,16 @@ def verdict(segment):
     sub = positional[0] if positional else ""
 
     if sub == "api":
-        # `gh api` is permitted EXCEPT the one form that cannot work: graphql.
+        # `gh api` is permitted EXCEPT the one form this estate has measured unsuitable: graphql.
+        # The reason states only what is invariant. A hook is deterministic and offline (INV-6), so
+        # it can never measure the session's credential -- any message asserting one would be a
+        # claim the control cannot check, and was wrong in the field on 2026-08-26.
         if len(positional) > 1 and positional[1] == "graphql":
             return (
-                "`gh api graphql` is refused: GitHub's GraphQL endpoint requires authentication "
-                "unconditionally, and this session's `gh` credential is unauthenticated, so it "
-                "returns 401 rather than data. " + REST_HINT
+                "`gh api graphql` is refused: GitHub's GraphQL endpoint has failed "
+                "non-deterministically in this estate four times, each a SILENT NO-OP -- the "
+                "mutation reported nothing actionable and changed nothing (F21, F21-3). A channel "
+                "that reports success without effect is unsuitable for production use. " + REST_HINT
             )
         return None
 
