@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.52] - 2026-08-25
+
+Covers the one change merged since v0.1.51:
+
+| PR | Change |
+|---|---|
+| #104 | `config.env` states the interpreter resolution its `PATH` prepend changes |
+
+Dated in UTC, consistent with v0.1.51 and with the `openspec archive` stamp on this release's own
+archive directory `2026-08-25-document-venv-path-shadowing`.
+
 ### Added
 - **`config.env` states the interpreter resolution it changes** (`document-venv-path-shadowing`). The
   `PATH` prepend that puts the vault venv first is correct and deliberate, but it silently changes what
