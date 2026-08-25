@@ -114,6 +114,7 @@ commit history rather than a second source.
 | `vault-lib-script.md` | `99-Operations/bin/vault_lib.py` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, fleet exit-code contract (ADR-0023) |
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
 | `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
+| `gh-invocation-guard-script.md` | `.claude/hooks/gh-invocation-guard.py` | harness hook | Claude Code `PreToolUse` guard (ADR-0045): `gh` invocation-form **allowlist** — `gh api` with a REST path and `gh auth status` permitted, `gh api graphql` excepted back into deny, every other form refused by default rather than permitted by omission. Emits `deny` or nothing, never `allow` |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
 
 No script declares a `cron` runtime or a `schedule:`. `render` deploys code and marks it executable;
