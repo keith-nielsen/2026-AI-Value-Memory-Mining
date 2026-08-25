@@ -12,6 +12,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **`config.env` states the interpreter resolution it changes** (`document-venv-path-shadowing`). The
+  `PATH` prepend that puts the vault venv first is correct and deliberate, but it silently changes what
+  `python3` means for the rest of the shell, and the file said nothing about it. **Measured 2026-08-20
+  in one shell:** `python3 -m pytest` → `No module named pytest`, bare `pytest` → `9.1.1`. The tool was
+  on `PATH` the whole time; only the interpreter had changed, and an agent read the first result as
+  "pytest is not installed" and reported a Gate-3 blocker that did not exist. Two `maintenance`
+  Requirements: a shipped environment file states the resolution it changes, **at the point that causes
+  it** rather than in a header read before the behaviour happens; and a shadowed import failure is not
+  evidence of a missing tool until the bare-name form has been tried, with both results reported when
+  they disagree. The genuinely-absent case is a scenario of its own, so the rule cannot be read as
+  "never report a tool missing". Honest strength: this constrains what a report may claim, not what a
+  shell may do. `config.env.example` is **SEED**, so the delta is merged into a live vault's
+  instance-owned `config.env` by hand — never copied over, which would destroy `VAULT_ROOT`,
+  `FRAMEWORK_ROOT` and `PILLARS`.
+
 ## [0.1.51] - 2026-08-24
 
 Covers the one change merged since v0.1.50:
