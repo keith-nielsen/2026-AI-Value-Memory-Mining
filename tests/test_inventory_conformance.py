@@ -2,9 +2,10 @@
 
 Three checks govern the Layer-0 fleet, and between them they leave one seam:
 
-    render / reconcile  ->  note -> deployed
+    render / reconcile  ->  note -> deployed vault
     template-parity     ->  template -> live vault
     (nothing)           ->  SPEC -> NOTE
+    (nothing)           ->  NOTE -> THIS REPO'S OWN .claude/hooks/ COPY   <- F29, closed below
 
 A script can therefore ship, deploy and enforce an invariant while absent from the
 specification that governs it — indefinitely, with every build green. That is not
@@ -13,6 +14,21 @@ clean and appears ZERO times in `openspec/specs/maintenance/spec.md`.
 
 An absence has no string to match, so no search-based sweep finds it. Only an enumeration
 compared against ground truth does. These tests are that comparison.
+
+The fourth seam (F29) is the same shape one layer out. This repository carries its OWN tracked
+copy of each harness hook under `.claude/hooks/`, because a Claude Code session rooted here loads
+hooks from this directory and cannot read a literate note. Those copies are governed by nothing:
+`render`/`reconcile` govern note -> *deployed vault*, and `template-parity` governs template ->
+*live vault*. Neither reaches this repo's own copies.
+
+That is not hypothetical either. It cost twice on 2026-08-26 alone: first the hook was registered
+in `.claude/settings.json` pointing at a file that did not yet exist -- and a hook whose command
+fails DEFERS SILENTLY, so the failure reads as success -- and later a note's implementation block
+was edited while the rendered copy went stale, with the full suite green throughout.
+
+Note also what the guard suite itself says: `test_gh_invocation_guard.py` extracts the code from
+the NOTE precisely because `.claude/hooks/` "may be stale or absent". Seventeen green tests there
+therefore say nothing whatever about the file the harness actually loads.
 
 Both directions are asserted on purpose. A check that detects only omissions passes on a
 table naming a script deleted a month ago.
@@ -158,3 +174,124 @@ def test_no_document_instructs_editing_the_schedule_field():
         "document(s) instruct editing a `schedule:` field that nothing reads:\n  "
         + "\n  ".join(offenders)
     )
+
+
+# --------------------------------------------------------------------------------------
+# F29 — this repo's own hook copies against the notes that are their source of truth
+#
+# Ground truth is the hook set on disk, matching this module's existing discipline: never a
+# literal list here, which would be one more hand-maintained duplicate that drifts the same way.
+# --------------------------------------------------------------------------------------
+
+HOOKS_DIR = REPO / ".claude" / "hooks"
+
+# The implementation block of a literate meta-script note (INV-3). First block wins, which is the
+# same rule `render` and `.github/scripts/validate-scripts.sh` already apply.
+PY_BLOCK = re.compile(r"^```python\n(.*?)^```", re.S | re.M)
+
+
+def hook_set():
+    """The harness hooks this repository actually ships. The denominator for the checks below."""
+    return sorted(HOOKS_DIR.glob("*.py"))
+
+
+def test_hook_ground_truth_is_discoverable():
+    """Guard the guard: with no hooks found, the parity assertion below passes vacuously."""
+    hooks = hook_set()
+    assert hooks, (
+        f"no hook files found under {HOOKS_DIR.relative_to(REPO)} — the parity assertion "
+        f"would pass vacuously. If the hooks were deliberately removed, delete this test with them."
+    )
+
+
+def parity_report(hooks_dir, notes_dir):
+    """Compare a hook directory against its notes. Pure: takes its subjects, touches no globals.
+
+    Factored this way deliberately. A check whose failure branches can only be reached by
+    mutating the live `.claude/` is a check whose failure branches never get tested — and an
+    assertion nobody has watched fail is an assumption wearing a test's clothes.
+
+    Returns (drift, unnoted) as lists of human-readable strings.
+    """
+    drift, unnoted = [], []
+
+    for hook in sorted(pathlib.Path(hooks_dir).glob("*.py")):
+        note = pathlib.Path(notes_dir) / f"{hook.stem}-script.md"
+        if not note.exists():
+            unnoted.append(f"{hook.name} -> expected {note.name}")
+            continue
+
+        block = PY_BLOCK.search(note.read_text(encoding="utf-8"))
+        if block is None:
+            unnoted.append(f"{note.name} has no ```python implementation block")
+            continue
+
+        if block.group(1) != hook.read_text(encoding="utf-8"):
+            drift.append(f"{hook.name} differs from {note.name} — re-render it; "
+                         f"the note is the source of truth (INV-3)")
+
+    return drift, unnoted
+
+
+def test_each_repo_hook_is_byte_identical_to_its_note():
+    """F29: the file the harness LOADS must match the note that governs it.
+
+    A registered hook pointing at stale code is undetectable from the outside: the harness runs
+    whatever is on disk, and a passing test suite that reads the note instead proves nothing
+    about it.
+    """
+    drift, unnoted = parity_report(HOOKS_DIR, NOTES_DIR)
+
+    # Reported together: fixing one and re-running to discover the other wastes a cycle.
+    assert not unnoted, (
+        f"{len(unnoted)} hook file(s) governed by NO note — a shipped control with no literate "
+        f"source is exactly what INV-3 forbids:\n  " + "\n  ".join(unnoted)
+    )
+    assert not drift, (
+        f"{len(drift)} hook file(s) have DRIFTED from their note. The harness loads the file, "
+        f"not the note, so this drift is live:\n  " + "\n  ".join(drift)
+    )
+
+
+# -- the failure branches, exercised against fixtures rather than the live repo ----------
+
+NOTE_STUB = "# note\n\n## Implementation\n\n```python\n{body}```\n"
+
+
+def _fixture(tmp_path, hook_body, note_body=None, note_name=None):
+    hooks, notes = tmp_path / "hooks", tmp_path / "notes"
+    hooks.mkdir(); notes.mkdir()
+    (hooks / "probe-guard.py").write_text(hook_body, encoding="utf-8")
+    if note_body is not None:
+        notes.joinpath(note_name or "probe-guard-script.md").write_text(
+            NOTE_STUB.format(body=note_body), encoding="utf-8")
+    return hooks, notes
+
+
+def test_parity_report_is_silent_when_hook_matches_its_note(tmp_path):
+    """The confirming case — asserted so the failure cases below are not vacuously red."""
+    drift, unnoted = parity_report(*_fixture(tmp_path, "x = 1\n", "x = 1\n"))
+    assert (drift, unnoted) == ([], [])
+
+
+def test_parity_report_detects_a_stale_hook(tmp_path):
+    """The drift that actually occurred on 2026-08-26: note edited, rendered copy left behind."""
+    drift, unnoted = parity_report(*_fixture(tmp_path, "x = 1\n", "x = 2\n"))
+    assert unnoted == []
+    assert len(drift) == 1 and "differs from" in drift[0]
+
+
+def test_parity_report_detects_a_hook_with_no_note(tmp_path):
+    """A hook shipped with no literate source — INV-3's own prohibition, and it must fail CLOSED."""
+    drift, unnoted = parity_report(*_fixture(tmp_path, "x = 1\n", note_body=None))
+    assert drift == []
+    assert len(unnoted) == 1 and "expected probe-guard-script.md" in unnoted[0]
+
+
+def test_parity_report_detects_a_note_with_no_implementation_block(tmp_path):
+    """A note that governs nothing extractable is not a source of truth, and must not pass."""
+    hooks, notes = _fixture(tmp_path, "x = 1\n", "x = 1\n")
+    notes.joinpath("probe-guard-script.md").write_text("# note, prose only\n", encoding="utf-8")
+    drift, unnoted = parity_report(hooks, notes)
+    assert drift == []
+    assert len(unnoted) == 1 and "no ```python implementation block" in unnoted[0]

@@ -5,7 +5,12 @@
       "Edit(/99-Operations/**)",
       "Edit(/.claude/**)",
       "Edit(/96-Runbooks/**)",
-      "Edit(/97-Molds/**)"
+      "Edit(/97-Molds/**)",
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh project:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api graphql:*)"
     ]
   },
   "sandbox": {
@@ -31,6 +36,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/outbound-publish-guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-invocation-guard.py\""
           }
         ]
       }

@@ -26,7 +26,7 @@ Copyright 2026 Keith Nielsen
 
 2. **An OpenSpec SDD showcase** — the repository is itself governed by
    [OpenSpec](openspec/project.md): a formal project spec, a constitution with
-   constitutional protection, 44 ADRs, 6 capability specs, and a live change-management
+   constitutional protection, 45 ADRs, 6 capability specs, and a live change-management
    workflow. It demonstrates what a principled, spec-driven personal-tools project
    looks like.
 
@@ -97,7 +97,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
 │   ├── constitution.md          #   constitutional protection + Informed-Upheaval Protocol
-│   ├── adr/                     #   44 Architecture Decision Records (ADR-0001–0044)
+│   ├── adr/                     #   45 Architecture Decision Records (ADR-0001–0045)
 │   ├── specs/                   #   6 capability specs (vault-structure, value-pipeline, …)
 │   └── changes/                 #   change workflow: archive/, live/, templates/
 │
@@ -216,12 +216,12 @@ Full walkthrough: [`docs/USING-THIS-TEMPLATE.md`](docs/USING-THIS-TEMPLATE.md)
 
 ---
 
-## Operational Scripts (14)
+## Operational Scripts (15)
 
 All scripts are stored as literate meta-script notes in
 `vault-template/99-Operations/scripts/` and deployed via `render` to the `deploy_target` each note
 declares. **Every target is inside the vault tree** — eleven to `99-Operations/bin/`, two git hooks to
-`99-Operations/hooks/`, and the harness guard to `.claude/hooks/`. A deployed vault is standalone
+`99-Operations/hooks/`, and two harness guards to `.claude/hooks/`. A deployed vault is standalone
 (F15): it carries its own tools and installs nothing into the user's home.
 
 `99-Operations/bin/` is render OUTPUT and is git-ignored; the source is the notes. It sits inside a
@@ -247,6 +247,7 @@ Nothing installs a schedule: `render` deploys code and marks it executable, and 
 | `pre-commit` | `[script]` | git hook | Blocks commits with naming-violating filenames (INV-11) |
 | `pre-push` | `[script]` | git hook | Denies outbound push by default (INV-14); allowlisted remotes only |
 | `outbound-publish-guard.py` | `[script]` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands, ASK before public publishes |
+| `gh-invocation-guard.py` | `[script]` | harness hook | Claude Code `PreToolUse` guard (ADR-0045): `gh` invocation-form allowlist — `gh api` (REST) and `gh auth status` permitted, `gh api graphql` and every unlisted form refused |
 
 
 ---
@@ -263,7 +264,7 @@ the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 |----------|---------|
 | [`openspec/project.md`](openspec/project.md) | Standing goals, 14 invariants, tech stack |
 | [`openspec/constitution.md`](openspec/constitution.md) | Constitutional protection, Informed-Upheaval Protocol |
-| [`openspec/adr/`](openspec/adr/) | 44 ADRs: framework choice → the in-tree fleet relocation |
+| [`openspec/adr/`](openspec/adr/) | 45 ADRs: framework choice → the `gh` invocation-form allowlist |
 | [`openspec/specs/`](openspec/specs/) | 6 capability specs with `protects:` tags |
 | [`openspec/changes/`](openspec/changes/) | 14 archived changes, 1 live (deferred), override template |
 
