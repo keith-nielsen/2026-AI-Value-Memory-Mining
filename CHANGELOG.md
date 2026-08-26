@@ -12,26 +12,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
-### Fixed
-- **The legal-moves map states what it does not cover, and enumerates the local-destructive class.**
-  It read as exhaustive and was not: `git rebase` is emitted by `pr-flow.py` on a documented path and
-  was absent from the first version of the page. **Root cause, and it is the page's own disease:** the
-  map's *stated* re-measure command does surface `"git -C {root} rebase {base_ref}"`, but the command
-  actually run while writing it piped that through an extra keyword filter
-  (`push|merge|api|create|delete|tag|switch|branch`) which silently dropped `rebase` — a scoped query
-  excluding the record sought, inside the document written to prevent exactly that. New **section 2a**
-  enumerates the commands no control sees — `rebase`, `reset --hard`, `branch -D`,
-  `checkout -- <path>`, force-push — because the deny list, the `gh` allowlist and the outbound guard
-  all key on *outward* mutation while the rulesets protect `main` and tags, not the working tree.
-  A scope statement now says plainly that **absence from the page is not evidence a command is
-  outside the workflow**, and that `CONTRIBUTING.md` remains authoritative for the process.
-  ⚠ Also corrected: a driver-emitted `git rebase` onto a just-merged branch is **measured to be a
-  no-op**, not destructive, and the behaviour is already documented in `tools/pr-flow.py:544` as
-  hardening item 26 (measured on PR #76) — *"every earlier defect in this family printed a false
-  ALARM; that printed a false INSTRUCTION."* The surviving rule is narrow: verify the premise the
-  driver prints in its `why:` line, and stop if it is false.
+## [0.1.54] - 2026-08-26
+
+Covers the two changes merged since v0.1.53:
+
+| PR | Change |
+|---|---|
+| #110 | Workflow hygiene: ceremony step 0, the legal-moves map, pinned `markdownlint-cli`, Node 22, `md-lint` audit mode |
+| #111 | Legal-moves map: state its scope, enumerate local-destructive commands, rename |
+
+Dated in UTC. ⚠ **Same UTC day as v0.1.53** — both were cut on 2026-08-26 UTC, the second at
+16:17 UTC (local 2026-08-27T00:17+08:00). Two releases sharing a date is correct, not a
+duplicate: the date records when the release was cut, and `git tag` is the ordering authority.
 
 ### Added
+
 - **The legal GitHub move set is enumerated, barred paths first**
   (`docs/version-control-legal-moves.md`). Built by measurement, not recall: the four layers that
   can refuse (`permissions.deny`, the ADR-0045 `gh` allowlist, the outbound guard, and the
@@ -43,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   writing proved (see below).
 
 ### Changed
+
 - **`preflight.py`'s `--body-file` no longer reads as optional in the landing flow.** Step 0 was
   written `tools/preflight.py . [--body-file PATH]`; the brackets say "optional", and when omitted
   STEP 7 prints `SKIP  no --body-file given` — **a SKIP that reads exactly like a PASS**. Both halves
@@ -83,6 +79,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   also greps the report for the fallback warning.
 
 ### Fixed
+
+- **The legal-moves map states what it does not cover, and enumerates the local-destructive class.**
+  It read as exhaustive and was not: `git rebase` is emitted by `pr-flow.py` on a documented path and
+  was absent from the first version of the page. **Root cause, and it is the page's own disease:** the
+  map's *stated* re-measure command does surface `"git -C {root} rebase {base_ref}"`, but the command
+  actually run while writing it piped that through an extra keyword filter
+  (`push|merge|api|create|delete|tag|switch|branch`) which silently dropped `rebase` — a scoped query
+  excluding the record sought, inside the document written to prevent exactly that. New **section 2a**
+  enumerates the commands no control sees — `rebase`, `reset --hard`, `branch -D`,
+  `checkout -- <path>`, force-push — because the deny list, the `gh` allowlist and the outbound guard
+  all key on *outward* mutation while the rulesets protect `main` and tags, not the working tree.
+  A scope statement now says plainly that **absence from the page is not evidence a command is
+  outside the workflow**, and that `CONTRIBUTING.md` remains authoritative for the process.
+  ⚠ Also corrected: a driver-emitted `git rebase` onto a just-merged branch is **measured to be a
+  no-op**, not destructive, and the behaviour is already documented in `tools/pr-flow.py:544` as
+  hardening item 26 (measured on PR #76) — *"every earlier defect in this family printed a false
+  ALARM; that printed a false INSTRUCTION."* The surviving rule is narrow: verify the premise the
+  driver prints in its `why:` line, and stop if it is false.
+
 - **`markdownlint-cli` is pinned into the lockfile, and CI moves off an end-of-life Node.** The
   `md-lint` job ran `npm install -g markdownlint-cli` — **global and unpinned**, so it bypassed
   `package-lock.json` entirely and floated to `@latest`, in a repository that otherwise pins
