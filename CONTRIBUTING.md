@@ -181,8 +181,49 @@ carrying `sha`, so a raced head is refused by the server with 409. Two further s
 before pushing, never after opening; and **a body-derived check reads the event payload as of push
 time**, so after correcting a body you must PUSH, not re-run the job.
 
-`main` currently carries **no `required_status_checks`** (ADR-0034's follow-on is pending), so a red
-check does not block a merge. Until that lands, this driver is the gate.
+⚠ **Corrected 2026-08-26 — this paragraph was false, and unsafely so.** It read: *"`main` currently
+carries **no `required_status_checks`** (ADR-0034's follow-on is pending), so a red check does not
+block a merge."* Measured against the live ruleset, `main` enforces **16 required status-check
+contexts** (`vmm-main-pr-and-checks-ADR-0034`, id `19666243`, `enforcement: active`), exactly as
+`constitution.md` §4 has always stated. ADR-0034's follow-on landed and this file was never updated.
+A red check **does** block a merge. Re-measure with
+`curl -s https://api.github.com/repos/<slug>/rulesets` — note that `branches/main/protection`
+returns 401 anonymously, so read the rulesets endpoint instead.
+
+`required_approving_review_count` **is** `0`, so human review remains convention here rather than a
+server-side requirement. The driver is a gate in addition to the checks, not instead of them.
+
+**The full legal move set — permitted forms, barred paths, and the ceremonies end to end — is
+enumerated in [`docs/github-interaction-legal-moves.md`](docs/github-interaction-legal-moves.md).**
+
+### Before the first mutation of any ceremony: ask for the last complete instance
+
+**Run the shape query, unscoped, and read all of it:**
+
+```
+git log --oneline --merges          # the whole shape, NOT scoped to a range
+```
+
+Then open the previous pull request **of that class** and read it end to end. Branch prefixes are
+the class marker: `release/`, `change/`, `docs/`, `fix/`, `feat/`.
+
+**Ask it the shape question — "what does this ceremony look like?" — not a content question.**
+Consulting the right source with the wrong question is how step 0 above went missing: the query run
+at the time was `git log <tag>..main --merges`, which by construction **excludes the release PR whose
+shape was needed**. A range, a `--since`, or a path scope can filter out the very record being
+sought; state what a scope excludes before trusting its result.
+
+**A procedure documented from step 1 is not evidence that there is no step 0.** Where this document
+and the merge history disagree, that disagreement **is a defect** — surface it rather than silently
+picking one. Neither wins by default: history can carry a merged mistake, prose can describe an
+intent never built.
+
+**Any query that establishes SCOPE is untruncated, or reports what it dropped.** Count before
+slicing; `head`/`tail` output carries its denominator ("12 of 60 shown"); a first-string match
+answers *"does one exist"* and is never an enumeration. The constitution already requires this of a
+Gate-1 blast radius — *"the exact search command(s) plus their full, untruncated output"* — and
+Gate 4 exists to re-run it. It generalises to every scope-establishing query, and a truncated
+transcript has already been found by that re-run.
 
 ### Shipping a version (tag → release → mirror)
 
@@ -192,6 +233,14 @@ exists for the new version. A git tag and a GitHub Release are different objects
 newest tag. The ceremony is driven by the guarded state machine `tools/ship-release.py`:
 
 ```
+0. git switch -c release/vX.Y.Z      # THE RELEASE TAKES ITS OWN BRANCH. `main` is PR-only, so the
+                                     # CHANGELOG cut CANNOT be committed to it — the push is refused
+                                     # by the ruleset, after the work. Cut `## [X.Y.Z] - <UTC date>`
+                                     # out of [Unreleased], then land it as a CHANGELOG-only PR
+                                     # (see PR #105, #109) BEFORE step 1. ship-release.py
+                                     # PRESUPPOSES this: its first guard proves the entry is already
+                                     # on main. Step 0 was undocumented until 2026-08-26 and cost a
+                                     # wrong-branch commit; the shape lived only in merge history.
 1. tools/ship-release.py vX.Y.Z      # proves merge-ancestor + CHANGELOG entry, refuses stale
                                      # tags naming the true cause, cuts + verifies the local tag,
                                      # then EMITS the next single outward command and exits 2

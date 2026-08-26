@@ -12,6 +12,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **The legal GitHub move set is enumerated, barred paths first**
+  (`docs/github-interaction-legal-moves.md`). Built by measurement, not recall: the four layers that
+  can refuse (`permissions.deny`, the ADR-0045 `gh` allowlist, the outbound guard, and the
+  server-side rulesets read live from the API), the permitted forms with who runs each and under
+  whose authority, the forms barred by ceremony though the platform allows them
+  (`gh pr merge --delete-branch`, `gh pr edit --base`), the three ceremonies end to end, and a
+  closing section naming **what has no guard at all**. Every table carries the command that
+  re-measures it, because the document is prose and prose goes stale silently — which its own
+  writing proved (see below).
+
+### Fixed
+- **`CONTRIBUTING.md` claimed `main` had no required status checks; it has 16**. The paragraph read
+  *"a red check does not block a merge"* — measured false against ruleset `19666243`
+  (`enforcement: active`, 16 required contexts), exactly as `constitution.md` §4 has always stated.
+  ADR-0034's follow-on landed and this file was never updated. Unsafe in the direction that matters:
+  it would encourage merging on red. Corrected in place with the re-measurement command, and noting
+  that `branches/main/protection` returns 401 anonymously while `/rulesets` returns 200.
+- **The ship ceremony documents its own step 0, and the shape query becomes a required step**
+  (`ceremony-shape-query-and-untruncated-scope`). `CONTRIBUTING.md`'s "Shipping a version" was a
+  numbered 1–5 procedure that **silently presupposed a `release/vX.Y.Z` branch**: `main` is PR-only,
+  so the CHANGELOG cut cannot be committed to it, and `ship-release.py`'s first guard proves the
+  entry is *already on main*. Measured 2026-08-26: `release/` appeared in **zero** lines of
+  `CONTRIBUTING.md`, `AGENTS.md` and the runbooks — the shape existed only across 100 merge commits.
+  It cost a wrong-branch commit during the v0.1.53 ship, caught only when the push was refused.
+  Step 0 is now written down, and two rules generalise the cause: **ask for the last complete
+  instance of a ceremony, end to end, before its first mutation** — reaching the right source with a
+  *content* question will not surface the *shape*, and a ranged query can exclude the record sought
+  (`git log <tag>..main` excluded the release PR by construction) — and **any scope-establishing
+  query is untruncated or reports its denominator**, generalising the constitution's Gate-1
+  requirement beyond blast radius. *A procedure documented from step 1 is not evidence there is no
+  step 0*; where prose and merge history disagree, the disagreement is the defect.
+
 ## [0.1.53] - 2026-08-26
 
 Covers the three changes merged since v0.1.52:

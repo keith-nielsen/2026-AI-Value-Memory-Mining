@@ -136,6 +136,20 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 
 ## Operating notes (footguns this repo has hit)
 
+- **The legal GitHub move set is enumerated in `docs/github-interaction-legal-moves.md`** — permitted
+  forms, the four layers that can refuse (deny list, `gh` allowlist, outbound guard, server-side
+  rulesets), the barred-but-platform-legal forms, and the ceremonies end to end. Read it before the
+  first GitHub mutation; it leads with the barred set.
+- **A partial view is indistinguishable from a complete one.** Before the first mutation of a
+  ceremony you have not run yourself, ask for the **last complete instance, end to end** —
+  `git log --oneline --merges`, unscoped, then the previous PR of that class read in full. Reaching
+  the right source is not enough: a *content* question ("what is in this release?") will not surface
+  the *shape* ("what does a release look like?"), and a ranged query can exclude the very record
+  needed. Precedent does not announce itself. See CONTRIBUTING, "Before the first mutation".
+- **A scope-establishing query is untruncated or states its denominator.** Count before slicing;
+  `head -N` without a total reproduces the exact defect Gate 4 exists to catch (a blast-radius
+  transcript once recorded 30 of 60 lines and read as complete). `grep -q` answers "does one exist",
+  never "what is the set".
 - `grep -rl PATTERN .` emits paths **without** the `./` prefix — an exclusion anchored `^\./…`
   silently fails to match. Use `grep -v 'openspec/changes/'` (no `^./`).
 - Committing fleet scripts (`vault-refine-execute.py`, `vault-slag.sh`, `vault-dump.sh`)
@@ -201,6 +215,8 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
 
 ## Things never to do
 
+- Commit to `main` in this repository. It is **PR-only**; every change — including a CHANGELOG
+  release cut — takes a branch. See CONTRIBUTING, "Shipping a version", step 0.
 - Edit `openspec/specs/` directly without an OpenSpec change.
 - Write to `vault-template/40-Treasury/` or `vault-template/99-Operations/` as an agent.
 - Rename or renumber INV IDs (they are frozen; see ADR-0008).
