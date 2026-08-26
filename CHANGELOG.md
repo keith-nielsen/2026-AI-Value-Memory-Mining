@@ -24,6 +24,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   writing proved (see below).
 
 ### Changed
+- **`preflight.py`'s `--body-file` no longer reads as optional in the landing flow.** Step 0 was
+  written `tools/preflight.py . [--body-file PATH]`; the brackets say "optional", and when omitted
+  STEP 7 prints `SKIP  no --body-file given` — **a SKIP that reads exactly like a PASS**. Both halves
+  of the partial-view failure in one line. PR #110 was pushed that way and went red on `Scope review`
+  for two undeclared `dep:` entries the lockfile added — a gate that reproduces perfectly offline.
+  The scope block's `dep:` prefix was already documented in `AGENTS.md` and the PR template; the
+  defect was not a missing rule but a check that looked run when it had been skipped.
 - **Branch names are re-read against what the branch delivers, before the first push.** Scope drifts
   during work; names do not. The rule is now written in `CONTRIBUTING.md`, `AGENTS.md` and the
   interaction map: before pushing, rename the branch if it no longer describes its content

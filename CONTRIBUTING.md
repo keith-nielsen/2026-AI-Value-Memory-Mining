@@ -141,7 +141,12 @@ The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of th
 it; do not hand-compose the sequence:
 
 ```
-0. tools/preflight.py . [--body-file PATH] # RUN THIS BEFORE THE FIRST PUSH (ADR-0041). ONE command
+0. tools/preflight.py . --body-file PATH   # RUN THIS BEFORE THE FIRST PUSH (ADR-0041). ONE command
+                                           # ⚠ --body-file IS NOT OPTIONAL once you have a body:
+                                           # without it STEP 7 prints "SKIP no --body-file given",
+                                           # and a SKIP reads exactly like a PASS. That is how PR
+                                           # #110 shipped an undeclared `dep:` and went red on a
+                                           # gate that reproduces perfectly offline.
                                            # reproducing 12 of 15 CI jobs locally, plus the route
                                            # steps CI cannot judge: declared scope against the real
                                            # merge-base diff, a trial merge, and a SIMULATED archive.
