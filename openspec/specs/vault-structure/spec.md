@@ -45,7 +45,7 @@ The vault SHALL use the numbered folder structure below. `10-Logbook/` retains `
 `Reviews/` as **working areas**; the framework no longer generates a dated note format for either
 (ADR-0032).
 
-```
+```text
 00-Docs/
   README.md
   examples/

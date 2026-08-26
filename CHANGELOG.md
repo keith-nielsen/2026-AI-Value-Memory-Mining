@@ -254,7 +254,7 @@ the documented `CONTRIBUTING.md` exception for defect fixes to maintainer surfac
 Covers the one change merged since v0.1.51:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #104 | `config.env` states the interpreter resolution its `PATH` prepend changes |
 
 Dated in UTC, consistent with v0.1.51 and with the `openspec archive` stamp on this release's own
@@ -282,7 +282,7 @@ archive directory `2026-08-25-document-venv-path-shadowing`.
 Covers the one change merged since v0.1.50:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #102 | the agent working-memory store is governed, and its declared path is guarded |
 
 The entry records the mechanism rather than the outcome. What this change cost to get right, stated
@@ -342,7 +342,7 @@ Covers the three changes merged since v0.1.49:
   The defect was that **`~/bin` was not reliably on `PATH`**. `~/.profile` adds it and is read only
   by login shells; `~/.bashrc` is read only by interactive ones, and the two never both run:
 
-  ```
+  ```text
   bash -lc  (login, non-interactive) → /home/administrator/bin/vault-lint.py
   bash -ic  (interactive, non-login) → NOT-FOUND
   bash -c   (neither)                → NOT-FOUND

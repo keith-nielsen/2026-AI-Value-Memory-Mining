@@ -41,7 +41,7 @@ it gets confidently re-derived wrong, and the confidence travels further than th
 Walk `main`'s first-parent merges; for each merge `M`, diff `M^1..M` **with `--no-renames`** and ask
 what that merge *introduced*. Cross-check the result against a case already known.
 
-```
+```bash
 git log --first-parent --merges --format=%H%x1f%s main
 git diff --name-only --no-renames --diff-filter=A <merge>^1 <merge>
 ```

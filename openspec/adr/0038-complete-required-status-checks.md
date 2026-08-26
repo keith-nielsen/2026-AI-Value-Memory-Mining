@@ -89,7 +89,7 @@ A ruleset `PUT` **replaces the entire `rules` array**, so a hand-written payload
 `pull_request`, `deletion` or `non_fast_forward`. The applied method was: fetch the live ruleset,
 mutate only the `required_status_checks` context list, send it back —
 
-```
+```bash
 gh api -X PUT /repos/keith-nielsen/2026-AI-Value-Memory-Mining/rulesets/19666243 --input <payload>
 ```
 

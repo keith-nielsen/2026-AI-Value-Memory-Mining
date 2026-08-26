@@ -10,7 +10,7 @@ stated below — see *When a change ships without a proposal*.
 
 ### Standard contribution flow
 
-```
+```text
 1. Fork and clone
 2. /opsx:propose "what you want to change"
 3. Fill out proposal + specs + design + tasks
@@ -46,8 +46,8 @@ produced confidently wrong answers on 2026-08-11 — see ADR-0040.
 ### When a change ships without a proposal
 
 The rule above says *every* change originates as a proposal. Practice has not matched it: defect fixes
-to maintainer tools in `tools/` have shipped with **no change directory** since PR #35 (also #39, #49,
-#66–#69). That exception was real, load-bearing, and **written down nowhere** — which is the same shape
+to maintainer tools in `tools/` have shipped with **no change directory** since PR #35 (also #39, #49, #66–#69).
+That exception was real, load-bearing, and **written down nowhere** — which is the same shape
 as the enforcement claims this repo has had to retract before: a documented absolute that practice
 quietly contradicts teaches its readers that the document is approximate.
 
@@ -92,7 +92,7 @@ and each maps to a defect that shipped for want of asking it:
 If your change modifies a spec whose **frontmatter** carries a `protects:` tag — the six capability
 specs under `openspec/specs/` — your `proposal.md` must carry a `constitutional-impact` block:
 
-````
+````markdown
 ```constitutional-impact
 touches: openspec/specs/maintenance/spec.md
 protects: [INV-2, INV-3, INV-6]
@@ -140,7 +140,7 @@ intent.
 The lifecycle *before* a ship is driven by `tools/pr-flow.py`, the sibling of the ship driver. Walk
 it; do not hand-compose the sequence:
 
-```
+```text
 0. tools/preflight.py . --body-file PATH   # RUN THIS BEFORE THE FIRST PUSH (ADR-0041). ONE command
                                            # ⚠ --body-file IS NOT OPTIONAL once you have a body:
                                            # without it STEP 7 prints "SKIP no --body-file given",
@@ -205,7 +205,7 @@ enumerated in [`docs/version-control-legal-moves.md`](docs/version-control-legal
 
 **Run the shape query, unscoped, and read all of it:**
 
-```
+```bash
 git log --oneline --merges          # the whole shape, NOT scoped to a range
 ```
 
@@ -258,7 +258,7 @@ exists for the new version. A git tag and a GitHub Release are different objects
 **not** create a Release, and the Releases page / profile badge track the newest *Release*, not the
 newest tag. The ceremony is driven by the guarded state machine `tools/ship-release.py`:
 
-```
+```text
 0. git switch -c release/vX.Y.Z      # THE RELEASE TAKES ITS OWN BRANCH. `main` is PR-only, so the
                                      # CHANGELOG cut CANNOT be committed to it — the push is refused
                                      # by the ruleset, after the work. Cut `## [X.Y.Z] - <UTC date>`
@@ -291,7 +291,7 @@ If your change modifies anything tagged `protects:` in the spec files, or touche
 `openspec/constitution.md` itself, you must use the **Informed-Upheaval Protocol**
 instead of the standard flow. Read `openspec/constitution.md` §3 carefully, then:
 
-```
+```text
 Use the template at: openspec/templates/constitution-override/proposal.md
 Change type must be: constitution-override
 All four gates must be satisfied before the PR can merge.

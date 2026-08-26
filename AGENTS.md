@@ -39,7 +39,7 @@ forkable template any adopter can run on their own vault.
 Every change to `vault-template/` or the vault's behavior originates as an OpenSpec
 change in `openspec/changes/`. The lifecycle is:
 
-```
+```text
 /opsx:propose "what you want"   → creates proposal + specs + design + tasks
 /opsx:apply                     → implement the tasks
 /opsx:archive                   → sync delta specs into main specs; move to archive/
@@ -54,7 +54,7 @@ Do **not** edit `openspec/specs/` directly — changes come from `/opsx:archive`
 
 Content flows through a pipeline modeled as ore extraction:
 
-```
+```text
 Capture → Dig → Ore → Sort → Refine → Treasury → Polish (perpetual)
 
 Side paths:

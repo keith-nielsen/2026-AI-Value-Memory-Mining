@@ -38,7 +38,7 @@ is a summary that can go stale.
 Re-measure: `python3 -c "import json;print(json.load(open('.claude/settings.json'))['permissions']['deny'])"`
 
 | Form | Both roots |
-|---|---|
+| --- | --- |
 | `gh pr …` · `gh issue …` · `gh project …` · `gh repo view …` · `gh api graphql …` | denied |
 
 The **vault** additionally denies `Edit()` on `/.claude/**`, `/40-Treasury/**`, `/99-Operations/**`,
@@ -182,7 +182,7 @@ and history-preserving while unpushed; effectively frozen once the PR exists).
 
 ## 4. Before the first mutation of a ceremony you have not run
 
-```
+```bash
 git log --oneline --merges          # unscoped; the shape, not the contents
 ```
 

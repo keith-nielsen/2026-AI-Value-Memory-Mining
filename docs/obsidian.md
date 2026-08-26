@@ -101,7 +101,7 @@ flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian
 
 Then define commands like:
 
-```
+```bash
 flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 99-Operations/bin/vault-lint.py'
 ```
 

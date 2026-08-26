@@ -37,7 +37,7 @@ Copyright 2026 Keith Nielsen
 Value Mining treats personal knowledge like a mining operation. Material flows through
 a defined pipeline; only high-grade material reaches the Treasury.
 
-```
+```text
 Capture (20-Claims)
   └─► Dig ──► Ore ──► Sort ──► Refine ──► 40-Treasury ──► Polish
                                       │
@@ -92,7 +92,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 
 ## Repository Layout
 
-```
+```text
 2026-AI-Value-Memory-Mining/
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
