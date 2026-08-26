@@ -409,10 +409,13 @@ flowchart LR
 
 **Reading guide:**
 
-- **Green thick path** is the only route into the protected zone: assigned Site → proposal → human → gate → script → Treasury. Every link passes through the human.
-- **Red thin dashed lines** are not rules the agent follows — they are capabilities it does not have. Each is annotated with the invariant that makes it structurally impossible.
+- **Green thick path** is the only route into the protected zone: assigned Site → proposal → human → gate → script →
+  Treasury. Every link passes through the human.
+- **Red thin dashed lines** are not rules the agent follows — they are capabilities it does not have. Each is
+  annotated with the invariant that makes it structurally impossible.
 - The agent box (blue tint) and the protected zone (red tint) never touch except through the gate.
-- Agent read access (not drawn): R on `10-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud bootstrap. Reads do not threaten containment; writes do.
+- Agent read access (not drawn): R on `10-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud
+  bootstrap. Reads do not threaten containment; writes do.
 
 | Denied path | Invariant |
 | --- | --- |

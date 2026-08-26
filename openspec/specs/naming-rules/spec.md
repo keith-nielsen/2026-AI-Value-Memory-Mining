@@ -35,7 +35,8 @@ Rules (authoritative set, mirrored to `naming-rules.json`):
 
 #### Scenario: Validator rejects each forbidden class
 
-- **WHEN** `vault_naming.py --check` is called with each of: `bad:name`, `pipe|x`, `has#hash`, `CON`, `.hidden`, `trail` (trailing space)
+- **WHEN** `vault_naming.py --check` is called with each of: `bad:name`, `pipe|x`, `has#hash`, `CON`, `.hidden`,
+  `trail` (trailing space)
 - **THEN** it exits 1 for each and prints an INVALID message
 
 #### Scenario: Validator accepts valid names
@@ -110,7 +111,8 @@ The JSON MUST contain: `slug_pattern`, `forbidden_chars`, `reserved_names`, `min
 #### Scenario: naming-rules.json is generated correctly
 
 - **WHEN** `python3 99-Operations/bin/vault_naming.py` is run with no arguments
-- **THEN** it writes `naming-rules.json` containing `slug_pattern`, `forbidden_chars`, `reserved_names`, `min_hyphen_tokens`, `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`
+- **THEN** it writes `naming-rules.json` containing `slug_pattern`, `forbidden_chars`, `reserved_names`,
+  `min_hyphen_tokens`, `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`
 
 ### Requirement: Token-Minimum Naming (≥3, silo-section-descriptor)
 
@@ -142,7 +144,8 @@ on names not yet renamed).
 #### Scenario: More tokens where specificity warrants
 
 - **WHEN** a content topic narrows, or a dig reveals a sub-sector needing distinction
-- **THEN** the stem carries more than three tokens to stay unambiguous (e.g. `swappable-stages-over-coresident-models`) rather than overloading a shorter name
+- **THEN** the stem carries more than three tokens to stay unambiguous (e.g.
+  `swappable-stages-over-coresident-models`) rather than overloading a shorter name
 
 #### Scenario: Dailies are exempt
 
@@ -189,7 +192,8 @@ defines the exemption gate the linter honors **now**, so enabling that rejection
 #### Scenario: Editor state is out of scope, not exempted
 
 - **WHEN** `.obsidian/app.json` exists
-- **THEN** it is excluded from naming governance by `.gitignore` (the linter does not traverse `.obsidian/`), and `is_exempt('app.json')` is false — the exemption set carries no path-shaped globs
+- **THEN** it is excluded from naming governance by `.gitignore` (the linter does not traverse `.obsidian/`), and
+  `is_exempt('app.json')` is false — the exemption set carries no path-shaped globs
 
 ### Requirement: Token-Floor Enforcement Is Mechanical, Not Conventional
 

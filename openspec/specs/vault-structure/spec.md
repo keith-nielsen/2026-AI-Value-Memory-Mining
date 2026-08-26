@@ -19,7 +19,8 @@ The vault SHALL be organized into three named layers with distinct stability and
 
 - **Layer 0 — Operations** (`99-Operations/`): the mine's machinery. Human-write-only.
 - **Layer 1 — Treasury** (`40-Treasury/`): refined + polished bullion. Never discarded by automation.
-- **Layer 2 — Workings** (`10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`): temporal capture, active effort, and disposal.
+- **Layer 2 — Workings** (`10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/`): temporal capture,
+  active effort, and disposal.
 
 Additional areas outside the layer model: `00-Docs/` (onboarding, deletable),
 `50-Mint/` + `60-Forge/` (future production, deferred), `80-Crucible/` (future
@@ -37,7 +38,8 @@ machinery — it is low-traffic stock kept out of the way.
 #### Scenario: Treasury is sealed from direct agent writes
 
 - **WHEN** an agent process attempts to write directly to `40-Treasury/`
-- **THEN** the write is blocked (INV-4); only the refine executor script may write Treasury, and only when processing an approved proposal
+- **THEN** the write is blocked (INV-4); only the refine executor script may write Treasury, and only when processing
+  an approved proposal
 
 ### Requirement: Folder Structure
 
@@ -92,7 +94,8 @@ CONST-04, and conforms to the numbering scheme — it does not override it.
 #### Scenario: Folder tree is complete after Phase 0
 
 - **WHEN** Phase 0 build completes
-- **THEN** every directory in the structure above exists, including `20-Claims/_refine-proposals/`, `20-Claims/_refine-approved/`, `99-Operations/hooks/`, and `99-Operations/schemas/`
+- **THEN** every directory in the structure above exists, including `20-Claims/_refine-proposals/`,
+  `20-Claims/_refine-approved/`, `99-Operations/hooks/`, and `99-Operations/schemas/`
 
 #### Scenario: Logbook sorts above the capture inbox
 
@@ -114,7 +117,8 @@ remote for tracking to reach — durability comes from the filesystem backup, no
 #### Scenario: Runbooks sort in the infra region
 
 - **WHEN** the vault root is listed in any file explorer
-- **THEN** `96-Runbooks/` sorts below `80-Crucible/` and above `97-Molds/`, keeping operational procedures in the low-touch infra band (CONST-04 upheld)
+- **THEN** `96-Runbooks/` sorts below `80-Crucible/` and above `97-Molds/`, keeping operational procedures in the
+  low-touch infra band (CONST-04 upheld)
 
 #### Scenario: No pillar subfolders in Treasury
 
@@ -129,7 +133,9 @@ remote for tracking to reach — durability comes from the filesystem backup, no
 #### Scenario: Warehouse shelves take human-friendly names
 
 - **WHEN** a Warehouse shelf folder (e.g. `Books`, `Pictures`) is created or listed
-- **THEN** it must only satisfy the universal path-component rule (cross-platform-safe characters, no reserved device names); the kebab-case / ≥3-token convention does not apply to it, because that convention is scoped to `.md` stems and to `30-Sites/`/`70-Tailings/` effort folders and `40-Treasury/` stems
+- **THEN** it must only satisfy the universal path-component rule (cross-platform-safe characters, no reserved device
+  names); the kebab-case / ≥3-token convention does not apply to it, because that convention is scoped to `.md` stems
+  and to `30-Sites/`/`70-Tailings/` effort folders and `40-Treasury/` stems
 
 #### Scenario: A harness working-memory store is present
 
@@ -176,7 +182,8 @@ historical artifacts and are not re-validated against this table.
 #### Scenario: Linter validates knowledge note frontmatter
 
 - **WHEN** the linter runs on a `40-Treasury/*.md` file
-- **THEN** it exits 0 for a valid note and exits 1 if `pillars` contains an out-of-set value, `grade` is not one of the four grades, or `stage` is not `refined`/`polished`
+- **THEN** it exits 0 for a valid note and exits 1 if `pillars` contains an out-of-set value, `grade` is not one of
+  the four grades, or `stage` is not `refined`/`polished`
 
 #### Scenario: A runbook validates against the runbook schema
 

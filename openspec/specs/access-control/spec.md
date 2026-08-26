@@ -64,7 +64,10 @@ layer model.
 ⁴ Script writes Treasury only when applying a human-approved proposal from `_refine-approved/`.  
 ⁵ Future agent access (Mint/Forge) to be scoped when those segments are designed.  
 ⁶ Crucible uses an independent model/operator by design; main agent excluded (INV-8).  
-⁷ Agent write to `10-Logbook/` is permitted at both enforcement layers (ADR-0033): the framework owns no artifact there after ADR-0032 retired the daily cycle, and the silo is the write target for whatever external harness drives the effort cadence. INV-11 naming still applies at commit time — pre-action prevention is withdrawn, commit-time enforcement is not.
+⁷ Agent write to `10-Logbook/` is permitted at both enforcement layers (ADR-0033): the framework owns no artifact
+there after ADR-0032 retired the daily cycle, and the silo is the write target for whatever external harness drives
+the effort cadence. INV-11 naming still applies at commit time — pre-action prevention is withdrawn, commit-time
+enforcement is not.
 
 #### Scenario: Agent cannot write Treasury directly
 
@@ -145,8 +148,11 @@ credentials.
 #### Scenario: No secrets in config; private instance is gitignored
 
 - **WHEN** `config.defaults.env` and `config.env` are inspected
-- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`, `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
-- **THEN** the live `config.env` is gitignored (private instance); only `config.defaults.env` + `config.env.example` are tracked/publishable
+- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`,
+  `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`,
+  `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
+- **THEN** the live `config.env` is gitignored (private instance); only `config.defaults.env` + `config.env.example`
+  are tracked/publishable
 
 ### Requirement: Crucible Independence (INV-8)
 
@@ -204,12 +210,14 @@ INV-1–13 are unchanged.
 #### Scenario: Agent must not propose outbound publication
 
 - **WHEN** a task could be "helped" by pushing/mirroring vault content outward or creating a public repo
-- **THEN** the agent does not suggest or perform it; the harness `PreToolUse` guard denies the vault-outward command and requires deliberate human action for any public publication
+- **THEN** the agent does not suggest or perform it; the harness `PreToolUse` guard denies the vault-outward command
+  and requires deliberate human action for any public publication
 
 #### Scenario: Operator opt-in is explicit and deliberate
 
 - **WHEN** the operator wants an off-machine backup
-- **THEN** it is permitted only after the operator deliberately adds that (private) remote to `PUSH_ALLOWLIST`; a tired or quick assent solicited by an agent does not satisfy this
+- **THEN** it is permitted only after the operator deliberately adds that (private) remote to `PUSH_ALLOWLIST`; a
+  tired or quick assent solicited by an agent does not satisfy this
 
 #### Scenario: A publish to a sibling repo from a vault-rooted session is asked, not denied
 
@@ -251,7 +259,8 @@ public-export/mirror tool. Principle: *publish the machine, never the ore.*
 
 #### Scenario: Private path to a public remote is refused
 
-- **WHEN** a push targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the pushed diff touches a path not matched by `publish-manifest.json` `public_allow` (e.g. `30-Sites/…`, `98-Warehouse/…`, `99-Operations/config.env`)
+- **WHEN** a push targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the pushed diff touches a path not matched by
+  `publish-manifest.json` `public_allow` (e.g. `30-Sites/…`, `98-Warehouse/…`, `99-Operations/config.env`)
 - **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation naming the offending path; nothing is transmitted
 
 #### Scenario: Framework-only push to a public remote is permitted

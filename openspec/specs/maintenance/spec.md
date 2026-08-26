@@ -163,8 +163,10 @@ the only resolver — and it names a location the fleet no longer occupies.
 
 #### Scenario: Push-guard applies the path-level manifest to a public remote
 
-- **WHEN** `git push` targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the diff includes a path not in `publish-manifest.json` `public_allow`
-- **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation; a push whose paths are all allowlisted is permitted
+- **WHEN** `git push` targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the diff includes a path not in
+  `publish-manifest.json` `public_allow`
+- **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation; a push whose paths are all allowlisted
+  is permitted
 
 ### Requirement: Runbook Format
 
@@ -186,7 +188,8 @@ duplicate it.
 #### Scenario: A runbook is harness-agnostic
 
 - **WHEN** the canonical runbook file is read
-- **THEN** it contains no tool-specific invocation as its source of truth (any Claude Code / Hermes specifics live in adapter files that reference it)
+- **THEN** it contains no tool-specific invocation as its source of truth (any Claude Code / Hermes specifics live in
+  adapter files that reference it)
 
 ---
 
@@ -778,7 +781,8 @@ SHALL exit with a distinct status of **4** and a message that names the path, st
 traceback for this case, and SHALL re-raise any other `OSError` unchanged.
 
 The denial itself is correct and is not relaxed: `vault-render.py render` writes only
-`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py` in emit
+`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py`
+in emit
 mode writes only `99-Operations/schemas/naming-rules.json` — all areas the matrix marks `A: —` or
 places outside the vault. What changes is legibility. A bare traceback carries no signal that the
 failure is intentional, so the reader's first hypothesis is a broken deploy, a missing dependency, or a

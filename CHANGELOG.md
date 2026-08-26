@@ -1798,23 +1798,38 @@ Shared fleet plumbing `vault_lib` + drive-path adoption. (change: `add-shared-va
 
 ## [0.1.15] - 2026-07-02
 
-Publication boundary (path-level default-deny manifest) + special-file naming exemptions. (changes: `publication-boundary-manifest` — ADR-0020; `naming-special-file-exemptions` — ADR-0021)
+Publication boundary (path-level default-deny manifest) + special-file naming exemptions. (changes:
+`publication-boundary-manifest` — ADR-0020; `naming-special-file-exemptions` — ADR-0021)
 
 ### Added
 
-- **Publication boundary — path-level default-deny manifest** (ADR-0020; extends ADR-0018/INV-14). `99-Operations/schemas/publish-manifest.json` is a default-deny allowlist of publishable framework paths; `push-guard-script` refuses a push to a `PUBLIC_REMOTE_ALLOWLIST` remote whose diff touches any non-allowlisted (private) path, path-by-path. Layers on the existing remote-level INV-14 gate; both allowlists empty by default. `access-control` (ADDED Requirement) + `maintenance` (MODIFIED Script Inventory) specs.
-- **Special-file naming exemptions** (ADR-0021; extends ADR-0015/INV-11). `naming-rules` gains `exempt_names` / `exempt_globs` (basename-matched) so tool-mandated / convention filenames (`README.md`, `CLAUDE.md`, dailies, `*.example`, …) are skipped by the kebab / ≥3-token rules; `is_exempt` is honored by the linter now (mechanical rejection still deferred per ADR-0015). `docs/naming-exemptions-rationale.md` documents each by dependency class.
-- **Framework/instance config split** — `99-Operations/config.defaults.env` (public defaults, sourced first) + `config.env.example` (stub); the live `config.env` is now a gitignored private instance. New `PUBLIC_REMOTE_ALLOWLIST` guard key.
+- **Publication boundary — path-level default-deny manifest** (ADR-0020; extends ADR-0018/INV-14).
+  `99-Operations/schemas/publish-manifest.json` is a default-deny allowlist of publishable framework paths;
+  `push-guard-script` refuses a push to a `PUBLIC_REMOTE_ALLOWLIST` remote whose diff touches any non-allowlisted
+  (private) path, path-by-path. Layers on the existing remote-level INV-14 gate; both allowlists empty by default.
+  `access-control` (ADDED Requirement) + `maintenance` (MODIFIED Script Inventory) specs.
+- **Special-file naming exemptions** (ADR-0021; extends ADR-0015/INV-11). `naming-rules` gains `exempt_names` /
+  `exempt_globs` (basename-matched) so tool-mandated / convention filenames (`README.md`, `CLAUDE.md`, dailies,
+  `*.example`, …) are skipped by the kebab / ≥3-token rules; `is_exempt` is honored by the linter now (mechanical
+  rejection still deferred per ADR-0015). `docs/naming-exemptions-rationale.md` documents each by dependency class.
+- **Framework/instance config split** — `99-Operations/config.defaults.env` (public defaults, sourced first) +
+  `config.env.example` (stub); the live `config.env` is now a gitignored private instance. New
+  `PUBLIC_REMOTE_ALLOWLIST` guard key.
 
 ### Changed
 
-- `docs/obsidian.md` — prominent "turn OFF *Automatically update internal links*" warning (governed renames conflict with auto-relinking; INV-3).
-- `docs/USING-THIS-TEMPLATE.md` — config defaults/instance setup (`cp config.env.example config.env`) + `PUBLIC_REMOTE_ALLOWLIST` / publish-manifest.
-- `vault-template/` mirror of the push-guard path-gate, the two naming meta-scripts, `publish-manifest.json`, and the config split.
+- `docs/obsidian.md` — prominent "turn OFF *Automatically update internal links*" warning (governed renames conflict
+  with auto-relinking; INV-3).
+- `docs/USING-THIS-TEMPLATE.md` — config defaults/instance setup (`cp config.env.example config.env`) +
+  `PUBLIC_REMOTE_ALLOWLIST` / publish-manifest.
+- `vault-template/` mirror of the push-guard path-gate, the two naming meta-scripts, `publish-manifest.json`, and the
+  config split.
 
 ### Fixed
 
-- Config-split blast radius: `.github/scripts/validate-scripts.sh` (sandbox now instantiates `config.env` from `config.env.example`) and `.github/workflows/ci.yml` `vocabulary-lint` (reads `config.defaults.env`) — both would otherwise break on the removed `config.env`.
+- Config-split blast radius: `.github/scripts/validate-scripts.sh` (sandbox now instantiates `config.env` from
+  `config.env.example`) and `.github/workflows/ci.yml` `vocabulary-lint` (reads `config.defaults.env`) — both would
+  otherwise break on the removed `config.env`.
 
 ---
 
@@ -1824,8 +1839,13 @@ Publication boundary (path-level default-deny manifest) + special-file naming ex
 
 ### Added
 
-- **`98-Warehouse/` reference stockroom** — retained source/reference material the operation draws on repeatedly (binaries *and* digitized references), organized into media shelves `Books/`, `Music/`, `Art/`, `Pictures/`, `Audio/`. Re-classified from generic "binary attachments / infrastructure" in `vault-structure` (*Three-Layer Model* + *Folder Structure*) and `access-control` (*Area Access Matrix*); both retain `protects:`.
-- **Shelf-naming scope scenario** — Warehouse shelf *folders* take human-friendly names under the universal path-component rule only; the kebab-case / ≥3-token convention is scoped to `.md` stems and `30-Sites/`/`70-Tailings/` effort folders + `40-Treasury/` stems, so it does not reach them.
+- **`98-Warehouse/` reference stockroom** — retained source/reference material the operation draws on repeatedly
+  (binaries *and* digitized references), organized into media shelves `Books/`, `Music/`, `Art/`, `Pictures/`,
+  `Audio/`. Re-classified from generic "binary attachments / infrastructure" in `vault-structure` (*Three-Layer Model* +
+  *Folder Structure*) and `access-control` (*Area Access Matrix*); both retain `protects:`.
+- **Shelf-naming scope scenario** — Warehouse shelf *folders* take human-friendly names under the universal
+  path-component rule only; the kebab-case / ≥3-token convention is scoped to `.md` stems and
+  `30-Sites/`/`70-Tailings/` effort folders + `40-Treasury/` stems, so it does not reach them.
 - `vault-template/98-Warehouse/{Books,Music,Art,Pictures,Audio}/.gitkeep`.
 
 ### Changed
@@ -1834,7 +1854,9 @@ Publication boundary (path-level default-deny manifest) + special-file naming ex
 
 ### Fixed
 
-- Completed ADR-0016 propagation: `vault-structure` spec + `vault-template/99-Operations/schemas/refine-prompt-contract.md` `index_links` example `<pillar>-index.md` → `<pillar>-domain-index.md` (the pre-v0.1.9 straggler; `agent-integration` was already correct).
+- Completed ADR-0016 propagation: `vault-structure` spec +
+  `vault-template/99-Operations/schemas/refine-prompt-contract.md` `index_links` example `<pillar>-index.md` →
+  `<pillar>-domain-index.md` (the pre-v0.1.9 straggler; `agent-integration` was already correct).
 
 ---
 
@@ -1844,20 +1866,28 @@ Private by default — **INV-14** (Tier-0) + the outbound publish guard. (change
 
 ### Added
 
-- **`INV-14` — private by default; no unbid publication** (Tier-0, Safety band; appended per ADR-0008, INV-1–13 unchanged). A deployed vault never publishes outward: no automated actor may push/mirror vault content except to an operator-allowlisted remote, and public publication requires deliberate human confirmation — never an agent's unprompted suggestion. Carried by the `access-control` spec; defined in `project.md`; listed Tier-0 in `constitution.md`.
+- **`INV-14` — private by default; no unbid publication** (Tier-0, Safety band; appended per ADR-0008, INV-1–13
+  unchanged). A deployed vault never publishes outward: no automated actor may push/mirror vault content except to an
+  operator-allowlisted remote, and public publication requires deliberate human confirmation — never an agent's
+  unprompted suggestion. Carried by the `access-control` spec; defined in `project.md`; listed Tier-0 in
+  `constitution.md`.
 - **`push-guard-script`** → `99-Operations/hooks/pre-push`: deny-by-default, `PUSH_ALLOWLIST`-gated (deterministic, INV-6).
-- **Portable Claude Code `PreToolUse` guard** (`.claude/`, repo + vault-template): hard-denies vault-outward commands; loud ASK before any public repo creation / distribution-hub publish.
+- **Portable Claude Code `PreToolUse` guard** (`.claude/`, repo + vault-template): hard-denies vault-outward commands;
+  loud ASK before any public repo creation / distribution-hub publish.
 - **`config.env`** keys `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST` (empty = deny all pushes).
 
 ### Changed
 
-- Docs: README ("Private by default" + counts → 18 ADRs / 14 invariants), `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md` (Step 4b).
+- Docs: README ("Private by default" + counts → 18 ADRs / 14 invariants), `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md`
+  (Step 4b).
 
 ### Fixed
 
 - `config.env` comment `close-daily` → `daily-close` (v0.1.12 straggler; non-`.md`, missed by the earlier `.md`-scoped grep).
 
-**Honest limit (ADR-0018):** Tier-0 guarantees *safe-by-default + governed + loud-to-remove*, not a physical impossibility — git hooks don't clone, `--no-verify` bypasses, an owner can opt out. OS-level egress control is deferred.
+**Honest limit (ADR-0018):** Tier-0 guarantees *safe-by-default + governed + loud-to-remove*, not a physical
+impossibility — git hooks don't clone, `--no-verify` bypasses, an owner can opt out. OS-level egress control is
+deferred.
 
 ---
 
@@ -1918,11 +1948,14 @@ Session bootstrap loader — the cold-start prime mechanism (minimum bootstrap, 
 
 ## [0.1.9] - 2026-06-29
 
-System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes brought to the `silo-section-descriptor` convention.
+System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes
+brought to the `silo-section-descriptor` convention.
 
 ### Changed
 
-- **Scripts** → `<domain>-<action>-script` (`.md` notes only; deploy targets unchanged — `.py` rename deferred; canonical mining verbs): e.g. `close-daily`→`daily-close-script`, `dump`→`spoil-dump-script`, `refine-execute`→`bank-execute-script`, `pre-commit`→`commit-gate-script` (deployed hook stays `pre-commit`).
+- **Scripts** → `<domain>-<action>-script` (`.md` notes only; deploy targets unchanged — `.py` rename deferred;
+  canonical mining verbs): e.g. `close-daily`→`daily-close-script`, `dump`→`spoil-dump-script`,
+  `refine-execute`→`bank-execute-script`, `pre-commit`→`commit-gate-script` (deployed hook stays `pre-commit`).
 - **Schemas** → `note-frontmatter-schema`, `runbook-format-schema`, `refine-prompt-contract`.
 - **Catalog indexes** → `<pillar>-domain-index` + `home-master-index` (the scope token anticipates future sub-sector indexes).
 - Specs synced: `maintenance`, `vault-structure`, `agent-integration`. See ADR-0016.

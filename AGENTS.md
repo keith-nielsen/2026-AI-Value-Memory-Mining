@@ -107,7 +107,8 @@ gate you acknowledge; a kernel denial means *surface it to the operator*, never 
 Full text and band groupings: `openspec/specs/access-control/spec.md` and `openspec/project.md`.
 
 **Substrate** — INV-1 (Format) · INV-2 (One commit) · INV-3 (Layer-0 SSOT)
-**Safety** — INV-4 (Bounded write) · INV-5 (Actor≠owner) · INV-6 (Offline scripts) · INV-7 (No secrets) · INV-8 (Crucible independence)
+**Safety** — INV-4 (Bounded write) · INV-5 (Actor≠owner) · INV-6 (Offline scripts) · INV-7 (No secrets) · INV-8
+(Crucible independence)
 **Value** — INV-9 (Value never discarded) · INV-10 (Tailings retained)
 **Consistency** — INV-11 (Name conformance) · INV-12 (Domain via metadata) · INV-13 (Wikilinks)
 
@@ -127,7 +128,8 @@ High-value, error-prone, repeatable procedures are codified as **spec-as-code ru
 `vault-template/96-Runbooks/` (schema: `99-Operations/schemas/runbook-format-schema.md`) — the single,
 harness-agnostic source of truth. **To perform one, open and follow the runbook; do not improvise:**
 
-- `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a SessionStart hook surfaces it). Run it first each session.
+- `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a
+  SessionStart hook surfaces it). Run it first each session.
 - `provenance-seal-runbook` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
 
 This file (and `CLAUDE.md`, Claude Code skills, etc.) are **adapters** — they point at the

@@ -3,7 +3,8 @@
 
 **Status:** Accepted
 **Date:** 2026-06-29
-**Relates:** `access-control` · `maintenance` specs · `constitution.md` (Tier-0) · `project.md` · change `private-by-default-publish-guard` · extends ADR-0008 (frozen INV IDs)
+**Relates:** `access-control` · `maintenance` specs · `constitution.md` (Tier-0) · `project.md` · change
+`private-by-default-publish-guard` · extends ADR-0008 (frozen INV IDs)
 
 ## Context
 

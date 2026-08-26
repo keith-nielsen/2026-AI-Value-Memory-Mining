@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # ADR-0045 — `gh` invocation form is governed by an allowlist in its own hook
 
-- **Status:** Accepted *(2026-08-26 — Gate 4 sign-off recorded against Keith Nielsen; flipped on the change branch so `main` receives `Accepted` at the merge commit, per tasks G5.2)*
+- **Status:** Accepted *(2026-08-26 — Gate 4 sign-off recorded against Keith Nielsen; flipped on the change branch so
+  `main` receives `Accepted` at the merge commit, per tasks G5.2)*
 - **Date:** 2026-08-20
 - **Change:** `gh-invocation-form-allowlist`
 

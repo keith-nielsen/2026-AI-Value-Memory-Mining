@@ -106,7 +106,8 @@ Operational constraints for activation (not build items — Hermes config):
 
 - **WHEN** a Hermes refine worker completes a card
 - **THEN** it calls `kanban_complete()` after depositing a proposal in `_refine-proposals/`
-- **THEN** it writes nothing to `40-Treasury/` or `99-Operations/`; the commit-gate hook backstops the boundary on the worker's commit
+- **THEN** it writes nothing to `40-Treasury/` or `99-Operations/`; the commit-gate hook backstops the boundary on the
+  worker's commit
 
 ### Requirement: Verification Deliverables Are Transcripts
 

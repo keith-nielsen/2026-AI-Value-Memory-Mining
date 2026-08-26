@@ -3,7 +3,8 @@
 
 **Status:** Accepted
 **Date:** 2026-06-27
-**Relates:** `naming-rules` spec (INV-11) · change `naming-3token-minimum` · extends ADR-0013 (naming-and-identity) and ADR-0014 (mold-naming)
+**Relates:** `naming-rules` spec (INV-11) · change `naming-3token-minimum` · extends ADR-0013 (naming-and-identity)
+and ADR-0014 (mold-naming)
 
 ## Context
 
