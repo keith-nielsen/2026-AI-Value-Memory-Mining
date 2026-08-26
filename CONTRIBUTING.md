@@ -225,6 +225,27 @@ Gate-1 blast radius — *"the exact search command(s) plus their full, untruncat
 Gate 4 exists to re-run it. It generalises to every scope-establishing query, and a truncated
 transcript has already been found by that re-run.
 
+### Before the first push: re-read the branch name against what it delivers
+
+**Scope drifts during work; branch names do not.** Before the first push, check whether the name
+still describes what the branch actually delivers, and **rename it if not** — `git branch -m`, which
+is free and rewrites no history while the branch is unpushed.
+
+**This is not cosmetic, and the reason is mechanical.** A merged branch name is recorded permanently
+in the merge commit — `Merge pull request #N from <owner>/<branch>` — which makes
+`git log --oneline --merges` the estate's searchable precedent record, and the branch **prefix** its
+class marker (`release/`, `change/`, `docs/`, `fix/`, `feat/`, `ops/`). That is the exact query the
+section above tells you to run before a ceremony's first mutation. **A misnamed branch corrupts that
+record for everyone who queries it afterwards** — it is the same defect as a stale document, written
+into history where it cannot be corrected.
+
+Once the pull request exists the name is effectively frozen: renaming then rewrites the remote ref
+and orphans the open PR. **The window is before the first push, and it costs one command.**
+
+Worked example: a branch opened as `docs/ceremony-shape-query-and-untruncated-scope` grew to carry a
+dependency pin, a Node bump, two silent-success fixes and an audit-mode conversion. Predominantly
+corrective, so it was renamed to `fix/workflow-hygiene-and-md-lint-audit` before its first push.
+
 ### Shipping a version (tag → release → mirror)
 
 After a change is merged to `main`, the ship is **not complete** until a GitHub **Release object**

@@ -125,6 +125,14 @@ moves files one level deeper **without rewriting relative links** (`../../adr/` 
 
 ---
 
+## 3a. Branch names are the precedent record — re-read them before the first push
+
+Branch prefixes are the class marker (`release/` `change/` `docs/` `fix/` `feat/` `ops/`), and the
+merged name is written permanently into `Merge pull request #N from <owner>/<branch>`. That commit
+line is what the shape query below reads. **Scope drifts during work; names do not — so before the
+first push, rename the branch if it no longer describes what it delivers** (`git branch -m`, free
+and history-preserving while unpushed; effectively frozen once the PR exists).
+
 ## 4. Before the first mutation of a ceremony you have not run
 
 ```

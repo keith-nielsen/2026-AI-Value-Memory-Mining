@@ -24,6 +24,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   writing proved (see below).
 
 ### Changed
+- **Branch names are re-read against what the branch delivers, before the first push.** Scope drifts
+  during work; names do not. The rule is now written in `CONTRIBUTING.md`, `AGENTS.md` and the
+  interaction map: before pushing, rename the branch if it no longer describes its content
+  (`git branch -m` — free and history-preserving while unpushed, effectively frozen once the PR
+  exists, since renaming then rewrites the remote ref and orphans the open PR). **This is mechanical,
+  not cosmetic:** the merged name is recorded permanently in
+  `Merge pull request #N from <owner>/<branch>`, which makes `git log --oneline --merges` the
+  estate's searchable precedent record and the branch **prefix** its class marker. A misnamed branch
+  corrupts that record for everyone who queries it later — the same defect as a stale document,
+  written into history where it cannot be corrected. Demonstrated on this branch, which was opened as
+  `docs/ceremony-shape-query-and-untruncated-scope`, grew to carry a dependency pin, a Node bump, two
+  silent-success fixes and an audit-mode conversion, and was renamed to
+  `fix/workflow-hygiene-and-md-lint-audit` before its first push.
 - **`md-lint` becomes a real audit-mode gate with a declared exit condition, and the frozen
   archive leaves its scope.** The job's `|| true` was never a phase — it had no ADR, no threshold
   and no exit, so it was not a flag but a permanent downgrade, on one of the **16 required status
