@@ -780,9 +780,6 @@ first change able to trip the settings check was false while that check still co
   **Confirmed on its own merge**, which hit the stale-read side of the race: the driver routed on the
   evidence, confirmed at the second retry rung, and emitted no rebase.
 
-
-### Fixed
-
 - **The read-after-write retry ladder is now sized from the record**
   (`fix/pr-flow-lag-ladder-sized-from-data`, defect fix, **no change directory**, PR #76).
   `LAG_RETRY_DELAYS` moves from `(2, 5)` — chosen from taste, inside a fix for a measurement
@@ -1720,23 +1717,6 @@ requests — recorded here because the pattern is more useful than the individua
   INV-14 PreToolUse rail) gains a literate source note (`runtime: harness hook`, enum extended)
   so `reconcile` finally guards it against drift.
 
-### Changed
-
-- **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
-  join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
-  via `vault_naming.py --check`, usage/source/destination gates (exit 1/3), and pathspec-scoped
-  commits of exactly the moved effort — the last `add -A` sweeps in the fleet are gone.
-
-### Fixed
-
-- **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
-  (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
-  manifest disposition against `DISPOSITIONS` (typos FAIL — the old guard was near-tautological,
-  R7); bootstrap-runbook clean-ops line updated for the env-free hook/fleet reality (template;
-  live copy operator-applied).
-
-### Added
-
 - **Refine executor pre-flight + batch isolation** (change `bank-execute-pre-flight`; fleet-review
   B4). The sole automated Treasury writer now validates every proposal whole before any write:
   schema, path containment (target in `40-Treasury/`, links in `40-Treasury/Catalog/`), INV-11
@@ -1745,6 +1725,11 @@ requests — recorded here because the pattern is more useful than the individua
   any reject exits 1. `maintenance`: ADDED Requirement.
 
 ### Changed
+
+- **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
+  join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
+  via `vault_naming.py --check`, usage/source/destination gates (exit 1/3), and pathspec-scoped
+  commits of exactly the moved effort — the last `add -A` sweeps in the fleet are gone.
 
 - **Commit ownership + close de-sweep** (change `commit-ownership-de-sweep`; operator decision
   B3-(a)). Every mutation now owns its scoped commit: daily-note commits the note it creates
@@ -1763,6 +1748,12 @@ requests — recorded here because the pattern is more useful than the individua
   (`site-slag`/`spoil-dump`) deferred to the B3-era change.
 
 ### Fixed
+
+- **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
+  (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
+  manifest disposition against `DISPOSITIONS` (typos FAIL — the old guard was near-tautological,
+  R7); bootstrap-runbook clean-ops line updated for the env-free hook/fleet reality (template;
+  live copy operator-applied).
 
 - **Commit-gate hook is now environment-free** (change `fix-commit-gate-env-guard`). Deleted the
   vestigial `VAULT_ROOT` guard (set but never used) that broke bare-exact drive-path commits at
