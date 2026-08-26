@@ -383,23 +383,52 @@ jobs:
       - name: Install markdownlint-cli (pinned via package-lock.json)
         run: npm ci
 
-      - name: Lint Markdown files
+      # PHASE A (AUDIT). Industry vocabulary: this is `audit` mode, the precursor to
+      # `enforce` -- the same shape as Gatekeeper's `dryrun`, Kubernetes PSA's `audit`,
+      # and SELinux's `permissive`. The job NAME is deliberately unchanged: it is one of
+      # the 16 required status contexts, and renaming a required context deadlocks merges.
+      #
+      # EXIT CONDITION, declared up front (the thing `|| true` never had):
+      #   findings reach 0 and stay 0 across 5 consecutive merged PRs -> Phase B removes
+      #   the `exit 0` below, in its OWN governed change, never folded into a change that
+      #   also edits markdown.
+      #
+      # A TOOL FAILURE STILL FAILS THE JOB. markdownlint exits 0 (clean) or 1 (findings);
+      # anything else is the tool itself breaking, and that is NOT audited away. This is
+      # the defect the old `|| true` hid: from 2026-06-17 the unpinned @latest required
+      # `node >=22` while CI ran Node 20, and a crash was indistinguishable from a pass.
+      - name: Lint Markdown files (Phase A - audit, reports but does not block)
         run: |
+          set +e
           node_modules/.bin/markdownlint \
             --ignore vault-template/ \
             --ignore source/ \
             --ignore node_modules/ \
+            --ignore 'openspec/changes/archive/' \
             --config .markdownlint.yml \
-            "**/*.md" || true
-        # || true: STILL advisory, deliberately. Removing it converts a REQUIRED status
-        # check into one that can block EVERY merge, on top of 3142 measured findings
-        # (452 after --fix). That takes a proposal; it is not part of this change.
-        #
-        # The install was `npm install -g markdownlint-cli` — global AND unpinned, so it
-        # bypassed package-lock.json entirely and floated to @latest. Since 0.49.0
-        # (2026-06-17) that resolves to a package declaring `node >=22`, which the OLD
-        # `node-version: "20"` did not satisfy; npm warns EBADENGINE and proceeds, and
-        # `|| true` made a crash indistinguishable from a clean lint.
+            "**/*.md" > md-lint-report.txt 2>&1
+          rc=$?
+          count=$(wc -l < md-lint-report.txt)
+          echo "markdownlint exit=$rc findings=$count (Phase A: audit)"
+          echo "--- findings by rule ---"
+          grep -oE 'MD[0-9]{3}/[a-z0-9-]+' md-lint-report.txt | sort | uniq -c | sort -rn
+          echo "--- first 40 ---"
+          head -40 md-lint-report.txt
+          # TOOL-FAILURE GUARDS. markdownlint exits 0 (clean) or 1 (findings); anything
+          # else is the tool failing to run -- a missing/unrunnable binary exits 127,
+          # which is exactly the node-engine shape that hid from 2026-06-17.
+          if [ "$rc" -gt 1 ]; then
+            echo "::error::markdownlint FAILED TO RUN (exit $rc) - a tool failure, not a finding"
+            exit "$rc"
+          fi
+          # MEASURED 2026-08-26: a config it cannot read does NOT raise the exit code --
+          # markdownlint warns, silently falls back to DEFAULT rules, and still exits 1.
+          # `rc -gt 1` alone would audit that away and lint against the wrong ruleset.
+          if grep -q "Cannot read or parse config" md-lint-report.txt; then
+            echo "::error::markdownlint could not read .markdownlint.yml and fell back to defaults"
+            exit 1
+          fi
+          exit 0
 
   link-check:
     name: Link check

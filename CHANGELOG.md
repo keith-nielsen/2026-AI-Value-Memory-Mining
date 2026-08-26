@@ -23,6 +23,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   re-measures it, because the document is prose and prose goes stale silently — which its own
   writing proved (see below).
 
+### Changed
+- **`md-lint` becomes a real audit-mode gate with a declared exit condition, and the frozen
+  archive leaves its scope.** The job's `|| true` was never a phase — it had no ADR, no threshold
+  and no exit, so it was not a flag but a permanent downgrade, on one of the **16 required status
+  contexts**. It now runs in **Phase A (audit)**: it reports the finding count and a per-rule
+  breakdown, and exits 0 on findings only. Industry vocabulary for this is `audit` → `enforce`
+  (cf. Gatekeeper `dryrun`, Kubernetes PSA `audit`, SELinux `permissive`); the job **name** is
+  deliberately unchanged, because it is a required check context and renaming one deadlocks merges.
+  **Exit condition, declared up front:** findings reach 0 and hold across 5 consecutive merged PRs,
+  after which Phase B removes the `exit 0` in its **own** governed change.
+  **`openspec/changes/archive/` is excluded** — it is the frozen, Gate-4-signed historical record,
+  and reformatting it for cosmetics would rewrite governance history. That alone takes the corpus
+  from **3142 findings across 216 files to 1131 across 44**, of which **92%** are three auto-fixable
+  cosmetic rules — leaving roughly 94 that need judgement.
+  **A tool failure is no longer audited away**, which is the defect `|| true` hid: an unrunnable
+  binary exits **127** (measured) and now fails the job. ⚠ And a second hole found while building
+  it: **markdownlint exits 1 — not >1 — when it cannot read its config**, warning once and silently
+  linting against DEFAULT rules. An exit-code guard alone would have audited that away, so the step
+  also greps the report for the fallback warning.
+
 ### Fixed
 - **`markdownlint-cli` is pinned into the lockfile, and CI moves off an end-of-life Node.** The
   `md-lint` job ran `npm install -g markdownlint-cli` — **global and unpinned**, so it bypassed
