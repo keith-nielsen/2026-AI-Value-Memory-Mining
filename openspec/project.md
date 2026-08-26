@@ -110,7 +110,7 @@ This is the **authoritative** invariant list. INV IDs are **frozen** — see ADR
 ## Stack
 
 | Concern | Choice | Notes |
-|---|---|---|
+| --- | --- | --- |
 | SDD framework | OpenSpec v1.4.1+ | `spec-driven` schema; ADRs as project convention |
 | Vault UI | Obsidian | Local-first; wikilinks native |
 | Script language | Python 3.12+ | `python-frontmatter` for YAML |

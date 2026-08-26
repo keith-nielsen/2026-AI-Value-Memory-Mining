@@ -21,6 +21,7 @@ built-in governance and compliance. Gartner projects 40%+ of enterprise applicat
 will embed role-specific AI agents by end of 2026.
 
 **Individual / power-user**: a three-layer stack has emerged with strong consensus:
+
 1. Knowledge base ("second brain") — where notes and context live
 2. AI agent layer — the LLM that reasons over your data
 3. Automation/orchestration layer — connecting tools and triggering workflows
@@ -55,7 +56,7 @@ increasingly painful search at scale.
 Four tools appear together in nearly every successful individual workflow:
 
 | Layer | Tool | Why |
-|-------|------|-----|
+| ------- | ------ | ----- |
 | Knowledge base | Obsidian | Local-first, plain-text, AI-native |
 | Orchestration | n8n (self-hosted) | Visual workflows, API connections, local control |
 | Agent layer | Claude / local LLM | Reasoning over vault content |
@@ -72,6 +73,7 @@ viable for power users who want complete data isolation.
 From aggregated practitioner reports:
 
 **High-value patterns:**
+
 - **Structured capture → structured vault.** Systems with enforced frontmatter schemas
   dramatically outperform unstructured archives for AI retrieval quality. The AI
   extracts better signal when the metadata is machine-readable.
@@ -89,6 +91,7 @@ From aggregated practitioner reports:
   swappability from the beginning.
 
 **Common failure modes:**
+
 - Inbox growth without triage — the vault becomes another pile to avoid.
 - Trusting agent output without verification — quality degrades over time.
 - Naming chaos — inconsistent file/folder names break linking and search.
@@ -103,6 +106,7 @@ Personal knowledge vaults are high-sensitivity targets: they contain daily logs,
 financial notes, health information, social observations, and operational metadata.
 
 Key risks practitioners report:
+
 - **Exfiltration via agent toolsets.** An agent with read access to a vault and
   network egress can exfiltrate its entire contents. Network-isolated agent execution
   is the only reliable mitigation.
@@ -113,6 +117,7 @@ Key risks practitioners report:
   sync; cloud sync is a user choice.
 
 This system's architectural response:
+
 - No secrets in vault files (INV-7)
 - Agent write scope bounded to assigned Site + `_refine-proposals/` (INV-4)
 - `99-Operations/` is human-write-only (INV-5)
@@ -131,7 +136,7 @@ The architecture choices in Value Mining are direct responses to the practitione
 failure modes above:
 
 | Failure mode | This system's response |
-|---|---|
+| --- | --- |
 | Inbox pile | Claim → Dig commitment; Sort triage forces a decision |
 | Agent trust erosion | Deposit-not-merge; human gate; no direct Treasury writes |
 | Naming chaos | INV-11 + naming validator + pre-commit hook |

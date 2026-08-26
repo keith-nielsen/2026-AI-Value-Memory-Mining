@@ -49,7 +49,7 @@ git diff --name-only --no-renames --diff-filter=A <merge>^1 <merge>
 Pull-request era, denominator **14**:
 
 | Shape | Count | Cases |
-|---|---:|---|
+| --- | ---: | --- |
 | **ONE pull request — archived on the feature branch** | **12** | #6, #25, #33, #34, #36, #38, #39, #44, #45, #51, #53, … |
 | Two pull requests — a separate archive pull request | 2 | #40→#41 (`release/v0.1.34`), #58→#59 (`chore/archive-…`) |
 

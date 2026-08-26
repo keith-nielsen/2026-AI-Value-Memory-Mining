@@ -72,11 +72,12 @@ Re-measure: `curl -s https://api.github.com/repos/<slug>/rulesets` (anonymous re
 `branches/main/protection` returns 401** — read the rulesets endpoint, not branch protection).
 
 | Ruleset | Applies to | Rules |
-|---|---|---|
+| --- | --- | --- |
 | `vmm-main-pr-and-checks-ADR-0034` (19666243) | `~DEFAULT_BRANCH` | pull request required · **16 required status checks** · no deletion · no non-fast-forward |
 | `vmm-tag-immutability-v-ADR-0034` (19666225) | `refs/tags/v*` | no update · no deletion · no non-fast-forward |
 
 **Consequences that bite in practice:**
+
 - **Never commit to `main`.** It is PR-only. A CHANGELOG release cut takes its own branch.
 - **A `v*` tag cannot be re-cut, moved or deleted.** Get the tag right the first time.
 - `required_approving_review_count` is **0** — human review is convention here, not server-enforced.
@@ -84,7 +85,7 @@ Re-measure: `curl -s https://api.github.com/repos/<slug>/rulesets` (anonymous re
 ### 1.5 Barred by ceremony, though the platform would allow them
 
 | Form | Why | Use instead |
-|---|---|---|
+| --- | --- | --- |
 | `gh pr merge --delete-branch` | cannot express a head precondition; bypasses retargeting of stacked children (killed PR #29); non-atomic deletion under a success tick | `gh api -X PUT …/pulls/N/merge -f sha=…`, then delete the branch as a separate verified step |
 | `gh pr edit --base` | **silently no-ops** behind the Projects-classic GraphQL deprecation (F21·3) | `gh api -X PATCH /repos/<slug>/pulls/N -f base=<ref>`, then **re-read the base** |
 | `sleep` to await checks | burns wall-clock, hides state | `tools/pr-flow.py --ready …` (exit 0 ready / 2 waiting) |
@@ -97,7 +98,7 @@ Re-measure: `curl -s https://api.github.com/repos/<slug>/rulesets` (anonymous re
 Re-measure the emitted forms: `grep -rhoE '"git -C \{root\}[^"]*"' tools/pr-flow.py | sort -u`
 
 | Operation | Sanctioned form | Runs | Authority |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Read any GitHub state | `gh api <REST path>` (via `tools/gh_read.py`) | agent | agent |
 | Check credential | `gh auth status` | agent | agent |
 | Read remote refs | `git ls-remote` · `git fetch` | agent | agent |
@@ -127,7 +128,7 @@ key on *outward* mutation; the server-side rulesets protect `main` and `v*` tags
 tree. These are refused by **nothing**.
 
 | Command | Risk | Discipline |
-|---|---|---|
+| --- | --- | --- |
 | `git rebase <base>` | rewrites local history; can conflict mid-way and leave a half-finished state that silently blocks branch deletion later | run it only when the branch genuinely lacks the base — **verify, do not assume** |
 | `git reset --hard` | discards uncommitted work irrecoverably | commit or stash first |
 | `git branch -D` | deletes an unmerged branch without warning (`-d` refuses; `-D` does not) | confirm the commits are ancestors of the base first: `git merge-base --is-ancestor <sha> origin/main` |
@@ -161,7 +162,7 @@ contexts. **Two documents describing one process is how that happens.**
 What belongs here instead is the single fact the ceremonies depend on and the move set supplies:
 
 | Ceremony | Branch class | Read |
-|---|---|---|
+| --- | --- | --- |
 | Land a change | `change/` `feat/` `fix/` `docs/` `ops/` | CONTRIBUTING, "Landing a change" |
 | Ship a version | `release/vX.Y.Z` | CONTRIBUTING, "Shipping a version" — **note step 0** |
 | Deploy down | (vault commit) | CONTRIBUTING, plus the ⚠ below |

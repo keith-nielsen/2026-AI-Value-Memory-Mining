@@ -21,6 +21,7 @@ Report privately by emailing the maintainer (see repository profile) or by using
 GitHub's private vulnerability reporting if enabled for this repository.
 
 Include:
+
 - Which component is affected (`vault-template/`, `openspec/`, methodology design)
 - The INV invariant(s) involved, if applicable
 - Proof-of-concept or reproduction steps
@@ -31,7 +32,7 @@ The following invariants are directly security-relevant; a bypass of any of them
 is a reportable vulnerability:
 
 | INV | Description |
-|-----|-------------|
+| ----- | ------------- |
 | INV-4 | Bounded write scope — agent/LLM cannot write Treasury or Operations |
 | INV-5 | Actor ≠ owner — no automated process writes `99-Operations/` |
 | INV-7 | No secrets in vault — credentials must never appear in vault files. Enforced at the commit boundary by `vault_secrets.py` (HIGH-tier credential formats block the commit) and by the `secret-scan` CI job over the full object database, including unreachable objects (ADR-0036). **Detects known formats only — a clean scan is not proof of absence.** |

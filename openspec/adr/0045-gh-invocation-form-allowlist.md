@@ -17,7 +17,7 @@ false belief.
 Four recorded instances, all resolved by moving to REST:
 
 | Date | Instance |
-|---|---|
+| --- | --- |
 | 2026-07-18 | `add-ship-ceremony-tools` — *"a GraphQL mutation can fail silently where REST succeeds"* |
 | 2026-07-19 | **F21** — `gh pr edit --body-file` exit 1 behind the Projects-classic deprecation, body unchanged |
 | 2026-08-04 | **F21·3** — `gh pr edit --base` silently no-opped; the driver moved to `gh api -X PATCH` + re-read |
@@ -112,7 +112,7 @@ path.
 Their failure directions are opposite, and this is the load-bearing reason:
 
 | Layer | Coverage | Failure direction |
-|---|---|---|
+| --- | --- | --- |
 | the hook | general — any `gh` form | **fails OPEN** (a hook that crashes exits 0, and exit 0 means defer) |
 | `permissions.deny` | enumerated — five known offenders | **fails CLOSED** (harness-enforced; needs no process to start) |
 

@@ -28,7 +28,7 @@ forkable template any adopter can run on their own vault.
 **Two layers you need to understand:**
 
 | Layer | Path | Role |
-|---|---|---|
+| --- | --- | --- |
 | SDD core | `openspec/` | The source of truth. Specs, constitution, ADRs, change lifecycle. |
 | Implementation | `vault-template/` | The vault skeleton the specs govern. Scripts, templates, folder structure. |
 
@@ -76,7 +76,7 @@ Special (rare, by-exception):
 These are enforced by code, not trust. See `openspec/constitution.md` for the rationale.
 
 | Area | Agent may | Agent may NOT |
-|---|---|---|
+| --- | --- | --- |
 | `30-Sites/<assigned>/` | Read + write | Touch other sites |
 | `20-Claims/` | Capture directly (create Claim notes) | Self-promote to `_refine-approved/` |
 | `20-Claims/_refine-proposals/` | Write (deposit proposals) | Self-promote to `_refine-approved/` |
@@ -172,7 +172,7 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   declaration deliberately — never work around the gate; it is the process. Note
   `gh pr create --body-file` bypasses the PR template, so include the block yourself.
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
-  from it, and **never even _propose_** outbound publication — the suggestion itself is the hazard.
+  from it, and **never even *propose*** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
 - **Outward ops hard-stop, then inform (ADR-0027).** Any `git push` / `gh release` / publish — even to
   the operator-authorized framework repo — hits the INV-14 harness-guard ASK; it cannot proceed without

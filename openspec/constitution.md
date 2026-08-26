@@ -25,6 +25,7 @@ Spec files and vault artifacts that embody a principle are tagged with
 ---
 
 ### CONST-01 — The Value Mining Metaphor
+
 `tier: 1` · `adr: ADR-0002`
 
 **Principle:** The pipeline uses mining vocabulary throughout: Claim → Dig → Ore →
@@ -50,6 +51,7 @@ the entire system.
 ---
 
 ### CONST-02 — The Three-Layer Model
+
 `tier: 1` · `adr: ADR-0002`
 
 **Principle:** Layer 0 = Operations (`99-Operations/`, the mine's machinery — *how*).
@@ -69,6 +71,7 @@ as the protected zones.
 ---
 
 ### CONST-03 — Grades = Value Only (`coal | bronze | silver | gold`)
+
 `tier: 1` · `adr: ADR-0003`
 
 **Principle:** Grade answers "how valuable," status answers "how far along." They are
@@ -88,6 +91,7 @@ vocabulary lint.
 ---
 
 ### CONST-04 — Folder Numbering: Zero-Padded, Gapped, Touch-Frequency Order
+
 `tier: 1` · `adr: ADR-0002`
 
 **Principle:** Two-digit zero-padded numbers, gapped by 10s, ordered from most
@@ -105,6 +109,7 @@ bands are added. Every script, spec, and diagram references the numbered paths.
 ---
 
 ### CONST-05 — Domain via Metadata + Catalog (indexes), Never Folders
+
 `tier: 1` · `adr: ADR-0002` · `protects: [INV-12]`
 
 **Principle:** Pillar membership is expressed through the `pillars` frontmatter field,
@@ -136,7 +141,7 @@ document and any other disagree, this document governs.
 **The tiers below** classify by overridability and required ceremony:
 
 | Tier | Elements | Override path |
-|------|----------|---------------|
+| ------ | ---------- | --------------- |
 | **Tier 0 — Inviolable** | INV-1 through INV-8, INV-11, INV-14 | Change the enforcing code/hooks/CI. The friction is structural. |
 | **Tier 1 — Foundational frame** | CONST-01 through CONST-05 + INV-12 | Full Informed-Upheaval Protocol (§3). This is what the constitution most exists to protect. |
 | **Tier 2 — Conventions** | INV-13 (wikilinks), cron schedules, kebab specifics, pillar names | Ordinary OpenSpec change — no ceremony required. |
@@ -157,6 +162,7 @@ of type **`constitution-override`**. It must pass four gates **in order**.
 Use the template: `openspec/templates/constitution-override/proposal.md`
 
 ### Gate 1 — CHECK (impact analysis)
+
 - Name the principle ID(s) being overridden.
 - Restate the "what breaks" consequences **in the proposer's own words**.
 - Enumerate the full blast radius: every spec, script, template, diagram, and
@@ -168,12 +174,14 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
   AGENTS.md CONTRIBUTING.md`).
 
 ### Gate 2 — PLAN (migration + regression)
+
 - A written migration plan covering every artifact in the blast radius.
 - The explicit set of regression tests that must pass: acceptance tests,
   naming/vocabulary lints, `openspec validate`.
 - How every dependent artifact is updated in lockstep.
 
 ### Gate 3 — EXECUTE + REGRESSION-TEST
+
 - Implement the change.
 - All named tests and CI pass green before Gate 4.
 - Every named test/lint result is evidenced by its command and output — a tally
@@ -182,6 +190,7 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
   knows only an exit code, not the answer to the question asked).
 
 ### Gate 4 — RE-CHECK + HUMAN SIGN-OFF
+
 - A second review confirming the blast radius was fully addressed — by
   re-running the Gate-1 transcript and diffing its output against the proposal,
   not by re-reading the composed sections.
@@ -195,7 +204,7 @@ Use the template: `openspec/templates/constitution-override/proposal.md`
 ## 4. Enforcement Mechanism
 
 | Mechanism | What it does |
-|---|---|
+| --- | --- |
 | `protects:` frontmatter tag | Marks spec files and vault artifacts as constitutionally protected |
 | `constitution-lint` (CI) | Checks the six protected specs each still contain a `protects:` tag, that `CONST-01`–`05` are all present in this file, and that the override template exists. It performs **no diff analysis** and cannot fail a change for skipping the ceremony. |
 | `constitutional-diff-gate` (CI) | Reads the diff. Where it modifies a spec whose **frontmatter** carries `protects:`, it requires a `constitutional-impact` declaration committed to the tree, and requires a `constitution-override` change directory where that declaration names an overridden Tier-0/Tier-1 element. It does **not** judge whether the declaration is true — see the sentence below the table. **Report-only (`continue-on-error`) during burn-in**; until the Phase-B flip it cannot fail a build. Implemented by `.github/scripts/check-constitutional-impact.py`; read that file, not this row. |

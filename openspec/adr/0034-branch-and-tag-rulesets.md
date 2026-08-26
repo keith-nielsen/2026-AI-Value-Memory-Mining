@@ -54,6 +54,7 @@ Both carry an **empty bypass list** (`current_user_can_bypass: never` — binds 
 moment of a block.
 
 **Ruleset 1 — `vmm-tag-immutability-v-ADR-0034`** · target: tags matching `refs/tags/v*` · rules:
+
 - **restrict updates** (`update`) — a published version tag is **frozen to its commit**; it cannot be
   moved. The categorical F10 close: the driver ensures the tag is *created* on the right commit, the
   ruleset ensures it can never be *moved* to a wrong one.
@@ -64,6 +65,7 @@ moment of a block.
   integrity gain.)
 
 **Ruleset 2 — `vmm-main-pr-and-checks-ADR-0034`** · target: `~DEFAULT_BRANCH` (`main`) · rules:
+
 - **require a pull request before merging** (`pull_request`) with **`required_approving_review_count: 0`**
   (solo repo — no second human exists to approve; the teeth are "no direct push to `main`", not a review
   that cannot happen) and **`allowed_merge_methods: ["merge"]`** — pinning the standing merge-commit
@@ -78,6 +80,7 @@ moment of a block.
 ## Provisioned state (live, 2026-07-24)
 
 Both created `active`, `bypass_actors: []`, `current_user_can_bypass: never`:
+
 - **Tag ruleset** id **`19666225`** — rules `update`, `deletion`, `non_fast_forward`.
 - **Main ruleset** id **`19666243`** — rules `deletion`, `non_fast_forward`, `pull_request` (0 reviews,
   merge-commit only); `required_status_checks` **pending** the Follow-on.

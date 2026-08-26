@@ -26,7 +26,7 @@ request revealed the exact context names. The ruleset was even **named for it** 
 contexts against **17** that actually run. The four unrequired ones were:
 
 | Context | Required? | Assessment |
-|---|---|---|
+| --- | --- | --- |
 | `Secret scan (INV-7)` | no | **Tier-0 invariant, runner could not block a merge** |
 | `INV-6 static (no fleet script calls the network)` | no | **Tier-0 invariant, same** |
 | `INV-6 dynamic (fleet suite in a network namespace)` | no | **Tier-0 invariant, same** |

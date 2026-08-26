@@ -21,7 +21,7 @@ the upstream, human act of discovering Claims from the world and is not a Site s
 Site is born already committed to work, at `dig`.
 
 | Stage | Location | Object | Key field | Meaning |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Capture | `20-Claims/` | loose note | — | Raw, unsorted input (the inbox) |
 | Dig | `30-Sites/<slug>/` | effort | `status: dig` | Active extraction in progress |
 | Ore | `30-Sites/<slug>/` | effort | `status: ore` + `grade` | Raw material extracted; grade **estimated** |
@@ -38,12 +38,14 @@ authorizes bullion into the Treasury). **reprospect** is a read-only survey of t
 Tailings.
 
 #### Scenario: A Site is born at dig
+
 - **WHEN** an operator digs a Claim into a Site
 - **THEN** the effort's `<slug>.md` is created with `status: dig` (never `prospect`)
 - **WHEN** material is extracted and assay'd
 - **THEN** the operator sets `status: ore` and an estimated `grade`
 
 #### Scenario: prospect is not a Site status
+
 - **WHEN** the linter or kanban reads effort statuses
 - **THEN** the valid set is `dig | ore | slagged` — `prospect` is absent (it is the upstream human inflow, not a state)
 
@@ -54,7 +56,7 @@ Tailings.
 Grade SHALL measure value only — never effort. Grade and status are orthogonal (CONST-03).
 
 | Grade | Meaning | Auto-refine? |
-|---|---|---|
+| --- | --- | --- |
 | `gold` | Highest value | Yes (auto-queued at Sort) |
 | `silver` | High value | Yes (auto-queued at Sort) |
 | `bronze` | Marginal value | No — operator decides: override or slag |
@@ -65,11 +67,13 @@ Grade is **estimated** at `ore` (by human or agent assay) and **confirmed** at
 to Tailings rather than completing the refine.
 
 #### Scenario: Grade gate queues silver and gold only
+
 - **WHEN** the refine detector runs
 - **THEN** it queues efforts with `status: ore` and `grade` in `{silver, gold}`
 - **THEN** it omits efforts with `grade: bronze` or `grade: coal`
 
 #### Scenario: Grade confirmed at refine may route back to Tailings
+
 - **WHEN** the refine executor processes a proposal and the confirmed grade is below the gate
 - **THEN** the operator may route the effort to `70-Tailings/` instead of completing the Treasury write
 
@@ -87,6 +91,7 @@ Sort SHALL be applied as a decision point at `ore`, after grade estimation, rout
 4. **Waste to Spoil** — proven false or empty: move to `71-Spoil/` with `status: waste`.
 
 #### Scenario: Coal always slags
+
 - **WHEN** an effort reaches `status: ore` with `grade: coal`
 - **THEN** Sort routes it to `70-Tailings/` (not auto-refined, not discarded as waste)
 
@@ -103,6 +108,7 @@ efforts with their grade and reason. Promotion back to `30-Sites/` is always a
 human-gated move.
 
 #### Scenario: Re-prospect lists slagged efforts without writing
+
 - **WHEN** the re-prospect script runs against `70-Tailings/`
 - **THEN** it prints each slagged effort's slug, grade, and `slag_reason`
 - **THEN** it writes nothing (detection only)
@@ -116,11 +122,13 @@ Only effort husks (the residue of a completed refine in `30-Sites/`) are dumpd
 to `71-Spoil/`. Waste (proven-false content) is the only material discarded.
 
 #### Scenario: Dump moves husk, not bullion
+
 - **WHEN** the dump script runs for a completed effort
 - **THEN** the `30-Sites/<slug>/` directory moves to `71-Spoil/<slug>/`
 - **THEN** the corresponding Treasury note is untouched
 - **THEN** exactly one Git commit is produced (INV-2)
 
 #### Scenario: Dump is cleanly revertible
+
 - **WHEN** `git revert` is applied to the dump commit
 - **THEN** the prior state is cleanly restored

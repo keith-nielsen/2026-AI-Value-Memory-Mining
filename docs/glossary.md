@@ -84,7 +84,7 @@ The verbs, surveys, and states of the effort lifecycle. *Verbs are actions; surv
 moves write; folders are authentic place-nouns; `refine`+`bank` are the gated exception.*
 
 | Phase | Verb | Kind | Move | Status | Agency |
-|-------|------|------|------|--------|--------|
+| ------- | ------ | ------ | ------ | -------- | -------- |
 | inflow | **prospect** | survey · *no script* | world → `20-Claims` | (raw) | human, **unbounded** |
 | start | **dig** | move | Claim → `30-Sites` | `dig` | human |
 | assay | — | in-place | — | `dig → ore` | — |
@@ -150,7 +150,7 @@ kanban flow. A kanban `done` is not a Treasury write.
 ## Actor Classes
 
 | Class | Symbol | Scope |
-|-------|--------|-------|
+| ------- | -------- | ------- |
 | Human | H | Operator; owns all gates and Layer 0 |
 | Agent | A | Assigned Site + `_refine-proposals/` only |
 | Script | S | Deterministic; applies approved proposals; no network/LLM |
@@ -160,7 +160,7 @@ kanban flow. A kanban `done` is not a Treasury write.
 ## Execution Classes
 
 | Class | Meaning |
-|-------|---------|
+| ------- | --------- |
 | `[script]` | Deterministic — no reasoning, no network, no LLM calls |
 | `[agent]` | Reasoning — proposes only; never writes to Treasury or Operations |
 | `[gate]` | Human approval required before any write executes |

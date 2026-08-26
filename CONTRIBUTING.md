@@ -60,7 +60,7 @@ defects, all of which a proposal's design pass would have surfaced on paper.
 these is true.** Any single trigger means it takes a proposal:
 
 | Trigger | Why it disqualifies |
-|---|---|
+| --- | --- |
 | Adds or changes a **command-line flag** or any other caller-visible surface | callers bind to it; removing it later is a breaking change |
 | Introduces **persistent state** — a module-level variable, an on-disk file, anything outliving one call | state has a lifetime, and a lifetime has an *exit* condition that must be designed, not discovered |
 | Changes **exit semantics**, or adds a guard that can **refuse** work | the caller's control flow changes; a guard that over-denies costs more than the defect it prevents |

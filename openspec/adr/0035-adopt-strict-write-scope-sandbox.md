@@ -35,6 +35,7 @@ false` (no per-command escape hatch) is the remedy for that sole structural resi
 hardening.
 
 **The evidence base is complete and was re-confirmed the day of this ADR.**
+
 - **P6 / SE-4** (rev-2, 2026-07-19; **re-run 2026-07-27**): a Python write to `40-Treasury/` dies at the
   kernel with `OSError errno 30 (EROFS)`, file never created — the kernel, not the model-based
   classifier, refuses. Re-run today: **PASS**, with a **P12 control** write to `10-Logbook/` succeeding
