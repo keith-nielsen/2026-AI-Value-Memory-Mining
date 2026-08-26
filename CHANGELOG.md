@@ -12,6 +12,114 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+### Added
+- **The legal GitHub move set is enumerated, barred paths first**
+  (`docs/github-interaction-legal-moves.md`). Built by measurement, not recall: the four layers that
+  can refuse (`permissions.deny`, the ADR-0045 `gh` allowlist, the outbound guard, and the
+  server-side rulesets read live from the API), the permitted forms with who runs each and under
+  whose authority, the forms barred by ceremony though the platform allows them
+  (`gh pr merge --delete-branch`, `gh pr edit --base`), the three ceremonies end to end, and a
+  closing section naming **what has no guard at all**. Every table carries the command that
+  re-measures it, because the document is prose and prose goes stale silently — which its own
+  writing proved (see below).
+
+### Changed
+- **`preflight.py`'s `--body-file` no longer reads as optional in the landing flow.** Step 0 was
+  written `tools/preflight.py . [--body-file PATH]`; the brackets say "optional", and when omitted
+  STEP 7 prints `SKIP  no --body-file given` — **a SKIP that reads exactly like a PASS**. Both halves
+  of the partial-view failure in one line. PR #110 was pushed that way and went red on `Scope review`
+  for two undeclared `dep:` entries the lockfile added — a gate that reproduces perfectly offline.
+  The scope block's `dep:` prefix was already documented in `AGENTS.md` and the PR template; the
+  defect was not a missing rule but a check that looked run when it had been skipped.
+- **Branch names are re-read against what the branch delivers, before the first push.** Scope drifts
+  during work; names do not. The rule is now written in `CONTRIBUTING.md`, `AGENTS.md` and the
+  interaction map: before pushing, rename the branch if it no longer describes its content
+  (`git branch -m` — free and history-preserving while unpushed, effectively frozen once the PR
+  exists, since renaming then rewrites the remote ref and orphans the open PR). **This is mechanical,
+  not cosmetic:** the merged name is recorded permanently in
+  `Merge pull request #N from <owner>/<branch>`, which makes `git log --oneline --merges` the
+  estate's searchable precedent record and the branch **prefix** its class marker. A misnamed branch
+  corrupts that record for everyone who queries it later — the same defect as a stale document,
+  written into history where it cannot be corrected. Demonstrated on this branch, which was opened as
+  `docs/ceremony-shape-query-and-untruncated-scope`, grew to carry a dependency pin, a Node bump, two
+  silent-success fixes and an audit-mode conversion, and was renamed to
+  `fix/workflow-hygiene-and-md-lint-audit` before its first push.
+- **`md-lint` becomes a real audit-mode gate with a declared exit condition, and the frozen
+  archive leaves its scope.** The job's `|| true` was never a phase — it had no ADR, no threshold
+  and no exit, so it was not a flag but a permanent downgrade, on one of the **16 required status
+  contexts**. It now runs in **Phase A (audit)**: it reports the finding count and a per-rule
+  breakdown, and exits 0 on findings only. Industry vocabulary for this is `audit` → `enforce`
+  (cf. Gatekeeper `dryrun`, Kubernetes PSA `audit`, SELinux `permissive`); the job **name** is
+  deliberately unchanged, because it is a required check context and renaming one deadlocks merges.
+  **Exit condition, declared up front:** findings reach 0 and hold across 5 consecutive merged PRs,
+  after which Phase B removes the `exit 0` in its **own** governed change.
+  **`openspec/changes/archive/` is excluded** — it is the frozen, Gate-4-signed historical record,
+  and reformatting it for cosmetics would rewrite governance history. That alone takes the corpus
+  from **3142 findings across 216 files to 1131 across 44**, of which **92%** are three auto-fixable
+  cosmetic rules — leaving roughly 94 that need judgement.
+  **A tool failure is no longer audited away**, which is the defect `|| true` hid: an unrunnable
+  binary exits **127** (measured) and now fails the job. ⚠ And a second hole found while building
+  it: **markdownlint exits 1 — not >1 — when it cannot read its config**, warning once and silently
+  linting against DEFAULT rules. An exit-code guard alone would have audited that away, so the step
+  also greps the report for the fallback warning.
+
+### Fixed
+- **`markdownlint-cli` is pinned into the lockfile, and CI moves off an end-of-life Node.** The
+  `md-lint` job ran `npm install -g markdownlint-cli` — **global and unpinned**, so it bypassed
+  `package-lock.json` entirely and floated to `@latest`, in a repository that otherwise pins
+  `@fission-ai/openspec` exactly and maintains a lockfile of 81 packages. That float had already
+  broken something: since **0.49.0 (2026-06-17)** `@latest` declares **`node >=22`**, while all three
+  `setup-node` sites declared **`node-version: "20"`**. `npm` warns `EBADENGINE` and installs anyway,
+  and the job's `|| true` made a crash indistinguishable from a clean lint — the live check-run on
+  `4937b8f` reports `success` either way. **Node 20 reached EOL on 2026-04-30**, so CI was also
+  building on an unpatched runtime. Now: `markdownlint-cli` pinned to an exact `0.49.1` in
+  `devDependencies` + lockfile (81 → 152 packages, 0 vulnerabilities), installed by `npm ci` and
+  invoked as `node_modules/.bin/markdownlint` — the pattern `openspec-validate` already used — and
+  Node raised to **22** in all four places (`ci.yml` ×3, `openspec-canary.yml` ×1), matching the
+  maintainer's live `v22.23.1`. Verified: `npm ci` exits 0, both pinned tools resolve after a clean
+  install, `openspec validate --all --strict` passes 6/6, and the lint reports its usual 3142
+  findings while `|| true` keeps the job green — **CI's outcome is unchanged; only the install is
+  fixed**. `npm` deliberately stays at 10.9.8. ⚠ Removing `|| true` is **not** part of this change:
+  `Markdown lint` is one of the 16 required contexts, so that converts an always-green required check
+  into one that can block every merge on top of 3142 findings (452 after `--fix`, which additionally
+  **corrupts content** — `MD018` rewrites a line-initial `#66` pull-request reference into a level-1
+  heading). That takes a proposal.
+- **Two silent-success checks now verify what they claim** (`validate-scripts.sh`, hook
+  registration). `validate-scripts.sh` ran `python3 "$BIN/vault_naming.py" >/dev/null` and, with
+  `set -uo pipefail` and **no `-e`**, discarded the exit code — line 48's `ok` printed
+  unconditionally, a shell-printed verdict string that `constitution.md` §3 Gate 3 names as *not*
+  evidence. The status is now captured and the `ok` line cites it. Measured after the fix:
+  `vault_naming.py` genuinely exits 0, so the check was vacuous while the thing it checked was
+  sound — no CI behaviour changes today, and a future regression can no longer pass silently.
+  Separately, **hardening item 32**: a hook file and its registration in `.claude/settings.json` now
+  imply each other, closing the seam one layer out from F29. A hook present but unregistered is dead
+  code the harness never loads; a hook registered but absent makes the harness **defer silently**, so
+  the failure reads as success. Both were met on 2026-08-26. Red-first: the detector stubbed clean
+  fails the two detection cases and correctly leaves the confirming case green. **Bound stated in
+  the test**: it governs this repository only — CI has no deployed vault, so the live vault's
+  registration remains unguarded, and a check quietly covering one root while reading as covering
+  both would be the very shape being refused.
+- **`CONTRIBUTING.md` claimed `main` had no required status checks; it has 16**. The paragraph read
+  *"a red check does not block a merge"* — measured false against ruleset `19666243`
+  (`enforcement: active`, 16 required contexts), exactly as `constitution.md` §4 has always stated.
+  ADR-0034's follow-on landed and this file was never updated. Unsafe in the direction that matters:
+  it would encourage merging on red. Corrected in place with the re-measurement command, and noting
+  that `branches/main/protection` returns 401 anonymously while `/rulesets` returns 200.
+- **The ship ceremony documents its own step 0, and the shape query becomes a required step**
+  (`ceremony-shape-query-and-untruncated-scope`). `CONTRIBUTING.md`'s "Shipping a version" was a
+  numbered 1–5 procedure that **silently presupposed a `release/vX.Y.Z` branch**: `main` is PR-only,
+  so the CHANGELOG cut cannot be committed to it, and `ship-release.py`'s first guard proves the
+  entry is *already on main*. Measured 2026-08-26: `release/` appeared in **zero** lines of
+  `CONTRIBUTING.md`, `AGENTS.md` and the runbooks — the shape existed only across 100 merge commits.
+  It cost a wrong-branch commit during the v0.1.53 ship, caught only when the push was refused.
+  Step 0 is now written down, and two rules generalise the cause: **ask for the last complete
+  instance of a ceremony, end to end, before its first mutation** — reaching the right source with a
+  *content* question will not surface the *shape*, and a ranged query can exclude the record sought
+  (`git log <tag>..main` excluded the release PR by construction) — and **any scope-establishing
+  query is untruncated or reports its denominator**, generalising the constitution's Gate-1
+  requirement beyond blast radius. *A procedure documented from step 1 is not evidence there is no
+  step 0*; where prose and merge history disagree, the disagreement is the defect.
+
 ## [0.1.53] - 2026-08-26
 
 Covers the three changes merged since v0.1.52:
