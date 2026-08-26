@@ -12,6 +12,23 @@ enforced **16**. Every table below therefore carries **the command that re-measu
 document and a live measurement disagree, **the measurement wins and the disagreement is a defect** —
 fix it here rather than working around it. Last measured **2026-08-26**.
 
+## What this document covers, and what it does not
+
+**Covers:** commands that reach GitHub, the four control layers that can refuse them, the ceremonies
+that sequence them, and the query to run before a ceremony you have not performed.
+
+⚠ **Does NOT cover, and this gap has already bitten:** **local git operations that can destroy work
+without touching the network** — `rebase`, `reset --hard`, `branch -D`, `checkout -- <path>`,
+force-push. Section 2a now enumerates that class, but the enumeration is younger and thinner than the
+rest of this page. **Absence from this document is not evidence that a command is outside the
+workflow.** `git rebase` is emitted by `pr-flow.py` on a documented path and was absent from the
+first version of this page.
+
+**Also not covered:** the change-management flow itself — proposals, gates, sign-off, the
+proposal threshold. That is `CONTRIBUTING.md`'s job; this page is the *move set*, not the *process*.
+Where the two overlap (the ceremonies in section 3), `CONTRIBUTING.md` is authoritative and this page
+is a summary that can go stale.
+
 ---
 
 ## 1. BARRED — check these first
@@ -102,6 +119,32 @@ started in** (the `sandbox` block lives in per-root settings), so probe it; neve
 answers 409 and refuses rather than merging something unreviewed.
 
 ---
+
+## 2a. LOCAL commands that can destroy work without touching the network
+
+**No control in section 1 sees these.** The deny list, the `gh` allowlist and the outbound guard all
+key on *outward* mutation; the server-side rulesets protect `main` and `v*` tags, not your working
+tree. These are refused by **nothing**.
+
+| Command | Risk | Discipline |
+|---|---|---|
+| `git rebase <base>` | rewrites local history; can conflict mid-way and leave a half-finished state that silently blocks branch deletion later | run it only when the branch genuinely lacks the base — **verify, do not assume** |
+| `git reset --hard` | discards uncommitted work irrecoverably | commit or stash first |
+| `git branch -D` | deletes an unmerged branch without warning (`-d` refuses; `-D` does not) | confirm the commits are ancestors of the base first: `git merge-base --is-ancestor <sha> origin/main` |
+| `git checkout -- <path>` | discards local edits to that path | never on a path you have not just inspected |
+| `git push --force-with-lease` | rewrites a **remote** branch; the outbound guard ASKs, but the destructive part is what it replaces | only on your own unmerged branch, never on `main` (the ruleset refuses it there) |
+
+⚠ **A driver's emitted command is not exempt.** `pr-flow.py` emits `git rebase {base_ref}` at its
+`base` guard. That guard keys on `is_outward_mutation`, and rebase is **local** — a scoping the
+driver's own source calls *"correctly built, scoped to the wrong axis for this failure"*
+(`tools/pr-flow.py:544`, hardening item 26, measured on PR #76). On a branch whose PR has just
+merged, the guard can emit a rebase onto the commit that merged it. **Measured: that particular
+rebase is a no-op** — git drops the commits as already upstream and fast-forwards. The lesson is not
+that the driver is unsafe; it is that it can print a **false instruction**, and
+
+> **the driver states its premise in its own `why:` line — verify that premise, and stop if it is
+> false.** Here it was checkable in one command:
+> `git merge-base --is-ancestor <sha> origin/main`.
 
 ## 3. The ceremonies — legal sequences end to end
 
