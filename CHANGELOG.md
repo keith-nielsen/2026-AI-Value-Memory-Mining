@@ -24,6 +24,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   writing proved (see below).
 
 ### Fixed
+- **`markdownlint-cli` is pinned into the lockfile, and CI moves off an end-of-life Node.** The
+  `md-lint` job ran `npm install -g markdownlint-cli` — **global and unpinned**, so it bypassed
+  `package-lock.json` entirely and floated to `@latest`, in a repository that otherwise pins
+  `@fission-ai/openspec` exactly and maintains a lockfile of 81 packages. That float had already
+  broken something: since **0.49.0 (2026-06-17)** `@latest` declares **`node >=22`**, while all three
+  `setup-node` sites declared **`node-version: "20"`**. `npm` warns `EBADENGINE` and installs anyway,
+  and the job's `|| true` made a crash indistinguishable from a clean lint — the live check-run on
+  `4937b8f` reports `success` either way. **Node 20 reached EOL on 2026-04-30**, so CI was also
+  building on an unpatched runtime. Now: `markdownlint-cli` pinned to an exact `0.49.1` in
+  `devDependencies` + lockfile (81 → 152 packages, 0 vulnerabilities), installed by `npm ci` and
+  invoked as `node_modules/.bin/markdownlint` — the pattern `openspec-validate` already used — and
+  Node raised to **22** in all four places (`ci.yml` ×3, `openspec-canary.yml` ×1), matching the
+  maintainer's live `v22.23.1`. Verified: `npm ci` exits 0, both pinned tools resolve after a clean
+  install, `openspec validate --all --strict` passes 6/6, and the lint reports its usual 3142
+  findings while `|| true` keeps the job green — **CI's outcome is unchanged; only the install is
+  fixed**. `npm` deliberately stays at 10.9.8. ⚠ Removing `|| true` is **not** part of this change:
+  `Markdown lint` is one of the 16 required contexts, so that converts an always-green required check
+  into one that can block every merge on top of 3142 findings (452 after `--fix`, which additionally
+  **corrupts content** — `MD018` rewrites a line-initial `#66` pull-request reference into a level-1
+  heading). That takes a proposal.
 - **Two silent-success checks now verify what they claim** (`validate-scripts.sh`, hook
   registration). `validate-scripts.sh` ran `python3 "$BIN/vault_naming.py" >/dev/null` and, with
   `set -uo pipefail` and **no `-e`**, discarded the exit code — line 48's `ok` printed

@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install OpenSpec (pinned via package-lock.json)
         run: npm ci
@@ -378,20 +378,28 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
 
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
+      - name: Install markdownlint-cli (pinned via package-lock.json)
+        run: npm ci
 
       - name: Lint Markdown files
         run: |
-          markdownlint \
+          node_modules/.bin/markdownlint \
             --ignore vault-template/ \
             --ignore source/ \
             --ignore node_modules/ \
             --config .markdownlint.yml \
             "**/*.md" || true
-        # || true: advisory only — md-lint is non-blocking while the ruleset is tuned
+        # || true: STILL advisory, deliberately. Removing it converts a REQUIRED status
+        # check into one that can block EVERY merge, on top of 3142 measured findings
+        # (452 after --fix). That takes a proposal; it is not part of this change.
+        #
+        # The install was `npm install -g markdownlint-cli` — global AND unpinned, so it
+        # bypassed package-lock.json entirely and floated to @latest. Since 0.49.0
+        # (2026-06-17) that resolves to a package declaring `node >=22`, which the OLD
+        # `node-version: "20"` did not satisfy; npm warns EBADENGINE and proceeds, and
+        # `|| true` made a crash indistinguishable from a clean lint.
 
   link-check:
     name: Link check
