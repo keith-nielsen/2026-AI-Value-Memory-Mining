@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# GitHub interaction — the legal move set, and the barred paths
+# Version control — the legal move set, and the barred paths
 
-**Purpose.** Enumerate what a GitHub interaction in this estate may legally be, so the shape is
+**Purpose.** Enumerate what a git or GitHub command in this estate may legally be, so the shape is
 *known* rather than *rediscovered*. Every prior instance of the ceremonies below was correct; the
 shape nonetheless lived only in merge history, and reconstructing it from there cost a wrong-branch
 commit during the v0.1.53 ship.
@@ -11,6 +11,23 @@ commit during the v0.1.53 ship.
 enforced **16**. Every table below therefore carries **the command that re-measures it**. Where this
 document and a live measurement disagree, **the measurement wins and the disagreement is a defect** —
 fix it here rather than working around it. Last measured **2026-08-26**.
+
+## What this document covers, and what it does not
+
+**Covers:** commands that reach GitHub, the four control layers that can refuse them, the ceremonies
+that sequence them, and the query to run before a ceremony you have not performed.
+
+⚠ **Does NOT cover, and this gap has already bitten:** **local git operations that can destroy work
+without touching the network** — `rebase`, `reset --hard`, `branch -D`, `checkout -- <path>`,
+force-push. Section 2a now enumerates that class, but the enumeration is younger and thinner than the
+rest of this page. **Absence from this document is not evidence that a command is outside the
+workflow.** `git rebase` is emitted by `pr-flow.py` on a documented path and was absent from the
+first version of this page.
+
+**Also not covered:** the change-management flow itself — proposals, gates, sign-off, the
+proposal threshold. That is `CONTRIBUTING.md`'s job; this page is the *move set*, not the *process*.
+Where the two overlap (the ceremonies in section 3), `CONTRIBUTING.md` is authoritative and this page
+is a summary that can go stale.
 
 ---
 
@@ -103,27 +120,56 @@ answers 409 and refuses rather than merging something unreviewed.
 
 ---
 
-## 3. The ceremonies — legal sequences end to end
+## 2a. LOCAL commands that can destroy work without touching the network
 
-**Every ceremony is driven. Walk the driver; do not hand-compose the sequence.**
+**No control in section 1 sees these.** The deny list, the `gh` allowlist and the outbound guard all
+key on *outward* mutation; the server-side rulesets protect `main` and `v*` tags, not your working
+tree. These are refused by **nothing**.
 
-| Ceremony | Branch class | Sequence |
+| Command | Risk | Discipline |
 |---|---|---|
-| Land a change | `change/` `feat/` `fix/` `docs/` | `preflight.py .` → `pr-flow.py` (14 steps) → archive on the branch **before** the PR → PR → checks → merge → delete remote + local |
-| Ship a version | `release/vX.Y.Z` | **step 0: cut the branch and the `## [X.Y.Z]` CHANGELOG section, land it as a CHANGELOG-only PR** → `ship-release.py vX.Y.Z` → push tag → `gh release create` → re-run until the tag↔Release parity tally → `template-mirror.py <VAULT>` |
-| Deploy down | (vault commit) | `template-mirror.py` (LOCKSTEP only) → `render` in the vault → **merge non-lockstep deltas by hand** → one `ops(deploy-down)` commit |
+| `git rebase <base>` | rewrites local history; can conflict mid-way and leave a half-finished state that silently blocks branch deletion later | run it only when the branch genuinely lacks the base — **verify, do not assume** |
+| `git reset --hard` | discards uncommitted work irrecoverably | commit or stash first |
+| `git branch -D` | deletes an unmerged branch without warning (`-d` refuses; `-D` does not) | confirm the commits are ancestors of the base first: `git merge-base --is-ancestor <sha> origin/main` |
+| `git checkout -- <path>` | discards local edits to that path | never on a path you have not just inspected |
+| `git push --force-with-lease` | rewrites a **remote** branch; the outbound guard ASKs, but the destructive part is what it replaces | only on your own unmerged branch, never on `main` (the ruleset refuses it there) |
 
-⚠ **Deploy-down's third step has no tool and no check.** `.claude/` is **not** lockstep, so
-`template-mirror.py` never carries `settings.json`; mirror + render alone can deploy a hook that
-**nothing loads**, while `template-parity` and `reconcile` both report 0 drift. For a non-lockstep
-file the verb is **merge the delta**, never copy from template.
+⚠ **A driver's emitted command is not exempt.** `pr-flow.py` emits `git rebase {base_ref}` at its
+`base` guard. That guard keys on `is_outward_mutation`, and rebase is **local** — a scoping the
+driver's own source calls *"correctly built, scoped to the wrong axis for this failure"*
+(`tools/pr-flow.py:544`, hardening item 26, measured on PR #76). On a branch whose PR has just
+merged, the guard can emit a rebase onto the commit that merged it. **Measured: that particular
+rebase is a no-op** — git drops the commits as already upstream and fast-forwards. The lesson is not
+that the driver is unsafe; it is that it can print a **false instruction**, and
 
-⚠ **A change directory archives on the feature branch BEFORE the PR opens.** Archiving syncs spec
-deltas into the canonical specs; several checks are red until it happens and green after.
-`openspec archive` names the directory from **UTC** — read the name back, never predict it — and it
-moves files one level deeper **without rewriting relative links** (`../../adr/` → `../../../adr/`).
+> **the driver states its premise in its own `why:` line — verify that premise, and stop if it is
+> false.** Here it was checkable in one command:
+> `git merge-base --is-ancestor <sha> origin/main`.
 
----
+## 3. The ceremonies — pointer, not a second copy
+
+**`CONTRIBUTING.md` is authoritative for the ceremonies.** It owns "Landing a change",
+"Shipping a version" (including step 0, the `release/vX.Y.Z` branch) and "Touching a constitutional
+element". This page deliberately does **not** restate them.
+
+An earlier version of this page did restate them, and that was a mistake of exactly the kind this
+estate keeps paying for: a second copy of a procedure drifts from the first, silently, and a reader
+cannot tell which is current. This session found a paragraph in `CONTRIBUTING.md` that had been
+wrong for months — *"a red check does not block a merge"* against a ruleset enforcing 16 required
+contexts. **Two documents describing one process is how that happens.**
+
+What belongs here instead is the single fact the ceremonies depend on and the move set supplies:
+
+| Ceremony | Branch class | Read |
+|---|---|---|
+| Land a change | `change/` `feat/` `fix/` `docs/` `ops/` | CONTRIBUTING, "Landing a change" |
+| Ship a version | `release/vX.Y.Z` | CONTRIBUTING, "Shipping a version" — **note step 0** |
+| Deploy down | (vault commit) | CONTRIBUTING, plus the ⚠ below |
+
+⚠ **One deploy-down step has no tool and no check, so it is stated in both places on purpose.**
+`.claude/` is **not** lockstep, so `template-mirror.py` never carries `settings.json`; mirror and
+render alone can deploy a hook that **nothing loads**, while `template-parity` *and* `reconcile` both
+report 0 drift. For a non-lockstep file the verb is **merge the delta**, never copy from template.
 
 ## 3a. Branch names are the precedent record — re-read them before the first push
 
