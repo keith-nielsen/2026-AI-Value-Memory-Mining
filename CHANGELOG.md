@@ -12,7 +12,73 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.53] - 2026-08-26
+
+Covers the three changes merged since v0.1.52:
+
+| PR | Change |
+|---|---|
+| #106 | The OpenSpec badge reads the pin live instead of restating it |
+| #107 | The cold-start prime reports route state from the driver, not from recall |
+| #108 | `gh` invocation form is governed by an allowlist in its own hook (ADR-0045) |
+
+Dated in UTC. ⚠ **Unlike v0.1.52, this release's date does NOT match its archive directory
+stamp** — `2026-08-25-gh-invocation-form-allowlist` was stamped when `openspec archive` ran, and the
+release was cut the following UTC day. The stamp records when the change was archived; this date
+records when the release was cut. They coincide only when both happen inside one UTC day, and
+reading the stamp as the release date is the same predict-instead-of-read error that forced a
+correction on `seed-auto-memory-store`. #106 and #107 shipped **bare** (no change directory), per
+the documented `CONTRIBUTING.md` exception for defect fixes to maintainer surfaces.
+
 ### Added
+- **`gh` invocation form is governed by an allowlist in its own hook**
+  (`gh-invocation-form-allowlist`, ADR-0045). A second Bash `PreToolUse` hook permits only
+  `gh api <REST path>` and `gh auth status`; `gh api graphql` is excepted back into deny, and every
+  other form is refused **by default rather than permitted by omission**. An enumerated deny list
+  cures the forms already known to have failed and admits every subcommand GitHub ships next —
+  enumeration drift, which a longer enumeration reproduces rather than cures.
+
+  **GraphQL is prohibited for non-determinism, not for authentication.** Its failure signature is a
+  **silent no-op**: the mutation reports nothing actionable and changes nothing, so a caller trusting
+  the exit status proceeds on a false belief. Four recorded instances, all resolved by moving to
+  REST — 2026-07-18 (`add-ship-ceremony-tools`, "a GraphQL mutation can fail silently where REST
+  succeeds"), 2026-07-19 (**F21**, `gh pr edit --body-file` exit 1 with the body unchanged),
+  2026-08-04 (**F21·3**, `gh pr edit --base` silently no-opped), and 2026-08-24
+  (`seed-auto-memory-store`, "changed nothing, while reporting nothing actionable"). `AGENTS.md`
+  already mandates a re-read after **every** `gh`/GraphQL mutation; that standing workaround is the
+  channel's sunk cost.
+
+  ⚠ **The rationale was corrected mid-change, after being measured false.** It originally argued
+  from `401`/`UNAUTHENTICATED`. A session rooted at `$FRAMEWORK_ROOT` carries no `sandbox` block,
+  reaches the keyring, and authenticates with `repo` + `workflow` scopes — so GraphQL is reachable
+  exactly where the guard matters most. **Credential reach follows the project directory, not the
+  platform.** It was also a regression against this corpus's own record, which had already written
+  that `gh pr *` is denied *"precisely for"* the silent no-op. Corrected in place per the ADR-0042
+  precedent rather than deleted. This **strengthens** the result: the live proof ran in a session
+  holding real mutation capability, so the guard refused a channel that genuinely worked.
+
+  **Limits, stated rather than left to be discovered.** It binds the agent's **typed** channel only
+  — every fleet `gh` call is a Python subprocess the hook cannot see, which is why landing it breaks
+  no live caller (verified across all four call sites). It is a **text matcher**, so composition and
+  indirection defeat it: a **tripwire for a cooperating agent**, where the threat model is the agent
+  *forgetting*, not *evading*. It **fails open** on malformed input, which is why the enumerated
+  `permissions.deny` entries are retained alongside rather than replaced by it. And it does not
+  govern prose — a denied command may still be proposed to the operator in writing.
+
+  **Also closes F29**: nothing verified that this repository's own `.claude/hooks/*.py` matched their
+  notes — `render`/`reconcile` govern note → deployed vault, `template-parity` governs template →
+  live vault, and neither reaches these copies. It bit twice in one day. A parity check now covers
+  it, failing closed on a hook with no note and on a note with no implementation block, with the
+  comparison extracted into a pure function so both failure branches are exercised against fixtures
+  instead of by mutating the live tree.
+
+  ⚠ **Known gap, recorded not fixed:** nothing verifies hook **registration** in either root.
+  `.claude/` is not lockstep, so `template-mirror.py` does not carry `settings.json`; mirroring and
+  rendering alone deploy a guard that **nothing loads**, while `template-parity` and `reconcile` both
+  report 0 drift. A vault instantiated fresh from the template is unaffected — the template carries
+  both registrations — so this bites only incremental deploy-down of an existing vault.
+
+- **The cold-start prime reports route state from the driver, not from recall**
 - **The cold-start prime reports route state from the driver, not from recall**
   (`bootstrap-route-state-priming`). `session-bootstrap-loader` gains a step: with work in
   flight in `FRAMEWORK_ROOT`, invoke `tools/pr-flow.py --plan` and report the CURRENT step;
