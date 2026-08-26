@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# GitHub interaction — the legal move set, and the barred paths
+# Version control — the legal move set, and the barred paths
 
-**Purpose.** Enumerate what a GitHub interaction in this estate may legally be, so the shape is
+**Purpose.** Enumerate what a git or GitHub command in this estate may legally be, so the shape is
 *known* rather than *rediscovered*. Every prior instance of the ceremonies below was correct; the
 shape nonetheless lived only in merge history, and reconstructing it from there cost a wrong-branch
 commit during the v0.1.53 ship.
@@ -146,27 +146,30 @@ that the driver is unsafe; it is that it can print a **false instruction**, and
 > false.** Here it was checkable in one command:
 > `git merge-base --is-ancestor <sha> origin/main`.
 
-## 3. The ceremonies — legal sequences end to end
+## 3. The ceremonies — pointer, not a second copy
 
-**Every ceremony is driven. Walk the driver; do not hand-compose the sequence.**
+**`CONTRIBUTING.md` is authoritative for the ceremonies.** It owns "Landing a change",
+"Shipping a version" (including step 0, the `release/vX.Y.Z` branch) and "Touching a constitutional
+element". This page deliberately does **not** restate them.
 
-| Ceremony | Branch class | Sequence |
+An earlier version of this page did restate them, and that was a mistake of exactly the kind this
+estate keeps paying for: a second copy of a procedure drifts from the first, silently, and a reader
+cannot tell which is current. This session found a paragraph in `CONTRIBUTING.md` that had been
+wrong for months — *"a red check does not block a merge"* against a ruleset enforcing 16 required
+contexts. **Two documents describing one process is how that happens.**
+
+What belongs here instead is the single fact the ceremonies depend on and the move set supplies:
+
+| Ceremony | Branch class | Read |
 |---|---|---|
-| Land a change | `change/` `feat/` `fix/` `docs/` | `preflight.py .` → `pr-flow.py` (14 steps) → archive on the branch **before** the PR → PR → checks → merge → delete remote + local |
-| Ship a version | `release/vX.Y.Z` | **step 0: cut the branch and the `## [X.Y.Z]` CHANGELOG section, land it as a CHANGELOG-only PR** → `ship-release.py vX.Y.Z` → push tag → `gh release create` → re-run until the tag↔Release parity tally → `template-mirror.py <VAULT>` |
-| Deploy down | (vault commit) | `template-mirror.py` (LOCKSTEP only) → `render` in the vault → **merge non-lockstep deltas by hand** → one `ops(deploy-down)` commit |
+| Land a change | `change/` `feat/` `fix/` `docs/` `ops/` | CONTRIBUTING, "Landing a change" |
+| Ship a version | `release/vX.Y.Z` | CONTRIBUTING, "Shipping a version" — **note step 0** |
+| Deploy down | (vault commit) | CONTRIBUTING, plus the ⚠ below |
 
-⚠ **Deploy-down's third step has no tool and no check.** `.claude/` is **not** lockstep, so
-`template-mirror.py` never carries `settings.json`; mirror + render alone can deploy a hook that
-**nothing loads**, while `template-parity` and `reconcile` both report 0 drift. For a non-lockstep
-file the verb is **merge the delta**, never copy from template.
-
-⚠ **A change directory archives on the feature branch BEFORE the PR opens.** Archiving syncs spec
-deltas into the canonical specs; several checks are red until it happens and green after.
-`openspec archive` names the directory from **UTC** — read the name back, never predict it — and it
-moves files one level deeper **without rewriting relative links** (`../../adr/` → `../../../adr/`).
-
----
+⚠ **One deploy-down step has no tool and no check, so it is stated in both places on purpose.**
+`.claude/` is **not** lockstep, so `template-mirror.py` never carries `settings.json`; mirror and
+render alone can deploy a hook that **nothing loads**, while `template-parity` *and* `reconcile` both
+report 0 drift. For a non-lockstep file the verb is **merge the delta**, never copy from template.
 
 ## 3a. Branch names are the precedent record — re-read them before the first push
 

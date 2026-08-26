@@ -141,7 +141,7 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   name is permanent in `Merge pull request #N from <owner>/<branch>`, which IS the precedent record
   the shape query reads, and the prefix is its class marker. A misnamed branch corrupts that record
   for everyone after. See CONTRIBUTING, "Before the first push".
-- **The legal GitHub move set is enumerated in `docs/github-interaction-legal-moves.md`** — permitted
+- **The legal GitHub move set is enumerated in `docs/version-control-legal-moves.md`** — permitted
   forms, the four layers that can refuse (deny list, `gh` allowlist, outbound guard, server-side
   rulesets), the barred-but-platform-legal forms, and the ceremonies end to end. Read it before the
   first GitHub mutation; it leads with the barred set.

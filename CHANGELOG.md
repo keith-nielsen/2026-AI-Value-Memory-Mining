@@ -33,7 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **The legal GitHub move set is enumerated, barred paths first**
-  (`docs/github-interaction-legal-moves.md`). Built by measurement, not recall: the four layers that
+  (`docs/version-control-legal-moves.md`). Built by measurement, not recall: the four layers that
   can refuse (`permissions.deny`, the ADR-0045 `gh` allowlist, the outbound guard, and the
   server-side rulesets read live from the API), the permitted forms with who runs each and under
   whose authority, the forms barred by ceremony though the platform allows them

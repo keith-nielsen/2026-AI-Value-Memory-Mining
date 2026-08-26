@@ -199,7 +199,7 @@ returns 401 anonymously, so read the rulesets endpoint instead.
 server-side requirement. The driver is a gate in addition to the checks, not instead of them.
 
 **The full legal move set — permitted forms, barred paths, and the ceremonies end to end — is
-enumerated in [`docs/github-interaction-legal-moves.md`](docs/github-interaction-legal-moves.md).**
+enumerated in [`docs/version-control-legal-moves.md`](docs/version-control-legal-moves.md).**
 
 ### Before the first mutation of any ceremony: ask for the last complete instance
 
