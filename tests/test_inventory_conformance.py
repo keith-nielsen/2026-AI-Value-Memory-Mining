@@ -6,6 +6,7 @@ Three checks govern the Layer-0 fleet, and between them they leave one seam:
     template-parity     ->  template -> live vault
     (nothing)           ->  SPEC -> NOTE
     (nothing)           ->  NOTE -> THIS REPO'S OWN .claude/hooks/ COPY   <- F29, closed below
+    (nothing)           ->  HOOK FILE <-> ITS REGISTRATION in settings.json  <- item 32, closed below
 
 A script can therefore ship, deploy and enforce an invariant while absent from the
 specification that governs it — indefinitely, with every build green. That is not
@@ -36,6 +37,7 @@ table naming a script deleted a month ago.
 Ground truth is the note set on disk — never a literal list here, which would be one more
 hand-maintained duplicate of a machine-checkable fact and would drift the same way.
 """
+import json
 import pathlib
 import re
 
@@ -295,3 +297,79 @@ def test_parity_report_detects_a_note_with_no_implementation_block(tmp_path):
     drift, unnoted = parity_report(hooks, notes)
     assert drift == []
     assert len(unnoted) == 1 and "no ```python implementation block" in unnoted[0]
+
+
+# --------------------------------------------------------------------------------------
+# Hardening item 32 — a hook FILE and its REGISTRATION must imply each other.
+#
+# F29 closed note -> file. This closes file <-> registration, the seam one layer out: a hook
+# present but unregistered is dead code the harness never loads, and a hook registered but
+# absent makes the harness DEFER SILENTLY -- the failure reads as success. Both were met in
+# one day on 2026-08-26.
+#
+# Scope bound, stated so it is not over-read: this governs THIS repository only. CI has no
+# deployed vault to inspect, so the live vault's registration remains unguarded (see the
+# hardening queue). A check that quietly covered one root while reading as covering both
+# would be exactly the silent-success shape this test exists to refuse.
+# --------------------------------------------------------------------------------------
+
+SETTINGS = REPO / ".claude" / "settings.json"
+
+
+def registration_report(settings_path, hooks_dir):
+    """-> (unregistered, missing). Pure: takes its subjects, so both branches are testable."""
+    import json
+    data = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
+    registered = set()
+    for block in data.get("hooks", {}).get("PreToolUse", []):
+        for hook in block.get("hooks", []):
+            cmd = hook.get("command", "")
+            for token in re.findall(r"[\w.-]+\.py", cmd):
+                registered.add(token)
+    present = {p.name for p in pathlib.Path(hooks_dir).glob("*.py")}
+    return sorted(present - registered), sorted(registered - present)
+
+
+def test_every_hook_file_is_registered_and_every_registration_exists():
+    """Item 32: file and registration imply each other, in this repo."""
+    unregistered, missing = registration_report(SETTINGS, HOOKS_DIR)
+
+    assert not unregistered, (
+        f"{len(unregistered)} hook file(s) present but NOT registered in "
+        f"{SETTINGS.relative_to(REPO)} — the harness will never load them, and no other check "
+        f"notices: {unregistered}"
+    )
+    assert not missing, (
+        f"{len(missing)} hook(s) registered but the file is ABSENT: {missing}. A hook whose "
+        f"command fails DEFERS SILENTLY, so this reads as success from the outside."
+    )
+
+
+def _reg_fixture(tmp_path, files, registered):
+    hooks = tmp_path / "hooks"; hooks.mkdir()
+    for f in files:
+        hooks.joinpath(f).write_text("x = 1\n", encoding="utf-8")
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+        {"type": "command", "command": f'python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/{r}"'}
+        for r in registered]}]}}), encoding="utf-8")
+    return settings, hooks
+
+
+def test_registration_report_is_silent_when_they_match(tmp_path):
+    """The confirming case — so the two failure cases below are not vacuously red."""
+    assert registration_report(*_reg_fixture(tmp_path, ["a-guard.py"], ["a-guard.py"])) == ([], [])
+
+
+def test_registration_report_detects_an_unregistered_hook_file(tmp_path):
+    """A shipped hook nothing loads — dead code that every other check reports as fine."""
+    unreg, missing = registration_report(*_reg_fixture(tmp_path, ["a-guard.py", "b-guard.py"],
+                                                       ["a-guard.py"]))
+    assert missing == [] and unreg == ["b-guard.py"]
+
+
+def test_registration_report_detects_a_registration_with_no_file(tmp_path):
+    """The 2026-08-26 instance: registered at a path that did not exist; the harness defers."""
+    unreg, missing = registration_report(*_reg_fixture(tmp_path, ["a-guard.py"],
+                                                       ["a-guard.py", "ghost-guard.py"]))
+    assert unreg == [] and missing == ["ghost-guard.py"]

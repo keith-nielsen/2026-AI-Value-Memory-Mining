@@ -24,6 +24,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   writing proved (see below).
 
 ### Fixed
+- **Two silent-success checks now verify what they claim** (`validate-scripts.sh`, hook
+  registration). `validate-scripts.sh` ran `python3 "$BIN/vault_naming.py" >/dev/null` and, with
+  `set -uo pipefail` and **no `-e`**, discarded the exit code — line 48's `ok` printed
+  unconditionally, a shell-printed verdict string that `constitution.md` §3 Gate 3 names as *not*
+  evidence. The status is now captured and the `ok` line cites it. Measured after the fix:
+  `vault_naming.py` genuinely exits 0, so the check was vacuous while the thing it checked was
+  sound — no CI behaviour changes today, and a future regression can no longer pass silently.
+  Separately, **hardening item 32**: a hook file and its registration in `.claude/settings.json` now
+  imply each other, closing the seam one layer out from F29. A hook present but unregistered is dead
+  code the harness never loads; a hook registered but absent makes the harness **defer silently**, so
+  the failure reads as success. Both were met on 2026-08-26. Red-first: the detector stubbed clean
+  fails the two detection cases and correctly leaves the confirming case green. **Bound stated in
+  the test**: it governs this repository only — CI has no deployed vault, so the live vault's
+  registration remains unguarded, and a check quietly covering one root while reading as covering
+  both would be the very shape being refused.
 - **`CONTRIBUTING.md` claimed `main` had no required status checks; it has 16**. The paragraph read
   *"a red check does not block a merge"* — measured false against ruleset `19666243`
   (`enforcement: active`, 16 required contexts), exactly as `constitution.md` §4 has always stated.

@@ -44,8 +44,16 @@ out = pathlib.Path(os.environ["BIN"]) / "vault-render.py"
 out.parent.mkdir(parents=True, exist_ok=True); out.write_text(code); out.chmod(0o755)
 PY
 python3 "$BIN/vault-render.py" render >/dev/null || { no "render failed"; exit 2; }
+# The exit code is CHECKED, not discarded. This script sets `-uo pipefail` with no `-e`, so a
+# bare invocation here let a failing validator through and printed `ok` unconditionally --
+# a shell-printed verdict string, which constitution.md §3 Gate 3 names as NOT evidence.
 python3 "$BIN/vault_naming.py" >/dev/null
-ok "render + naming-rules.json"
+naming_rc=$?
+if [ "$naming_rc" -ne 0 ]; then
+  no "vault_naming.py exited $naming_rc — naming ruleset mirror failed"
+  exit 2
+fi
+ok "render + naming-rules.json (vault_naming.py exit 0)"
 
 hdr "static checks — python compiles"
 for py in "$BIN"/*.py; do
