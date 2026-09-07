@@ -59,6 +59,30 @@ once refined.
   change and explicitly out of scope.
 - **Closes hardening item 34** as a by-product.
 
+## Constitutional impact
+
+Archiving syncs this change's delta into `openspec/specs/maintenance/spec.md`, which carries a
+`protects:` frontmatter key. The gate requires the question be answered **in the tree**, in writing.
+
+Checked against each protected invariant rather than asserted:
+
+- **INV-3** (*drift is detected, never auto-fixed*) — the modified requirement retains
+  **"Detection only, never auto-fix"** verbatim. Parity still reports and exits non-zero; a human
+  re-runs the mirror. Coverage widens; the posture does not change.
+- **INV-6** (*deterministic scripts: no network, no LLM*) — retained verbatim as
+  **"Stdlib-only, offline, no LLM"**. Adding directory prefixes changes what is compared, never how.
+- **INV-2** (*one commit per automated change*) — untouched; this change alters no commit ceremony.
+
+The change **widens what an existing detector observes**. It grants no new authority, relaxes no
+guarantee, and removes no check.
+
+```constitutional-impact
+touches: openspec/specs/maintenance/spec.md
+protects: [INV-2, INV-3, INV-6]
+overrides: none
+basis: MODIFIED requirement widens LOCKSTEP coverage to governance content; INV-3 detection-only and INV-6 stdlib-only/offline both retained verbatim in the delta; no authority granted, no check removed
+```
+
 ## Verification
 
 Post-merge, in order — each step has its own proof:

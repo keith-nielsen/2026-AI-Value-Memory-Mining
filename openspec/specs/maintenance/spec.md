@@ -10,7 +10,9 @@ protects: [INV-2, INV-3, INV-6]
 Define the Layer-0 operational machinery: the literate meta-script format, the
 render/reconcile GitOps pattern, and all deterministic scripts that automate vault
 maintenance.
+
 ## Requirements
+
 ### Requirement: Literate Meta-Script Format
 
 Every operational artifact SHALL be stored as a literate meta-script note in
@@ -541,12 +543,23 @@ maintainer/mirror-time check — NOT part of the deployed vault (which is standa
 references the repo) and NOT a CI gate (CI has no live vault to compare against).
 
 - **Lockstep scope is an explicit manifest.** A repo-owned `tools/template-sync-manifest.json`
-  declares `lockstep` directory prefixes — the INV-3 source-of-truth scaffold (`99-Operations/scripts/`,
-  `99-Operations/schemas/`) — and an `exclude` list for files under a lockstep prefix that the live
-  vault legitimately GENERATES (the template ships the generator, not its output; e.g.
-  `99-Operations/schemas/naming-rules.json`, emitted by `vault_naming.py`). Everything outside a
-  lockstep prefix is per-instance seed (CLAUDE.md, config, `40-Treasury/`, Catalog indexes, README)
-  and SHALL NOT be compared.
+  declares `lockstep` directory prefixes, and an `exclude` list for files under a lockstep prefix
+  that the live vault legitimately GENERATES (the template ships the generator, not its output; e.g.
+  `99-Operations/schemas/naming-rules.json`, emitted by `vault_naming.py`).
+- **The dividing line is GOVERNANCE CONTENT versus PER-INSTANCE CONFIGURATION.** Lockstep covers
+  what the framework governs and an instance MUST NOT silently diverge from: the INV-3
+  source-of-truth scaffold (`99-Operations/scripts/`, `99-Operations/schemas/`), the spec-as-code
+  runbooks (`96-Runbooks/`), and the agent commands that carry ceremony (`.claude/commands/`).
+  A runbook and a ceremony command are single-source-of-truth artifacts by their own definition; an
+  instance that edits one has forked the governance, which is drift by construction rather than
+  legitimate local ownership.
+- **Everything outside a lockstep prefix is per-instance seed and SHALL NOT be compared** —
+  `CLAUDE.md`, config, `40-Treasury/`, Catalog indexes, README, and `.claude/settings.json`.
+  ⚠ `.claude/settings.json` is seed **deliberately**: it carries per-instance permissions, sandbox
+  scope and hook registration. Because it is never compared, **hook registration cannot be verified
+  by parity at all** — a hook may be deployed, byte-correct and unloaded while this check reports
+  zero drift. That gap is real, is out of scope for this requirement, and requires an assertion
+  rather than a comparison.
 - **Comparison is byte-exact and bidirectional.** For each prefix the union of files under the prefix
   in BOTH trees is compared: a file present in one tree but absent from the other is drift
   (`MISSING-IN-LIVE` / `MISSING-IN-TEMPLATE`); a differing file is drift (`DIFFERS`). Directory-prefix
@@ -587,6 +600,18 @@ references the repo) and NOT a CI gate (CI has no live vault to compare against)
 - **WHEN** the tool is invoked with neither a live-vault argument nor `$VAULT_ROOT`, or against a
   path that is not a vault
 - **THEN** it prints a `BLOCKED:` line and exits `3` — it never reports parity by silence
+
+#### Scenario: A drifted runbook or ceremony command is detected, not silently tolerated
+- **WHEN** a deployed vault's `96-Runbooks/` or `.claude/commands/` file differs from the template
+  it was shipped from — including by being an older revision that never received a mirror
+- **THEN** the tool reports it as `DIFFERS` and exits `1`, so a governance artifact that exists in
+  the framework but never arrived in the vault cannot read as deployed
+
+#### Scenario: Per-instance configuration is not compared
+- **WHEN** a deployed vault's `.claude/settings.json`, `CLAUDE.md` or Catalog indexes differ from the
+  template
+- **THEN** the tool does NOT report drift — these are seed, owned by the instance, and comparing them
+  would convert legitimate local ownership into a permanent false positive
 
 ### Requirement: Catalog Linking Is Idempotent
 
@@ -2047,4 +2072,3 @@ about the process that emitted it and silent about the question actually being a
 #### Scenario: The tool is genuinely absent
 - **WHEN** both the module form and the bare-name form fail
 - **THEN** the tool may be reported absent, and the report names both invocations as evidence
-
