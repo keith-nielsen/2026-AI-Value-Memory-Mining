@@ -15,6 +15,26 @@ non-discriminating rather than counted as coverage. That distinction was itself 
 the first cut of the cross-tree test passed against the defect, because the broken code
 read the wrong tree, found a difference, and reported DRIFT for the wrong reason. An
 assertion that cannot separate a correct verdict from a coincidental one is not a guard.
+
+MUTATION EVIDENCE (2026-09-09). "The tests pass" is not an assurance argument; what would
+make them fail is. Five plausible mutations of the shipped resolution line were run:
+
+    M1  no join at all (the original defect)          KILLED
+    M2  join to the CWD instead of the root           KILLED
+    M3  join unconditionally, ignoring is_absolute    EQUIVALENT -- see below
+    M4  inverted is_absolute condition                KILLED
+    M5  joined to the wrong root (vault.parent)       KILLED
+
+all four killed by test_target_is_resolved_against_the_notes_root_not_the_cwd.
+
+M3 is an EQUIVALENT MUTANT, not a coverage hole, and this was measured rather than argued:
+`pathlib.Path("/vault") / pathlib.Path("/abs/x")` returns `/abs/x` -- the `/` operator discards
+the left operand when the right is absolute. So `vault / _dt` and `_dt if _dt.is_absolute()
+else (vault / _dt)` are behaviourally identical, and NO test can distinguish them.
+
+Consequence worth knowing: the `is_absolute()` guard in the shipped line is redundant for
+behaviour. It is retained for the READER -- the conditional states the intent without requiring
+knowledge of that pathlib subtlety -- and NOT because it changes what the tool does.
 """
 import pathlib
 import re
