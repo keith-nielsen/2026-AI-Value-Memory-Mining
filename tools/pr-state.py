@@ -11,7 +11,8 @@ succeeds; merging a parent with `--delete-branch` closes a stacked child irrever
 Ad-hoc `gh` composition collapses those layers into one oracle; this reporter keeps them
 apart so two conflicting answers read as a named-layer signal, not chaos.
 
-Read-only: every call is a read (`gh pr view`, `gh run list`, `git ls-remote`). It mutates
+Read-only: every call is a read (REST via gh_read, `gh run list`, `git ls-remote`,
+and `gh pr view` only as a named fallback). It mutates
 nothing and emits no outward command, so it sits below the INV-14 rail. It is also the
 post-mutation verifier: after any gh/GraphQL mutation, re-run it and read the layer —
 never trust a silent success.
@@ -72,43 +73,55 @@ def main(argv):
         _die_blocked("not inside a git repository")
     root = pathlib.Path(top.stdout.strip())
 
-    # `gh` is preferred because it alone answers the GraphQL-only layers (mergeStateStatus,
-    # statusCheckRollup). But a SANDBOXED gh cannot reach the OS keyring and fails with a bogus
-    # 401, which used to make this reporter unusable exactly when an agent needed it — so it now
-    # degrades to the anonymous REST API instead of dying (F30). The degraded layers are reported
+    # A SANDBOXED gh cannot reach the OS keyring and fails with a bogus 401, which used to make
+    # this reporter unusable exactly when an agent needed it (F30). Degraded layers are reported
     # as UNAVAILABLE, never synthesised: inventing a layer would defeat the whole point of a
     # per-layer reporter.
-    pr, channel, graphql = None, None, True
-    if shutil.which("gh") is not None:
-        r = _run(["gh", "pr", "view", number, "--json", PR_FIELDS], cwd=str(root))
-        if r.returncode == 0:
-            pr, channel = json.loads(r.stdout), "gh/GraphQL"
-    if pr is None:
-        graphql = False
-        slug = gh_read.slug_from_remote(str(root))
-        if not slug:
-            _die_blocked("gh unavailable and cannot resolve owner/repo from the origin remote")
+    # REST IS TRIED FIRST, deliberately. GraphQL returns success for operations that did not
+    # take effect (a body edit reported success and did not apply), so ordering it first makes
+    # the silent-failure channel the default answer and the observable one the exception.
+    # GraphQL is retained as a NAMED fallback because it alone answers mergeStateStatus and the
+    # statusCheckRollup. `graphql` below means "the GraphQL-only FIELDS were actually read",
+    # never "gh exists" -- those are separate facts and conflating them silently drops a layer.
+    pr, channel, graphql = None, None, False
+    gh_present = shutil.which("gh") is not None
+    slug = gh_read.slug_from_remote(str(root))
+
+    if slug:
         try:
             rest, channel = gh_read.pull_request(slug, int(number))
-        except gh_read.ReadError as exc:
-            _die_blocked(f"PR #{number} unreadable on every channel: {exc}")
-        pr = {
-            "number": rest["number"],
-            "title": rest["title"],
-            "url": rest["html_url"],
-            "state": "MERGED" if rest.get("merged_at") else rest["state"].upper(),
-            "isDraft": rest.get("draft"),
-            "mergeable": rest.get("mergeable"),
-            "mergeStateStatus": None,
-            "baseRefName": rest["base"]["ref"],
-            "headRefName": rest["head"]["ref"],
-            "headRefOid": rest["head"]["sha"],
-            "statusCheckRollup": None,
-        }
+        except gh_read.ReadError:
+            rest = None
+        if rest is not None:
+            pr = {
+                "number": rest["number"],
+                "title": rest["title"],
+                "url": rest["html_url"],
+                "state": "MERGED" if rest.get("merged_at") else rest["state"].upper(),
+                "isDraft": rest.get("draft"),
+                "mergeable": rest.get("mergeable"),
+                "mergeStateStatus": None,
+                "baseRefName": rest["base"]["ref"],
+                "headRefName": rest["head"]["ref"],
+                "headRefOid": rest["head"]["sha"],
+                "statusCheckRollup": None,
+            }
+
+    # NAMED FALLBACK, not the first choice.
+    if pr is None and gh_present:
+        r = _run(["gh", "pr", "view", number, "--json", PR_FIELDS], cwd=str(root))
+        if r.returncode == 0:
+            pr, channel, graphql = json.loads(r.stdout), "gh/GraphQL", True
+
+    if pr is None:
+        _die_blocked(f"PR #{number} unreadable on every channel "
+                     f"(REST {'attempted' if slug else 'unavailable: no owner/repo from origin'}; "
+                     f"gh {'attempted' if gh_present else 'not on PATH'})")
+
     head_oid = pr.get("headRefOid") or ""
     print(f"pr-state: read via {channel}"
-          + ("" if graphql else "  [DEGRADED: gh unavailable — GraphQL-only layers are UNAVAILABLE,"
-                               " not assumed]"))
+          + ("" if graphql else "  [GraphQL-only layers UNAVAILABLE — mergeStateStatus not read;"
+                                " REST answered and its failures are observable]"))
 
     print(f"pr-state: #{pr['number']} {pr['title']} ({pr['url']})")
 
@@ -164,7 +177,7 @@ def main(argv):
     # Layer: run-level aggregation (what `gh run list` reads) — a continue-on-error job
     # can make this layer and the check layer disagree while both are correct.
     runs = []
-    if head_oid and graphql:
+    if head_oid and gh_present:
         r = _run(["gh", "run", "list", "--commit", head_oid,
                   "--json", "name,status,conclusion,event"], cwd=str(root))
         if r.returncode != 0:
