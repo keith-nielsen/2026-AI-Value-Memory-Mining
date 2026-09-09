@@ -29,13 +29,13 @@
 
 - [x] 4.1 `python3 -m pytest tests/ -q` → **389 passed** (386 baseline + 3).
 - [x] 4.2 `openspec validate --all --strict` → specs + this change, 0 failed.
-- [ ] 4.3 `tools/preflight.py . --body-file <PATH>` → CLEAR.
+- [x] 4.3 `tools/preflight.py . --body-file <PATH>` → CLEAR.
 - [x] 4.4 Add the `constitutional-impact` declaration — archiving syncs this delta into
       `openspec/specs/maintenance/spec.md`, which carries `protects:`.
 
 ## 5. Land it
 
-- [ ] 5.1 Archive on this feature branch, before the PR opens (ADR-0040).
+- [x] 5.1 Archive on this feature branch, before the PR opens (ADR-0040).
 - [ ] 5.2 Walk `tools/pr-flow.py` to `LIFECYCLE COMPLETE`. Never hand-compose the sequence.
 
 ## 6. Deploy-down — operator-run
