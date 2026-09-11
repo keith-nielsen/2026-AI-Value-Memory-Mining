@@ -1,10 +1,13 @@
 {
-  "_comment": "LOCKSTEP prefixes: template paths that MUST stay byte-identical to a deployed vault. A governed change edits the repo's vault-template/<prefix>/...; the post-merge mirror copies it into the live vault; this manifest lets template-parity.py prove the mirror is complete. Everything NOT under a lockstep prefix is SEED (seeded once at deploy, then owned/edited per instance: CLAUDE.md, config, 40-Treasury/, Catalog indexes, README, .claude/settings.json) and is deliberately not compared. Matching is directory-prefix, so any file under a prefix in EITHER tree is compared and a newly-shipped file cannot go silently unchecked.",
+  "_comment": "LOCKSTEP prefixes: template paths that MUST stay byte-identical to a deployed vault. A governed change edits the repo's vault-template/<prefix>/...; the post-merge mirror copies it into the live vault; this manifest lets template-parity.py prove the mirror is complete. The dividing line is GOVERNANCE CONTENT vs PER-INSTANCE CONFIGURATION: lockstep covers the INV-3 scaffold (99-Operations/scripts/, 99-Operations/schemas/), the spec-as-code runbooks (96-Runbooks/) and the agent commands that carry ceremony (.claude/commands/) -- artifacts that are single-source-of-truth by their own definition, where an instance edit is a governance fork rather than local ownership. Everything NOT under a lockstep prefix is SEED (seeded once at deploy, then owned/edited per instance: CLAUDE.md, config, 40-Treasury/, Catalog indexes, README, .claude/settings.json) and is deliberately not compared. Matching is directory-prefix, so any file under a prefix in EITHER tree is compared and a newly-shipped file cannot go silently unchecked.",
   "lockstep": [
     "99-Operations/scripts/",
-    "99-Operations/schemas/"
+    "99-Operations/schemas/",
+    "96-Runbooks/",
+    ".claude/commands/"
   ],
-  "_exclude_comment": "Files under a lockstep prefix that legitimately diverge because the live vault GENERATES them (the template ships the generator, not its output). Deliberate duplication per the operation's standing list \u2014 do not rationalize. naming-rules.json is emitted into the live vault by vault_naming.py.",
+  "_seed_comment": ".claude/ is NOT wholly lockstep. Only .claude/commands/ is. `.claude/settings.json` stays SEED deliberately -- it carries per-instance permissions, sandbox scope and HOOK REGISTRATION. Consequence, stated rather than discovered: because settings.json is never compared, hook REGISTRATION cannot be verified by parity at all. A hook can be deployed, byte-correct and never loaded while this check reports zero drift. That gap needs an assertion, not a comparison, and is out of scope here (platform hardening item 32).",
+  "_exclude_comment": "Files under a lockstep prefix that legitimately diverge because the live vault GENERATES them (the template ships the generator, not its output). Deliberate duplication per the operation's standing list — do not rationalize. naming-rules.json is emitted into the live vault by vault_naming.py.",
   "exclude": [
     "99-Operations/schemas/naming-rules.json"
   ],
