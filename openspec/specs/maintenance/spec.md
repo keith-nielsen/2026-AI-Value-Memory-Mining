@@ -646,12 +646,14 @@ references the repo) and NOT a CI gate (CI has no live vault to compare against)
 - **THEN** it prints a `BLOCKED:` line and exits `3` — it never reports parity by silence
 
 #### Scenario: A drifted runbook or ceremony command is detected, not silently tolerated
+
 - **WHEN** a deployed vault's `96-Runbooks/` or `.claude/commands/` file differs from the template
   it was shipped from — including by being an older revision that never received a mirror
 - **THEN** the tool reports it as `DIFFERS` and exits `1`, so a governance artifact that exists in
   the framework but never arrived in the vault cannot read as deployed
 
 #### Scenario: Per-instance configuration is not compared
+
 - **WHEN** a deployed vault's `.claude/settings.json`, `CLAUDE.md` or Catalog indexes differ from the
   template
 - **THEN** the tool does NOT report drift — these are seed, owned by the instance, and comparing them
