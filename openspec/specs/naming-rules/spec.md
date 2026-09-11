@@ -36,7 +36,7 @@ Rules (authoritative set, mirrored to `naming-rules.json`):
 #### Scenario: Validator rejects each forbidden class
 
 - **WHEN** `vault_naming.py --check` is called with each of: `bad:name`, `pipe|x`, `has#hash`, `CON`, `.hidden`,
-  `trail` (trailing space)
+  `trail ` (trailing space) <!-- markdownlint-disable-line MD038 -->
 - **THEN** it exits 1 for each and prints an INVALID message
 
 #### Scenario: Validator accepts valid names
