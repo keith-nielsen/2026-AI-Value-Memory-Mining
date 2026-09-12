@@ -65,8 +65,17 @@ Surfaced, with the sacrifice stated rather than minimised:
 ⚠ The `constitutional-diff-gate` is **report-only during burn-in and cannot fail the build**, so this
 sign-off is the operative control, not CI.
 
-- [ ] 5.1 Tier-0 touch surfaced with its consequence; **Approved** — operator, <date>
-      *Agents may not sign this. Leave unticked until the operator records it.*
+- [x] 5.1 Tier-0 touch surfaced with its consequence; **Approved** — operator, 2026-09-13
+      Given after the pre-work, scoping and testing were presented: the token-multiset content check
+      across all 44 files (40 prose byte-identical), the repair of the defect that check found, the
+      verification that the CHANGELOG consolidation was lossless (4/4 entries keep their exact
+      release and section), 0 lint findings from 1138, and all 16 `ci.yml` jobs run locally.
+      The operator's words: *"The currently planned scope with all of the pre-work, scoping, and
+      testing is Approved."*
+      ⚠ Signed in full knowledge of the two sacrifices named above: the diff spans **all six**
+      `protects:`-tagged specs, and **MD025 is exempted rather than satisfied**.
+      ⚠ Scoped to the branches that completed that pre-work. It does **NOT** extend to
+      `fix/render-root-resolution` or `fix/driver-subject-resolution`, whose Gate 4 remains UNSIGNED.
 
 ## 6. Land it
 
