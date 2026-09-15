@@ -2026,3 +2026,150 @@ def test_a_quoted_subprocess_line_is_attributed_to_the_subprocess(work, monkeypa
     assert "Authentication failed" in out, "select the line naming the cause"
     assert "and the repository exists" not in out, \
         "positional selection picks the trailing hint and blames the wrong thing"
+
+
+# --------------------------------------------------------------------------------------------
+# Subject resolution: the driver must act on the DECLARED estate, not the working directory.
+#
+# `capabilities()` was fixed for this in an earlier change and `main()` was not, so a
+# vault-rooted `--plan` -- which the bootstrap runbook instructs -- measured the vault and
+# printed a well-formed BLOCKED route for the wrong repository. It did not crash, which is
+# what made it dangerous: the output was indistinguishable from a real refusal.
+# --------------------------------------------------------------------------------------------
+
+@pytest.fixture()
+def elsewhere(tmp_path):
+    """A second, unrelated git repo to stand in as the wrong working directory."""
+    d = tmp_path / "elsewhere"
+    d.mkdir()
+    subprocess.run(["git", "init", "-b", "main", str(d)], check=True, capture_output=True)
+    (d / "f.txt").write_text("x")
+    git(["add", "-A"], cwd=d)
+    git(["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "init"], cwd=d)
+    return d
+
+
+def test_declared_framework_root_beats_the_working_directory(work, elsewhere, monkeypatch):
+    """Run from `elsewhere`, declare `work`: the driver must report on `work`."""
+    monkeypatch.setenv("FRAMEWORK_ROOT", str(work))
+    r = subprocess.run([sys.executable, str(FLOW), "--plan", "--branch", "main", "--base", "main"],
+                       cwd=elsewhere, capture_output=True, text=True)
+    combined = r.stdout + r.stderr
+    assert str(work) in combined, combined[:600]
+    assert str(elsewhere) not in combined, "measured the working directory, not the estate"
+
+
+def test_repo_flag_overrides_the_declared_estate(work, elsewhere, monkeypatch):
+    monkeypatch.setenv("FRAMEWORK_ROOT", str(elsewhere))
+    r = subprocess.run([sys.executable, str(FLOW), "--plan", "--repo", str(work),
+                        "--branch", "main", "--base", "main"],
+                       cwd=elsewhere, capture_output=True, text=True)
+    combined = r.stdout + r.stderr
+    # Guard against a VACUOUS pass: argparse's "unrecognized arguments: --repo <path>" error also
+    # contains <path>, so the path assertion alone is satisfied by the flag simply not existing.
+    assert "unrecognized arguments" not in combined, "--repo is not implemented"
+    assert str(work) in combined, combined[:600]
+    assert str(elsewhere) not in combined, "--repo did not override the declared estate"
+
+
+def test_a_discovered_subject_is_announced_not_silently_substituted(work, monkeypatch):
+    """With nothing declared, falling back to the cwd is allowed -- but must be SAID."""
+    monkeypatch.delenv("FRAMEWORK_ROOT", raising=False)
+    r = subprocess.run([sys.executable, str(FLOW), "--plan", "--branch", "main", "--base", "main"],
+                       cwd=work, capture_output=True, text=True)
+    combined = (r.stdout + r.stderr).lower()
+    assert "discover" in combined, "a discovered subject must be distinguishable from a declared one"
+
+
+def test_a_subject_that_is_not_a_repository_is_refused_legibly(tmp_path, work):
+    notrepo = tmp_path / "notrepo"
+    notrepo.mkdir()
+    r = subprocess.run([sys.executable, str(FLOW), "--plan", "--repo", str(notrepo),
+                        "--branch", "main", "--base", "main"],
+                       cwd=work, capture_output=True, text=True)
+    assert r.returncode == EXIT_BLOCKED, (r.returncode, r.stdout[-400:], r.stderr[-400:])
+    assert "Traceback" not in r.stderr
+    assert str(notrepo) in (r.stdout + r.stderr), "the refusal must name the path it resolved"
+
+
+# --------------------------------------------------------------------------------------------
+# The body guard must verify COVERAGE, not merely presence.
+#
+# `scope_block_in` imports the CI gate's fence REGEX -- good -- but then asks only "is a
+# non-empty scope block present?". The gate asks a second, harder question: does the declared
+# set COVER every path in the merge-base diff? On PR #117 a stale-but-present block passed the
+# driver at step 7 and was rejected by CI at scope-review, because the archive had added four
+# paths after the block was written.
+#
+# The driver's own docstring already states the principle it then failed to apply:
+#   "A check that green-lights what the real gate will fail is worse than no check,
+#    because it is relied upon."
+#
+# The fix imports the shipped gate rather than restating its set arithmetic (class 9).
+# --------------------------------------------------------------------------------------------
+
+def _flow_module():
+    import importlib.util
+    import pathlib
+    import sys
+    repo = pathlib.Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("_flowmod", repo / "tools" / "pr-flow.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["_flowmod"] = mod
+    spec.loader.exec_module(mod)
+    return mod, repo
+
+
+BODY_COVERING = """## Declared scope
+
+```scope
+a.md
+b.md
+```
+"""
+
+BODY_STALE = """## Declared scope
+
+```scope
+a.md
+```
+"""
+
+DIFF_TWO_FILES = """diff --git a/a.md b/a.md
+index 111..222 100644
+--- a/a.md
++++ b/a.md
+@@ -1 +1 @@
+-x
++y
+diff --git a/b.md b/b.md
+index 333..444 100644
+--- a/b.md
++++ b/b.md
+@@ -1 +1 @@
+-x
++y
+"""
+
+
+def test_scope_coverage_accepts_a_block_that_covers_the_diff():
+    mod, repo = _flow_module()
+    assert hasattr(mod, "scope_covers_diff"), "the coverage check does not exist"
+    ok, findings = mod.scope_covers_diff(BODY_COVERING, DIFF_TWO_FILES, str(repo))
+    assert ok, findings
+
+
+def test_scope_coverage_rejects_a_present_but_stale_block():
+    """The exact PR #117 shape: a block IS present, and does NOT cover the diff."""
+    mod, repo = _flow_module()
+    # presence-only would say yes -- that is the defect being fixed
+    assert mod.scope_block_in(BODY_STALE, str(repo)), "precondition: the block is present"
+    ok, findings = mod.scope_covers_diff(BODY_STALE, DIFF_TWO_FILES, str(repo))
+    assert not ok, "a present-but-stale block was accepted; this is the PR #117 regression"
+    assert any("b.md" in f for f in findings), findings
+
+
+def test_scope_coverage_names_the_undeclared_path():
+    mod, repo = _flow_module()
+    _, findings = mod.scope_covers_diff(BODY_STALE, DIFF_TWO_FILES, str(repo))
+    assert findings, "a refusal that names nothing cannot be acted on"

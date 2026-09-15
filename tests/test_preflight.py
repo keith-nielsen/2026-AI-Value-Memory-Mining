@@ -80,13 +80,16 @@ def test_coverage_partitions_every_declared_job(tmp_path, monkeypatch, capsys):
 
     A tally that covers some of its categories is how a footer comes to contradict its own table.
     """
-    root = make_repo(tmp_path, HEREDOC_JOB + "  md-lint:\n    runs-on: ubuntu-latest\n")
+    # `secret-scan`, not `md-lint`: md-lint moved from NOT_LOCAL into LOCAL_JOBS so its
+    # availability is MEASURED rather than excused by a string that went stale. The invariant
+    # under test is unchanged -- every declared job must land in exactly one category.
+    root = make_repo(tmp_path, HEREDOC_JOB + "  secret-scan:\n    runs-on: ubuntu-latest\n")
     monkeypatch.setattr(preflight, "LOCAL_JOBS", [])
     monkeypatch.setattr(sys, "argv", ["preflight.py", str(root)])
     preflight.main()
     out = capsys.readouterr().out
-    assert "UNACCOUNTED" not in out, "md-lint is declared in NOT_LOCAL, so it is accounted for"
-    assert "md-lint" in out, "a job that is not reproduced must still be NAMED, with its reason"
+    assert "UNACCOUNTED" not in out, "secret-scan is declared in NOT_LOCAL, so it is accounted for"
+    assert "secret-scan" in out, "a job that is not reproduced must still be NAMED, with its reason"
 
 
 def test_ci_jobs_is_derived_from_the_file_never_hardcoded(tmp_path):
@@ -292,3 +295,63 @@ def test_no_live_change_directory_is_not_an_error(tmp_path, monkeypatch, capsys)
     out = capsys.readouterr().out
     assert "nothing owed" in out
     assert rc == 0, "a clean synthetic repo must pass, or the tool cries wolf on every branch"
+
+
+# --------------------------------------------------------------------------------------------
+# md-lint must be RUN, not excused.
+#
+# `NOT_LOCAL["md-lint"]` was a hardcoded string whose two claims both went stale: it said
+# markdownlint-cli was not installed (it is, via npm ci) and that the CI job was advisory via
+# `|| true` (that was removed; the job now ends in an explicit `exit 0` and DOES fail on a tool
+# failure or an unreadable config). A partition entry with a false reason is a coverage gap
+# wearing the costume of a decision -- a reader sees the job listed as considered and dismissed,
+# and preflight's CLEAR verdict had never once linted markdown.
+#
+# The asymmetry that makes it diagnosable: `openspec-validate` is detected DYNAMICALLY and moved
+# itself from "could not run" to "reproduced" once npm ci restored the binary. A constant cannot.
+# --------------------------------------------------------------------------------------------
+
+def _load_preflight(name):
+    import importlib.util
+    import pathlib
+    import sys
+    repo = pathlib.Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location(name, repo / "tools" / "preflight.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod, repo
+
+
+def test_md_lint_is_measured_not_excused_by_a_hardcoded_string():
+    mod, _ = _load_preflight("_pf_mdlint")
+    assert "md-lint" not in mod.NOT_LOCAL, (
+        "md-lint is excused by a static reason instead of being run; a stale excuse is "
+        "indistinguishable from a considered decision")
+    assert any(job == "md-lint" for job, _ in mod.LOCAL_JOBS), (
+        "md-lint must be in LOCAL_JOBS so its availability is MEASURED each run, the way "
+        "openspec-validate already is")
+
+
+def test_no_not_local_reason_cites_a_or_true_that_no_longer_exists():
+    mod, repo = _load_preflight("_pf_ortrue")
+    ci = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    live = [ln for ln in ci.splitlines()
+            if "|| true" in ln and not ln.strip().startswith("#")]
+    assert not live, f"ci.yml actually uses `|| true` now, so the premise changed: {live}"
+    for job, reason in mod.NOT_LOCAL.items():
+        assert "|| true" not in reason, (
+            f"NOT_LOCAL[{job!r}] cites a `|| true` that no longer exists in ci.yml")
+
+
+def test_md_lint_command_matches_the_ci_job_scope():
+    """A local run that lints a different file set is not a reproduction of the CI job."""
+    mod, repo = _load_preflight("_pf_scope")
+    argv = next((a for j, a in mod.LOCAL_JOBS if j == "md-lint"), None)
+    assert argv is not None
+    joined = " ".join(argv)
+    ci = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    for ignored in ("vault-template/", "source/", "node_modules/", "openspec/changes/archive/"):
+        assert ignored in joined, f"local md-lint does not ignore {ignored} but the CI job does"
+        assert ignored in ci
+    assert "--config" in joined and ".markdownlint.yml" in joined

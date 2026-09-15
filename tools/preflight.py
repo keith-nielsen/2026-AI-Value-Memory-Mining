@@ -36,6 +36,16 @@ LOCAL_JOBS = [
     ("inv6-offline-static", [sys.executable, "tools/inv6-offline-check.py"]),
     ("validate-scripts", ["bash", ".github/scripts/validate-scripts.sh"]),
     ("fleet-pytest", [sys.executable, "-m", "pytest", "tests/", "-q"]),
+    # MEASURED, not excused. This mirrors the ci.yml md-lint job's exact ignore set and config so
+    # a local pass means the same thing the CI job means. If markdownlint-cli is absent the runner
+    # reports SKIP with the real reason, exactly as it already does for openspec-validate -- which
+    # is the behaviour a hardcoded excuse cannot have.
+    ("md-lint", ["node_modules/.bin/markdownlint",
+                 "--ignore", "vault-template/",
+                 "--ignore", "source/",
+                 "--ignore", "node_modules/",
+                 "--ignore", "openspec/changes/archive/",
+                 "--config", ".markdownlint.yml", "**/*.md"]),
     ("inv6-offline-dynamic", ["bash", ".github/scripts/inv6-offline-dynamic.sh"]),
 ]
 
@@ -43,7 +53,6 @@ LOCAL_JOBS = [
 # account for every job in ci.yml — an unlisted, unrun job is the silent gap this tool exists to
 # close, so the accounting must PARTITION.
 NOT_LOCAL = {
-    "md-lint": "markdownlint-cli is not installed locally; the CI job is also advisory (`|| true`)",
     # The hardcoded /tmp path that used to block this job is FIXED — it now runs locally in ~4s.
     # It is still not reproduced here, for a better reason found by running it: `--history` scans
     # UNREACHABLE objects on purpose (to catch a secret committed and then amended away), and

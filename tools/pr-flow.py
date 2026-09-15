@@ -46,6 +46,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import tempfile
 import sys
 import time
 import uuid
@@ -1641,6 +1642,41 @@ def scope_block_in(text, root=None):
     return bool(m) and any(ln.strip() for ln in m.group(1).splitlines())
 
 
+def scope_covers_diff(body, diff_text, root):
+    """Does the declared scope COVER the diff? Returns (ok, findings).
+
+    Presence is not coverage. `scope_block_in` asks whether a well-formed block exists; the CI
+    gate additionally asks whether the declared set covers every path the diff touches. A
+    stale-but-present block passed here and was rejected there (PR #117), which is the shape this
+    file's own docstring warns about: a check that green-lights what the real gate will fail is
+    worse than no check, because it is relied upon.
+
+    The two shipped gate scripts are RUN, not reimplemented -- same code path as CI, so the two
+    cannot drift. An unavailable gate returns ok=True: this is a pre-verification, and it must not
+    invent a refusal it cannot substantiate (the caller still has the real gate downstream).
+    """
+    scripts = pathlib.Path(root) / ".github/scripts"
+    extract, check = scripts / "extract-declared-scope.py", scripts / "check-scope-findings.py"
+    if not (extract.is_file() and check.is_file()):
+        return True, []
+    env = dict(os.environ, PR_BODY=body or "")
+    ex = subprocess.run([sys.executable, str(extract)], capture_output=True, text=True, env=env)
+    if ex.returncode != 0:
+        return False, [(ex.stderr or ex.stdout).strip().splitlines()[0][:160]
+                       if (ex.stderr or ex.stdout).strip() else "declared-scope extraction failed"]
+    with tempfile.TemporaryDirectory() as td:
+        sj, dj = pathlib.Path(td) / "scope.json", pathlib.Path(td) / "pr.diff"
+        sj.write_text(ex.stdout, encoding="utf-8")
+        dj.write_text(diff_text or "", encoding="utf-8")
+        cr = subprocess.run([sys.executable, str(check), str(sj), str(dj)],
+                            capture_output=True, text=True)
+    if cr.returncode == 0:
+        return True, []
+    findings = [ln.strip() for ln in (cr.stdout + cr.stderr).splitlines()
+                if ln.strip().startswith("[")]
+    return False, findings or [(cr.stderr or cr.stdout).strip().splitlines()[-1][:160]]
+
+
 # --- the traversal ---------------------------------------------------------------------------
 
 def drive(args, root, route, plan=False):
@@ -1927,7 +1963,29 @@ def drive(args, root, route, plan=False):
                     approve=f"replaces the body of PR #{number} with {args.body_file}.",
                     plan=plan, root=root, branch=branch,
                     assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}"])
-    route.mark("body", "ok", "declared-scope block present in the PR body")
+    # Presence is not coverage. Ask the SHIPPED gate whether the declared set covers the real
+    # merge-base diff, so this step cannot green-light what scope-review will fail (PR #117).
+    _d = git(["diff", f"origin/{base}...{branch}"], cwd=root)
+    _covers, _findings = (True, []) if _d.returncode else scope_covers_diff(
+        pr.get("body"), _d.stdout, root)
+    if not _covers:
+        cmd = (f"cd {root} && gh api -X PATCH /repos/{slug}/pulls/{number} "
+               f"-f body=\"$(cat {args.body_file or '<BODY-FILE>'})\"")
+        for _f in _findings[:6]:
+            note(f"NOTE [body]: {_f}")
+        if not args.body_file:
+            return refuse(route, "body",
+                          f"PR #{number} body's scope block does not cover the diff",
+                          "supply --body-file PATH so the correction can be emitted", plan)
+        return emit(route, "body", cmd, OPERATOR, OPERATOR, CONSENT_ACT,
+                    "the block is PRESENT but does not COVER the diff — scope-review will fail. "
+                    "PATCHed through REST, not `gh pr edit` (F21). NOTE: a body-derived check "
+                    "reads the body from the event payload as of PUSH time, so after this PATCH "
+                    "the gate needs a PUSH, not a re-run.",
+                    approve=f"replaces the body of PR #{number} with {args.body_file}.",
+                    plan=plan, root=root, branch=branch,
+                    assert_args=[f"pr={number}", f"head={head_sha}", "draft=false", f"base={base}"])
+    route.mark("body", "ok", "declared-scope block present AND covers the diff")
     confirm_mutation("body")  # item 22: the PATCH is visible — stop suppressing later steps
 
     # --- checks -----------------------------------------------------------------------------------
@@ -2137,10 +2195,48 @@ def render_plan(route, stop, branch, base):
     return EXIT_NEEDS_INPUT
 
 
+def resolve_subject(explicit):
+    """Resolve the repository this lifecycle is ABOUT. Returns (root, source) or (None, reason).
+
+    The subject is the DECLARED estate, never the directory the shell happens to be in. This is
+    the same correction `capabilities()` already carries, applied to the lifecycle half of this
+    file: run from a deployed vault -- as every cold session is, and as the bootstrap runbook's
+    step 4 instructs -- discovery measured the VAULT, which by INV-14 has no remotes, and printed
+    a well-formed BLOCKED route for the wrong repository.
+
+    One stated total order, no silent fourth source:
+        1. --repo PATH          an explicit subject beats everything
+        2. FRAMEWORK_ROOT       the declared estate
+        3. cwd toplevel         only when nothing is declared -- and it is ANNOUNCED
+
+    Source 1 exists because a declared FRAMEWORK_ROOT would otherwise hijack a deliberate
+    invocation against some other repository: one silent wrong subject traded for another.
+    """
+    if explicit:
+        cand = pathlib.Path(explicit).expanduser()
+        r = git(["rev-parse", "--show-toplevel"], cwd=str(cand)) if cand.is_dir() else None
+        if r is None or r.returncode != 0:
+            return None, f"--repo {cand} is not a git repository"
+        return r.stdout.strip(), "the --repo flag"
+
+    declared = os.environ.get("FRAMEWORK_ROOT", "").strip()
+    if declared and pathlib.Path(declared).is_dir():
+        r = git(["rev-parse", "--show-toplevel"], cwd=declared)
+        if r.returncode != 0:
+            return None, f"FRAMEWORK_ROOT={declared} is not a git repository"
+        return r.stdout.strip(), "the declared estate (FRAMEWORK_ROOT)"
+
+    r = git(["rev-parse", "--show-toplevel"])
+    if r.returncode != 0:
+        return None, "not inside a git repository, and no subject was declared"
+    return r.stdout.strip(), "DISCOVERED from the working directory (nothing was declared)"
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Guarded pull request lifecycle driver.")
     ap.add_argument("--branch", help="feature branch (default: current)")
     ap.add_argument("--base", default="main")
+    ap.add_argument("--repo", help="repository to act on; overrides the declared FRAMEWORK_ROOT")
     ap.add_argument("--body-file", help="PR body file; must contain a fenced ```scope block")
     ap.add_argument("--title")
     ap.add_argument("--plan", action="store_true", help="show the whole remaining route, then exit")
@@ -2173,11 +2269,14 @@ def main(argv=None):
     AFTER_MUTATION = args.after_mutation
     MUTATION_EVIDENCE = args.mutation_evidence
 
-    r = git(["rev-parse", "--show-toplevel"])
-    if r.returncode != 0:
-        print("BLOCKED: not inside a git repository", file=sys.stderr)
+    root, source = resolve_subject(args.repo)
+    if root is None:
+        print(f"BLOCKED: {source}", file=sys.stderr)
         return EXIT_BLOCKED
-    root = r.stdout.strip()
+    # ALWAYS state the subject. A route printed for the wrong repository is well-formed and
+    # indistinguishable from a real one -- naming the subject is what makes that visible, and an
+    # announced fallback is legitimate where a silent substitution is the defect.
+    print(f"subject: {root} - {source}")
 
     if args.capabilities:
         return capabilities(root, as_json=args.json)
