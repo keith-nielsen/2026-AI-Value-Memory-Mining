@@ -79,8 +79,14 @@ Surfaced, with the sacrifices stated rather than minimised:
 ⚠ The `constitutional-diff-gate` is **report-only during burn-in and cannot fail the build**, so this
 sign-off is the operative control, not CI.
 
-- [ ] 5.1 Tier-0 touch surfaced with its consequence; **Approved** — operator, <date>
-      *Agents may not sign this. Leave unticked until the operator records it.*
+- [x] 5.1 Tier-0 touch surfaced with its consequence; **Approved** — operator, 2026-09-15
+      Given after the three sacrifices above were put to the operator explicitly: that the driver
+      **stops obeying the directory you stand in** (with `--repo` as the deliberate escape hatch),
+      that **a new refusal exists** which can stop a lifecycle that previously advanced, and that a
+      defect in these controls fails quietly because they are what other work is judged by.
+      Presented with the red proof — 10 tests observed to fail first, one vacuous test caught and
+      tightened, one existing test re-pointed rather than weakened — and with both fixes
+      demonstrated end-to-end against the real defect rather than a fixture.
 
 ## 6. Land it
 
