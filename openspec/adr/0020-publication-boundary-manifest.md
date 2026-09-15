@@ -3,7 +3,9 @@
 
 **Status:** Accepted (Gate-4 sign-off: Keith Nielsen, 2026-07-02; drafted by Claude Code)
 **Date:** 2026-07-02
-**Relates:** `access-control` · `maintenance` specs · `constitution.md` (Tier-0) · change `publication-boundary-manifest` · **extends ADR-0018** (private-by-default publish guard) · ADR-0008 (frozen INV IDs — no new invariant)
+**Relates:** `access-control` · `maintenance` specs · `constitution.md` (Tier-0) · change
+`publication-boundary-manifest` · **extends ADR-0018** (private-by-default publish guard) · ADR-0008 (frozen INV IDs —
+no new invariant)
 
 ## Context
 

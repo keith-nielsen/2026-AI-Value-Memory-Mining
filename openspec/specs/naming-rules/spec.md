@@ -10,7 +10,9 @@ protects: [INV-11]
 Define the vault naming ruleset (INV-11): what constitutes a valid path component,
 what constitutes a valid kebab-case slug, and how conformance is enforced at the
 boundary.
+
 ## Requirements
+
 ### Requirement: Cross-Platform Name Safety
 
 Every vault path component (folder name, file stem — not extension) MUST satisfy
@@ -20,7 +22,7 @@ names are grandfathered.
 Rules (authoritative set, mirrored to `naming-rules.json`):
 
 | Rule | Constraint |
-|---|---|
+| --- | --- |
 | Non-empty | Name must not be empty |
 | NFC normalisation | Name must be Unicode NFC-normalised |
 | No leading dot | Name must not start with `.` |
@@ -32,10 +34,13 @@ Rules (authoritative set, mirrored to `naming-rules.json`):
 | Max 255 UTF-8 bytes | Path component must not exceed 255 bytes when encoded as UTF-8 |
 
 #### Scenario: Validator rejects each forbidden class
-- **WHEN** `vault_naming.py --check` is called with each of: `bad:name`, `pipe|x`, `has#hash`, `CON`, `.hidden`, `trail ` (trailing space)
+
+- **WHEN** `vault_naming.py --check` is called with each of: `bad:name`, `pipe|x`, `has#hash`, `CON`, `.hidden`,
+  `trail ` (trailing space) <!-- markdownlint-disable-line MD038 -->
 - **THEN** it exits 1 for each and prints an INVALID message
 
 #### Scenario: Validator accepts valid names
+
 - **WHEN** `vault_naming.py --check` is called with `my-insight` and `2026-06-11`
 - **THEN** it exits 0 for each
 
@@ -54,6 +59,7 @@ Pattern: `^[a-z0-9]+(?:-[a-z0-9]+)*$`
 - No uppercase, no underscores, no spaces
 
 #### Scenario: Slug validator is stricter than base validator
+
 - **WHEN** `is_valid_slug` is called
 - **THEN** it returns `True` for `a-b-c` and `False` for `My-Insight` (uppercase) and `a--b` (doubled hyphen)
 
@@ -75,14 +81,17 @@ Dual enforcement means a non-conforming name is rejected even if injected direct
 into `_refine-approved/`, bypassing the harness.
 
 #### Scenario: Commit gate blocks a non-conforming name
+
 - **WHEN** a file named `bad:name.md` is staged and committed
 - **THEN** the pre-commit hook exits 1 with an INV-11 message and the commit is blocked
 
 #### Scenario: Commit gate allows a conforming name
+
 - **WHEN** a file named `good-name.md` is staged and committed
 - **THEN** the pre-commit hook exits 0 and the commit proceeds
 
 #### Scenario: Executor and harness both enforce at the boundary
+
 - **WHEN** a fixture proposal with `target_note` stem `Bad:Name` is placed in `_refine-approved/`
 - **THEN** the executor rejects it and writes nothing
 - **WHEN** the same non-conforming stem is passed through the Phase 3 harness
@@ -100,8 +109,10 @@ The JSON MUST contain: `slug_pattern`, `forbidden_chars`, `reserved_names`, `min
 `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`.
 
 #### Scenario: naming-rules.json is generated correctly
+
 - **WHEN** `python3 99-Operations/bin/vault_naming.py` is run with no arguments
-- **THEN** it writes `naming-rules.json` containing `slug_pattern`, `forbidden_chars`, `reserved_names`, `min_hyphen_tokens`, `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`
+- **THEN** it writes `naming-rules.json` containing `slug_pattern`, `forbidden_chars`, `reserved_names`,
+  `min_hyphen_tokens`, `exempt_names`, `exempt_globs`, and `exempt_rationale_doc`
 
 ### Requirement: Token-Minimum Naming (≥3, silo-section-descriptor)
 
@@ -126,19 +137,24 @@ later change**, sequenced after the families conform (turning on rejection earli
 on names not yet renamed).
 
 #### Scenario: A new system-artifact name is silo-section-descriptor, ≥3 tokens
+
 - **WHEN** a mold, script, Catalog index, or schema artifact is named or renamed
 - **THEN** its stem is silo-first and carries at least three hyphen-separated tokens (e.g. `effort-mold-blank`)
 
 #### Scenario: More tokens where specificity warrants
+
 - **WHEN** a content topic narrows, or a dig reveals a sub-sector needing distinction
-- **THEN** the stem carries more than three tokens to stay unambiguous (e.g. `swappable-stages-over-coresident-models`) rather than overloading a shorter name
+- **THEN** the stem carries more than three tokens to stay unambiguous (e.g.
+  `swappable-stages-over-coresident-models`) rather than overloading a shorter name
 
 #### Scenario: Dailies are exempt
+
 - **WHEN** a note is named `YYYY-MM-DD`
 - **THEN** the token-minimum does not apply — regardless of whether the framework generated it
   (the exemption outlives the retired daily cycle; ADR-0032)
 
 #### Scenario: Existing sub-three-token names are grandfathered at the convention stage
+
 - **WHEN** this change is in effect and a pre-existing two-token name (e.g. `obsidian-usage`) is present
 - **THEN** it is not renamed by this requirement; each family conforms through its own change
 
@@ -164,16 +180,20 @@ Consistent with ADR-0015, mechanical ≥3-token/kebab **rejection remains deferr
 defines the exemption gate the linter honors **now**, so enabling that rejection later is switch-on-safe.
 
 #### Scenario: A tool-mandated / convention filename is exempt
+
 - **WHEN** the linter evaluates `README.md`, `CLAUDE.md`, `config.env.example`, or a daily `2026-07-02.md`
 - **THEN** `is_exempt` returns true and the kebab/≥3-token content rules are not applied to it
 
 #### Scenario: A normal content stem is not exempt
+
 - **WHEN** the linter evaluates a content note stem such as `some-note` or a two-token `obsidian-usage`
 - **THEN** `is_exempt` returns false (grandfathering, not exemption, governs pre-existing sub-3 names)
 
 #### Scenario: Editor state is out of scope, not exempted
+
 - **WHEN** `.obsidian/app.json` exists
-- **THEN** it is excluded from naming governance by `.gitignore` (the linter does not traverse `.obsidian/`), and `is_exempt('app.json')` is false — the exemption set carries no path-shaped globs
+- **THEN** it is excluded from naming governance by `.gitignore` (the linter does not traverse `.obsidian/`), and
+  `is_exempt('app.json')` is false — the exemption set carries no path-shaped globs
 
 ### Requirement: Token-Floor Enforcement Is Mechanical, Not Conventional
 
@@ -246,10 +266,12 @@ accumulates a duplicate entry on every re-source.
 modified, so the contribution is scoped to shells that opt in and vanishes when they exit.
 
 #### Scenario: An unprefixed fleet executable is refused
+
 - **WHEN** a script note declares a `deploy_target` whose basename lacks a `vault-` or `vault_` prefix
 - **THEN** the naming check fails, naming the note and the target
 
 #### Scenario: Repeated sourcing does not duplicate the path entry
+
 - **WHEN** `config.env` is sourced three times in one shell
 - **THEN** the deploy directory appears exactly once in `PATH`
 

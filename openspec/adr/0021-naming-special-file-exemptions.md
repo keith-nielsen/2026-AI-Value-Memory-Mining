@@ -3,7 +3,8 @@
 
 **Status:** Accepted (Gate-4 sign-off: Keith Nielsen, 2026-07-02; drafted by Claude Code)
 **Date:** 2026-07-02
-**Relates:** `naming-rules` spec (INV-11) · `constitution.md` (Tier-0) · change `naming-special-file-exemptions` · **extends ADR-0015** (token-minimum naming) · ADR-0008 (frozen INV IDs — no new invariant)
+**Relates:** `naming-rules` spec (INV-11) · `constitution.md` (Tier-0) · change `naming-special-file-exemptions` ·
+**extends ADR-0015** (token-minimum naming) · ADR-0008 (frozen INV IDs — no new invariant)
 
 ## Context
 
@@ -28,7 +29,8 @@ mechanical ≥3-token/kebab rejection without an exemption set would wrongly rej
 
 1. **No exemptions; rename tool-mandated files** — impossible (`CLAUDE.md`, `README.md`, dailies are bound by tools/conventions).
 2. **Blanket-exempt anything sub-3-token** — rejected: a backdoor around the ≥3-token floor for ordinary content.
-3. **Minimal, dependency-justified exemption set, basename-matched (chosen)** — narrow, auditable, makes deferred enforcement switch-on-safe.
+3. **Minimal, dependency-justified exemption set, basename-matched (chosen)** — narrow, auditable, makes deferred
+   enforcement switch-on-safe.
 
 ## Consequences
 

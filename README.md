@@ -37,7 +37,7 @@ Copyright 2026 Keith Nielsen
 Value Mining treats personal knowledge like a mining operation. Material flows through
 a defined pipeline; only high-grade material reaches the Treasury.
 
-```
+```text
 Capture (20-Claims)
   └─► Dig ──► Ore ──► Sort ──► Refine ──► 40-Treasury ──► Polish
                                       │
@@ -48,7 +48,7 @@ Capture (20-Claims)
 ```
 
 | Stage | What you do |
-|-------|-------------|
+| ------- | ------------- |
 | **Claim** | Drop raw captures into `20-Claims/` without evaluation |
 | **Dig** | Active extraction — research, notes, experiments |
 | **Ore** | Digging produced something; estimate the grade |
@@ -63,7 +63,7 @@ Capture (20-Claims)
 ## Three-Layer Architecture
 
 | Layer | Folder | Nature |
-|-------|--------|--------|
+| ------- | -------- | -------- |
 | **Layer 0 — Operations** | `99-Operations/` | Mine machinery; human-write-only; literate meta-scripts |
 | **Layer 1 — Treasury** | `40-Treasury/` | Refined bullion; never deleted by automation |
 | **Layer 2 — Workings** | `10-Logbook/`, `20-Claims/`, `30-Sites/`, `70-Tailings/`, `71-Spoil/` | Capture, logs, active/slagged sites |
@@ -79,7 +79,7 @@ Seven Mermaid diagrams cover the full system — see [`docs/diagrams.md`](docs/d
 Render them in Obsidian or any Mermaid-capable viewer.
 
 | # | Diagram | Answers |
-|---|---------|---------|
+| --- | --------- | --------- |
 | 1 | Value Chain Overview | End-to-end material flow |
 | 2 | Effort Lifecycle | Valid states and transitions |
 | 3 | Refine Pipeline (Swimlane) | Who does what; where is the gate? |
@@ -92,7 +92,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 
 ## Repository Layout
 
-```
+```text
 2026-AI-Value-Memory-Mining/
 ├── openspec/                    # OpenSpec SDD (spec-driven project governance)
 │   ├── project.md               #   purpose, invariants, standing goals
@@ -150,7 +150,7 @@ Fourteen architectural invariants are ordered by criticality band and protected 
 `protects:` frontmatter tags on spec files. CI enforces their presence.
 
 | Band | Invariants | Examples |
-|------|-----------|---------|
+| ------ | ----------- | --------- |
 | **Substrate** | INV-1–3 | Format (Markdown+YAML), one-commit-per-op, no-auto-fix |
 | **Safety** | INV-4–8, 14 | Agent write scope, Layer 0 ownership, no secrets, offline scripts, **private-by-default** |
 | **Value** | INV-9–10 | Treasury immutability, Tailings retention |
@@ -232,7 +232,7 @@ Nothing installs a schedule: `render` deploys code and marks it executable, and 
 `cron` runtime. Every entry below is invoked manually or by the hook that owns it.
 
 | Script | Class | Runtime | Purpose |
-|--------|-------|---------|---------|
+| -------- | ------- | --------- | --------- |
 | `vault_naming.py` | `[script]` | manual | Naming ruleset SSOT; emits `naming-rules.json` |
 | `vault_lib.py` | `[script]` | manual | Shared fleet plumbing: root resolution, config vocabulary, frontmatter access, scoped one-commit helper, exit-code contract (ADR-0023) |
 | `vault-render.py` | `[script]` | manual | Deploy / reconcile Layer-0 scripts |
@@ -261,7 +261,7 @@ so it cannot drift. ADRs are implemented as a project convention alongside
 the spec framework (see [ADR-0001](openspec/adr/0001-openspec-as-framework.md)).
 
 | Document | Purpose |
-|----------|---------|
+| ---------- | --------- |
 | [`openspec/project.md`](openspec/project.md) | Standing goals, 14 invariants, tech stack |
 | [`openspec/constitution.md`](openspec/constitution.md) | Constitutional protection, Informed-Upheaval Protocol |
 | [`openspec/adr/`](openspec/adr/) | 45 ADRs: framework choice → the `gh` invocation-form allowlist |

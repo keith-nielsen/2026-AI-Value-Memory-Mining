@@ -60,7 +60,7 @@ Three properties define it, and the first is the one that makes it safe:
 ## Options considered
 
 | Option | Why not |
-|---|---|
+| --- | --- |
 | **Semantic gate** — infer from the diff whether a principle was overridden | Not decidable from a diff, and a wrong refusal on a legitimate change trains its reader to bypass every gate (RC-E). It would also usurp the judgement §5 reserves to a human |
 | **Nothing; keep the prose** | The status quo PR #85 measured. Tier 1 stays the least-defended layer, and §5's own argument stays retracted |
 | **Extend `constitution-lint`** | That job's context name is already in `required_status_checks`; renaming or reshaping a required context is the deadlock ADR-0034 warns about. A separate job keeps the existing context untouched |

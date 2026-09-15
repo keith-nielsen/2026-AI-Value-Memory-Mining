@@ -13,7 +13,7 @@ mining.
 ## Prerequisites
 
 | Requirement | Notes |
-|-------------|-------|
+| ------------- | ------- |
 | [Obsidian](https://obsidian.md) | Local-first Markdown editor; free for personal use |
 | Python 3.12+ | For all operational scripts |
 | Git | Version control; the vault is a repository |
@@ -27,6 +27,7 @@ third-party dependency, and the hook-critical paths (`vault_naming.py --check`, 
 venv.
 
 Optional for Phase 3 (agent operations, deferred):
+
 - [Hermes Agent v0.15.2](https://github.com/Nous-Research/hermes) — Kanban worker runtime
 - [n8n](https://n8n.io) — Orchestration / egress-control layer
 - [Ollama](https://ollama.ai) — Local model inference
@@ -80,7 +81,7 @@ your vault.
 **Naming rule (ADR-0029): each pillar is ONE lowercase kebab slug; whitespace separates pillars.**
 
 | You write | You get |
-|---|---|
+| --- | --- |
 | `PILLARS="mental health financial"` | **3** pillars — `mental`, `health`, `financial` |
 | `PILLARS="mental-health financial"` | **2** pillars — `mental-health`, `financial` |
 
@@ -96,6 +97,7 @@ Want a prettier display name? Alias it at the link, not in the vocabulary:
 ```
 
 Pillar design principles:
+
 - **Distinct**: minimal overlap between pillars
 - **Top-level**: no pillar should be a sub-category of another
 - **Durable**: stable for years, not months
@@ -258,7 +260,7 @@ your inbox tidy), and how to trigger the maintenance scripts from inside Obsidia
 ## What to Customize
 
 | Item | How |
-|------|-----|
+| ------ | ----- |
 | Pillars | `99-Operations/config.env` → `PILLARS=...`; update Catalog indexes |
 | Grade gate | `config.env` → `REFINE_GATE_GRADES=...` (default: `silver gold`) |
 | Script behaviour | Edit the code block in the relevant `99-Operations/scripts/*.md` note, re-run `render`; verify with `reconcile` |
@@ -305,7 +307,7 @@ need):
 Then run any operation:
 
 | Task | Command |
-|------|---------|
+| ------ | --------- |
 | Lint the vault | `python3 99-Operations/bin/vault-lint.py` |
 | Find orphaned Treasury notes | `python3 99-Operations/bin/vault-orphans.py` |
 | Slag an effort | Set frontmatter, then `vault-slag.sh <slug>` |

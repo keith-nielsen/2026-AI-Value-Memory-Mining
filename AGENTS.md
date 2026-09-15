@@ -28,7 +28,7 @@ forkable template any adopter can run on their own vault.
 **Two layers you need to understand:**
 
 | Layer | Path | Role |
-|---|---|---|
+| --- | --- | --- |
 | SDD core | `openspec/` | The source of truth. Specs, constitution, ADRs, change lifecycle. |
 | Implementation | `vault-template/` | The vault skeleton the specs govern. Scripts, templates, folder structure. |
 
@@ -39,7 +39,7 @@ forkable template any adopter can run on their own vault.
 Every change to `vault-template/` or the vault's behavior originates as an OpenSpec
 change in `openspec/changes/`. The lifecycle is:
 
-```
+```text
 /opsx:propose "what you want"   → creates proposal + specs + design + tasks
 /opsx:apply                     → implement the tasks
 /opsx:archive                   → sync delta specs into main specs; move to archive/
@@ -54,7 +54,7 @@ Do **not** edit `openspec/specs/` directly — changes come from `/opsx:archive`
 
 Content flows through a pipeline modeled as ore extraction:
 
-```
+```text
 Capture → Dig → Ore → Sort → Refine → Treasury → Polish (perpetual)
 
 Side paths:
@@ -76,7 +76,7 @@ Special (rare, by-exception):
 These are enforced by code, not trust. See `openspec/constitution.md` for the rationale.
 
 | Area | Agent may | Agent may NOT |
-|---|---|---|
+| --- | --- | --- |
 | `30-Sites/<assigned>/` | Read + write | Touch other sites |
 | `20-Claims/` | Capture directly (create Claim notes) | Self-promote to `_refine-approved/` |
 | `20-Claims/_refine-proposals/` | Write (deposit proposals) | Self-promote to `_refine-approved/` |
@@ -107,7 +107,8 @@ gate you acknowledge; a kernel denial means *surface it to the operator*, never 
 Full text and band groupings: `openspec/specs/access-control/spec.md` and `openspec/project.md`.
 
 **Substrate** — INV-1 (Format) · INV-2 (One commit) · INV-3 (Layer-0 SSOT)
-**Safety** — INV-4 (Bounded write) · INV-5 (Actor≠owner) · INV-6 (Offline scripts) · INV-7 (No secrets) · INV-8 (Crucible independence)
+**Safety** — INV-4 (Bounded write) · INV-5 (Actor≠owner) · INV-6 (Offline scripts) · INV-7 (No secrets) · INV-8
+(Crucible independence)
 **Value** — INV-9 (Value never discarded) · INV-10 (Tailings retained)
 **Consistency** — INV-11 (Name conformance) · INV-12 (Domain via metadata) · INV-13 (Wikilinks)
 
@@ -127,7 +128,8 @@ High-value, error-prone, repeatable procedures are codified as **spec-as-code ru
 `vault-template/96-Runbooks/` (schema: `99-Operations/schemas/runbook-format-schema.md`) — the single,
 harness-agnostic source of truth. **To perform one, open and follow the runbook; do not improvise:**
 
-- `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a SessionStart hook surfaces it). Run it first each session.
+- `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a
+  SessionStart hook surfaces it). Run it first each session.
 - `provenance-seal-runbook` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
 
 This file (and `CLAUDE.md`, Claude Code skills, etc.) are **adapters** — they point at the
@@ -172,7 +174,7 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   declaration deliberately — never work around the gate; it is the process. Note
   `gh pr create --body-file` bypasses the PR template, so include the block yourself.
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
-  from it, and **never even _propose_** outbound publication — the suggestion itself is the hazard.
+  from it, and **never even *propose*** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
 - **Outward ops hard-stop, then inform (ADR-0027).** Any `git push` / `gh release` / publish — even to
   the operator-authorized framework repo — hits the INV-14 harness-guard ASK; it cannot proceed without

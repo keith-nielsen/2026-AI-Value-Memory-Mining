@@ -28,7 +28,7 @@ covers the recommended setup and how Obsidian relates to the deterministic scrip
 All built in — no community plugins required for the core workflow.
 
 | Plugin | Why |
-|--------|-----|
+| -------- | ----- |
 | **Templates** | Instantiate the `97-Molds/` molds (effort / knowledge / index) |
 | **Bookmarks** | Pin `40-Treasury/Catalog/home-master-index.md` as your front door |
 | **Outline**, **Backlinks** | Navigation; Backlinks surfaces what links to a note |
@@ -40,7 +40,7 @@ Properties (the frontmatter UI) is built in and always on.
 ## Settings that matter
 
 | Setting | Value | Why |
-|---------|-------|-----|
+| --------- | ------- | ----- |
 | Files & Links → **Automatically update internal links** | **OFF** | ⚠️ **Critical — see below.** Renames are governed; Obsidian's silent auto-relinking conflicts with the naming ceremony (INV-3). |
 | Files & Links → **Default location for new notes** | **`20-Claims`** | New / dangling-link notes land in the *inbox*, never the vault root. Prevents stray fragments. |
 | Editor → **Properties in document** | Visible | See/edit frontmatter inline |
@@ -52,6 +52,7 @@ Properties (the frontmatter UI) is built in and always on.
 > ceremony (propose → apply → Gate-4 → **mirror**) so links are retargeted **deliberately and
 > reviewably**. Obsidian's "Automatically update internal links" does the opposite — on any rename it
 > **silently rewrites every `[[wikilink]]` across the vault**. That:
+>
 > - violates **INV-3** (drift is *detected* via `reconcile`, **never auto-fixed**),
 > - bypasses the governed naming ceremony (un-reviewed mass edits), and
 > - can spray an un-ratified naming scheme across the vault from a single GUI rename.
@@ -100,7 +101,7 @@ flatpak override --user --talk-name=org.freedesktop.Flatpak md.obsidian.Obsidian
 
 Then define commands like:
 
-```
+```bash
 flatpak-spawn --host bash -lc '. ~/Documents/Vault/99-Operations/config.env && python3 99-Operations/bin/vault-lint.py'
 ```
 

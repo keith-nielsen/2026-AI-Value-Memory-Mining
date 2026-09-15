@@ -35,7 +35,7 @@ context switch and a fix commit. The same rule enforced at the keyboard costs no
 `.github/workflows/ci.yml` declares **15 jobs** across **40 named steps**. Before this change:
 
 | | |
-|---|---|
+| --- | --- |
 | Reproducible locally by one command | **0** |
 | Commands an author had to remember and run separately | 4 (`openspec validate`, `pytest`, `validate-scripts.sh`, `inv6-offline-check.py`) |
 | Jobs whose failure was discoverable only after a push | the rest |

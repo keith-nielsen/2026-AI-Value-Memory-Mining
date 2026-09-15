@@ -22,3 +22,19 @@ MD012:
 
 # Inline HTML
 MD041: false
+
+# Docs carry BOTH a frontmatter `title:` and a rendered `# H1`, deliberately.
+# MD025's default treats a frontmatter title AS the H1 (default regex
+# `^\s*title\s*[:=]`), so the pair reads as two top-level headings.
+#
+# That default is wrong for this corpus, and this repo's own CI proves it:
+# `runbook-lint` (.github/workflows/ci.yml) REQUIRES `title` in every runbook's
+# frontmatter, and all four runbooks also carry an H1 — the H1 is what titles
+# the page on GitHub, which renders frontmatter as a table, not a heading.
+#
+# Measured before disabling (2026-08-27), not assumed: with frontmatter and
+# fenced code stripped, NO file in the linted scope has more than one true H1.
+# The rule was catching zero real defects. Scoped to MD025 only — MD001 and
+# MD041 read the same option and are left at their defaults.
+MD025:
+  front_matter_title: ""

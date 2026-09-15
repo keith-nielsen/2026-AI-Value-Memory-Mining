@@ -34,7 +34,7 @@ Four grounds of principle, and one measured defect:
    the interactive `~/.bashrc`; a non-login shell does the reverse. Measured from a clean
    environment:
 
-   ```
+   ```text
    bash -lc  (login, non-interactive) → /home/administrator/bin/vault-lint.py
    bash -ic  (interactive, non-login) → NOT-FOUND
    bash -c   (neither)                → NOT-FOUND

@@ -15,34 +15,39 @@ depends on it. `is_exempt(filename)` (in `vault_naming.py`) is the gate; it matc
 ## The classes
 
 ### 1. Tool-mandated — agent/memory harness (exact name auto-loaded)
+
 | File | Depends on |
-|---|---|
+| --- | --- |
 | `CLAUDE.md` | Claude Code loads this exact filename as project instructions at session start |
 | `AGENTS.md` | Agent-harness convention: loaded by exact name |
 | `MEMORY.md` | Persistent-memory index loaded by exact name |
 
 ### 2. Tool-mandated — git
+
 | File | Depends on |
-|---|---|
+| --- | --- |
 | `.gitignore` | Git reads this exact name |
 | `.gitattributes` | Git reads this exact name |
 | `.gitkeep` | Convention to retain empty scaffold directories in git |
 
 ### 3. Tool-mandated — config (sourced by exact name)
+
 | File | Depends on |
-|---|---|
+| --- | --- |
 | `config.env` | Sourced by exact path by scripts + bootstrap (the private, gitignored instance) |
 | `config.defaults.env` | Sourced first by `config.env` (public framework defaults) |
 | `config.env.example` / `*.example` | Standard "copy-to-configure" template convention |
 
 ### 4. Tool-mandated — pipeline (date format)
+
 | Glob | Depends on |
-|---|---|
+| --- | --- |
 | `YYYY-MM-DD.md` (`[0-9]{4}-[0-9]{2}-[0-9]{2}.md`) | Obsidian Daily-notes plugin uses the ISO date stem; **retained** after ADR-0032 retired the framework's own daily cycle, because pre-existing dailies stay under the commit gate and `10-Logbook/` remains a manual working area (dailies exempt per ADR-0015) |
 
 ### 5. Industry convention (human + platform expectation)
+
 | File | Depends on |
-|---|---|
+| --- | --- |
 | `README.md` | GitHub/GitLab auto-render on folder/repo view; universal reader expectation |
 | `LICENSE` / `LICENSE.md` | GitHub license detection + SPDX tooling; legal convention |
 

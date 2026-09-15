@@ -38,7 +38,7 @@ confirmation prompt to an allowance — never to create a refusal.**
 Zones, by effective target:
 
 | Zone | Command | Result |
-|---|---|---|
+| --- | --- | --- |
 | deployed vault | outward | HARD DENY (unchanged) |
 | governed repository | byte-identical to a live record | **allow, no prompt** |
 | governed repository | anything else | confirm, **and show the difference** |
@@ -60,7 +60,7 @@ before.
 ## Options considered
 
 | Option | Why not |
-|---|---|
+| --- | --- |
 | **Deny when no record exists** | The first draft. It converts a working confirmation into a refusal and manufactures over-denial (RC-E) — the pattern that trains readers to route around guards. Tier 2 already handles the ad-hoc case correctly |
 | **Have the driver execute its own command** | Removes the retyping, but the mutation then happens inside a Python subprocess where the text matcher cannot see it. Every "remove the retyping" variant launders the verb off the channel the guard watches |
 | **Write a plan file for agent steps too** (`bash next.sh`) | Same defect: the verb moves inside a script, and `bash …/next.sh` carries nothing for the matcher to see |

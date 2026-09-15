@@ -59,7 +59,7 @@
 **Principle(s) being overridden (restate in your own words):**
 
 > <Restate the "what breaks" clause from constitution.md in the proposer's own words.
->  Do not copy-paste — demonstrate you understood it.>
+> Do not copy-paste — demonstrate you understood it.>
 
 **Blast radius — every artifact referencing this principle:**
 
@@ -131,7 +131,7 @@ $ <search command(s) sweeping openspec/ vault-template/ docs/ .github/ README.md
 **Consequences explicitly accepted:**
 
 > <State what is being sacrificed. What does this system no longer have that it had before?
->  What users/forks will be affected and how?>
+> What users/forks will be affected and how?>
 
 **ADR created:** `openspec/adr/<NNNN>-<slug>.md` ☐  
 **ADR captures:** context / options / choice / consequence / **sacrifice** ☐  

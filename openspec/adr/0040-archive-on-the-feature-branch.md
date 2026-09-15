@@ -41,7 +41,7 @@ it gets confidently re-derived wrong, and the confidence travels further than th
 Walk `main`'s first-parent merges; for each merge `M`, diff `M^1..M` **with `--no-renames`** and ask
 what that merge *introduced*. Cross-check the result against a case already known.
 
-```
+```bash
 git log --first-parent --merges --format=%H%x1f%s main
 git diff --name-only --no-renames --diff-filter=A <merge>^1 <merge>
 ```
@@ -49,7 +49,7 @@ git diff --name-only --no-renames --diff-filter=A <merge>^1 <merge>
 Pull-request era, denominator **14**:
 
 | Shape | Count | Cases |
-|---|---:|---|
+| --- | ---: | --- |
 | **ONE pull request — archived on the feature branch** | **12** | #6, #25, #33, #34, #36, #38, #39, #44, #45, #51, #53, … |
 | Two pull requests — a separate archive pull request | 2 | #40→#41 (`release/v0.1.34`), #58→#59 (`chore/archive-…`) |
 

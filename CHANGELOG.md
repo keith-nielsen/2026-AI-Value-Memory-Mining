@@ -17,7 +17,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Covers the two changes merged since v0.1.53:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #110 | Workflow hygiene: ceremony step 0, the legal-moves map, pinned `markdownlint-cli`, Node 22, `md-lint` audit mode |
 | #111 | Legal-moves map: state its scope, enumerate local-destructive commands, rename |
 
@@ -159,7 +159,7 @@ duplicate: the date records when the release was cut, and `git tag` is the order
 Covers the three changes merged since v0.1.52:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #106 | The OpenSpec badge reads the pin live instead of restating it |
 | #107 | The cold-start prime reports route state from the driver, not from recall |
 | #108 | `gh` invocation form is governed by an allowlist in its own hook (ADR-0045) |
@@ -173,6 +173,7 @@ correction on `seed-auto-memory-store`. #106 and #107 shipped **bare** (no chang
 the documented `CONTRIBUTING.md` exception for defect fixes to maintainer surfaces.
 
 ### Added
+
 - **`gh` invocation form is governed by an allowlist in its own hook**
   (`gh-invocation-form-allowlist`, ADR-0045). A second Bash `PreToolUse` hook permits only
   `gh api <REST path>` and `gh auth status`; `gh api graphql` is excepted back into deny, and every
@@ -234,6 +235,7 @@ the documented `CONTRIBUTING.md` exception for defect fixes to maintainer surfac
   a browser URL in place of `next.sh`; and the agent rewrote the slot while a step was pending.
 
 ### Fixed
+
 - **The OpenSpec badge reads the pin live instead of restating it**
   (`openspec-badge-live-version`). `README.md` advertised `v1.4.1` in three places — the badge, the
   intro paragraph and the OpenSpec Layer section — while `package.json` had pinned `1.6.0` since the
@@ -252,13 +254,14 @@ the documented `CONTRIBUTING.md` exception for defect fixes to maintainer surfac
 Covers the one change merged since v0.1.51:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #104 | `config.env` states the interpreter resolution its `PATH` prepend changes |
 
 Dated in UTC, consistent with v0.1.51 and with the `openspec archive` stamp on this release's own
 archive directory `2026-08-25-document-venv-path-shadowing`.
 
 ### Added
+
 - **`config.env` states the interpreter resolution it changes** (`document-venv-path-shadowing`). The
   `PATH` prepend that puts the vault venv first is correct and deliberate, but it silently changes what
   `python3` means for the rest of the shell, and the file said nothing about it. **Measured 2026-08-20
@@ -279,7 +282,7 @@ archive directory `2026-08-25-document-venv-path-shadowing`.
 Covers the one change merged since v0.1.50:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #102 | the agent working-memory store is governed, and its declared path is guarded |
 
 The entry records the mechanism rather than the outcome. What this change cost to get right, stated
@@ -289,6 +292,7 @@ the seed had to travel with a check that refuses it — and the case that decide
 vault, which works perfectly while silently merging one deployment's memory with another's.
 
 ### Added
+
 - **The vault's agent working-memory store is governed** (`seed-auto-memory-store`). A deployed vault
   may keep a Claude Code auto-memory store in-tree at `10-Logbook/vmm-working-memory/`, activated by
   one `autoMemoryDirectory` key. The key cannot live in the tracked `.claude/settings.json` — its value
@@ -318,7 +322,7 @@ vault, which works perfectly while silently merging one deployment's memory with
 Covers the three changes merged since v0.1.49:
 
 | PR | Change |
-|---|---|
+| --- | --- |
 | #97 | fleet enumerations checked against ground truth |
 | #98 | the rendered fleet lives inside the tree it serves |
 | #100 | the PRD is retired as a referent — a Site is not an authority |
@@ -338,7 +342,7 @@ Covers the three changes merged since v0.1.49:
   The defect was that **`~/bin` was not reliably on `PATH`**. `~/.profile` adds it and is read only
   by login shells; `~/.bashrc` is read only by interactive ones, and the two never both run:
 
-  ```
+  ```text
   bash -lc  (login, non-interactive) → /home/administrator/bin/vault-lint.py
   bash -ic  (interactive, non-login) → NOT-FOUND
   bash -c   (neither)                → NOT-FOUND
@@ -634,7 +638,7 @@ first change able to trip the settings check was false while that check still co
   ruleset**, there were **six**:
 
   | Where | Claimed | Actually |
-  |---|---|---|
+  | --- | --- | --- |
   | §4 | `constitution-lint` fails a diff touching a `protects:`-tagged element without an override | performs **no diff analysis at all** |
   | §4 | `vocabulary-lint` validates the controlled glossary; off-metaphor terms fail the build | checks four config variables and the `GRADES` set |
   | §3 | doc-only edits to `protects:`-tagged elements are *"rejected by CI without the ceremony"* | nothing rejects them |
@@ -775,9 +779,6 @@ first change able to trip the settings check was false while that check still co
 
   **Confirmed on its own merge**, which hit the stale-read side of the race: the driver routed on the
   evidence, confirmed at the second retry rung, and emitted no rebase.
-
-
-### Fixed
 
 - **The read-after-write retry ladder is now sized from the record**
   (`fix/pr-flow-lag-ladder-sized-from-data`, defect fix, **no change directory**, PR #76).
@@ -989,6 +990,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.39] - 2026-08-12
 
 ### Added
+
 - **Every ADR citation must resolve** (`enforce-adr-reference-integrity`, ADR-0039, PR #62).
   `spec-lint` gains two checks. **Contiguity** is now derived from the records present, replacing a
   `range(1, 9)` hardcode that validated **8 of 38** ADRs while passing regardless — measured: with
@@ -1019,10 +1021,12 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.38] - 2026-08-06
 
 ### Changed
+
 - **The declared-scope gate is now BLOCKING** (`flip-scope-review-blocking`, conforming amendment,
   **no Architecture Decision Record (ADR)**, `maintenance` ~1 Requirement). `scope-review` loses
   `continue-on-error` after a burn-in measured across the 14 most recent merged pull requests
   (#41–#57), every one `success`. A pull request whose diff touches a path outside its declared
+
   ```scope block now **fails** rather than reporting quietly. The job was renamed
   `Scope review (declared-scope gate, burn-in)` → `Scope review (declared-scope gate)` deliberately
   **while the context was still unrequired**, because the job name is the check-context identity and
@@ -1037,6 +1041,7 @@ requests — recorded here because the pattern is more useful than the individua
   and a revert of the change passes the blocking gate itself.
 
 ### Fixed
+
 - **`validate-scripts.sh` no longer reports failures for checks it never ran**
   (`fix/validate-scripts-tmp-capture`, defect fix, **no change directory**). The script created its
   work directory with `mktemp -d` but hardcoded bare `/tmp/pc.txt`, `/tmp/bn.txt` and `/tmp/sc.txt`
@@ -1047,6 +1052,7 @@ requests — recorded here because the pattern is more useful than the individua
   would run it. All three captures now route through `$WORK`.
 
 ### Added
+
 - **ADR-0038 — the required check contexts are complete** (`record-required-check-contexts`,
   recording ADR, **no spec delta**). Discharges ADR-0034's Follow-on §2. The `main` ruleset's
   `required_status_checks` rule was neither absent nor complete: **13** contexts required against
@@ -1057,6 +1063,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.37] - 2026-08-06
 
 ### Added
+
 - **The session prime now measures its own capability instead of recalling it**
   (`bootstrap-capability-probe`, conforming amendment, **no Architecture Decision Record (ADR)**,
   `maintenance` +1 Requirement). The cold-start prime gains a fifth gate — *measure, don't infer* —
@@ -1120,6 +1127,7 @@ requests — recorded here because the pattern is more useful than the individua
   holds only for authenticated requests.
 
 ### Fixed
+
 - **The driver's route markers now carry their own legend, and the pass mark no longer inverts**
   (`fix/pr-flow-marker-legend`, defect fix to maintainer tooling, **no change directory**, by the
   precedent of #35/#39/#49). Six status glyphs shipped with no key anywhere, so a reader had to infer
@@ -1177,6 +1185,7 @@ requests — recorded here because the pattern is more useful than the individua
   PR confirms the exact check-context names. Repo-config only — no `vault-template/` delta.
 
 ### Changed
+
 - **`tools/pr-state.py` no longer dies when `gh` is unavailable.** The standing rule *"run
   `pr-state.py` first on any confusing PR state"* was unrunnable by a sandboxed agent, which is why
   hand-rolled `curl` replaced it at the exact moment of confusion. Reads now degrade to the anonymous
@@ -1188,7 +1197,7 @@ requests — recorded here because the pattern is more useful than the individua
 - **Reference deployment adopted the strict write-scope sandbox (Stage-B), recorded by ADR-0035**
   (`adopt-strict-write-scope-sandbox`, recording ADR, **no spec delta, no `vault-template/` change**).
   The live instance's `.claude/settings.json` moves from burn-in to strict — `failIfUnavailable: true`
-  + `allowUnsandboxedCommands: false` — completing ADR-0022's two-stage rollout for this deployment and
+  - `allowUnsandboxedCommands: false` — completing ADR-0022's two-stage rollout for this deployment and
   closing the P15 residual (*the write-scope guarantee held only while the sandbox was on*). **Instance-
   only:** `settings.json` is SEED (instance-owned); the template default stays in burn-in so forks
   adopt strict only after their own clean burn-in (SE-3), per `docs/USING-THIS-TEMPLATE.md` Step 4c.
@@ -1208,6 +1217,7 @@ requests — recorded here because the pattern is more useful than the individua
   costs nothing and removes a parser-version dependency.
 
 ### Notes
+
 - **A false alarm is recorded here deliberately, because the corrective is a rule and not an
   apology.** This change was first written up as *"the `openspec-validate` job has been RED on `main`
   since v0.1.33 (2026-07-20) and nothing surfaced it"*, with two consequences drawn from it: that the
@@ -1231,6 +1241,7 @@ requests — recorded here because the pattern is more useful than the individua
   retracted red-CI story must not be cited as its evidence.
 
 ### Removed
+
 - **`add-telemetry-segment` RETRACTED** — the osquery file-integrity/egress detection change, authored
   in the initial commit (`82fa68a`, 2026-06-14) and untouched since, is withdrawn unshipped. **No spec
   delta was ever applied; none is applied now** — retraction is a deletion, not an archive. It was the
@@ -1260,6 +1271,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.36] - 2026-07-28
 
 ### Added
+
 - **INV-6 gains a runner — static AST analysis plus a network-namespace behavioural check**
   (`enforce-inv6-offline-check`, `constitution-override` **conforming**, **ADR-0037**). INV-6 —
   *"`[script]` operations make no network calls and no LLM calls"* — was, after v0.1.35, **the last
@@ -1289,6 +1301,7 @@ requests — recorded here because the pattern is more useful than the individua
   the existing INV-6 Requirement is left intact, per ADR-0030's pattern.
 
 ### Notes
+
 - **All nine live Tier-0 invariants now have a mechanism.** The condition RC-B identified — an
   invariant asserted as enforced with no behavioural evidence — no longer holds anywhere in the set.
 - **Honest bound, carried in the spec, the tool's help, and its output:** a pass means *no statically
@@ -1302,6 +1315,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.35] - 2026-07-28
 
 ### Added
+
 - **INV-7 acquires a mechanism — credential scanning at the commit boundary** (`enforce-inv7-secret-scan`,
   `constitution-override` **conforming**, **ADR-0036**). A new Layer-0 literate meta-script,
   `secret-scan-script.md` → `~/bin/vault_secrets.py` (fleet 13 → 14), is called by the existing commit
@@ -1333,6 +1347,7 @@ requests — recorded here because the pattern is more useful than the individua
   pattern. `tests/test_secret_scan.py` adds 13 cases weighted toward negative controls.
 
 ### Notes
+
 - **Prophylactic, not remedial.** A Phase-0 sweep of both repositories' full object databases — 610 +
   889 blobs plus 548 working-tree files — found **zero** matches at either tier, with the instrument
   validated first against a control fixture carrying planted secrets in live, deleted, and unreachable
@@ -1347,6 +1362,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.34] - 2026-07-24
 
 ### Added
+
 - **`tools/template-mirror.py` — a guarded repo→live mirror driver** (`add-template-mirror-driver`,
   conforming amendment, **no ADR**). The write-capable counterpart to `template-parity.py`: where
   parity DETECTS drift between the repo's `vault-template/` LOCKSTEP scaffold and a deployed vault,
@@ -1366,6 +1382,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.33] - 2026-07-20
 
 ### Changed
+
 - **The two operator-only fleet paths now fail legibly instead of with a bare traceback**
   (`fix-operator-only-path-diagnostics`, conforming amendment, **no ADR**). `vault-render.py render`
   and `vault_naming.py` (emit mode) write *only* into areas the Area Access Matrix withholds from the
@@ -1389,6 +1406,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.32] - 2026-07-19
 
 ### Changed
+
 - **`10-Logbook/` is now agent-writable at both enforcement layers** (`open-logbook-write-scope`,
   **ADR-0033**): `./10-Logbook` leaves `sandbox.filesystem.denyWrite`, and no tool-layer `Edit(...)`
   rule replaces the one ADR-0032 removed. This is the **second deliberate widening of agent write
@@ -1408,6 +1426,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.31] - 2026-07-19
 
 ### Removed
+
 - **The daily note and its close cycle** (`retire-daily-close-cycle`, **ADR-0032**): the
   `daily-note` / `daily-close` script pair and their deploy targets, the `Daily Close Lifecycle`
   Requirement, `vault_lib.is_closed()`, the `DISPOSITIONS` vocabulary, `daily-mold-blank.md`,
@@ -1429,6 +1448,7 @@ requests — recorded here because the pattern is more useful than the individua
   is a write-scope widening and its own governed decision.
 
 ### Added
+
 - **Standalone-vault lint** (F15): a CI job failing the build if `vault-template/` references a
   framework-repo-only *path* (`openspec/`, `tools/ship-release|pr-state|template-parity`, or an
   absolute `Documents/repo/` path). Naming the origin repo in prose stays legal; depending on its
@@ -1438,6 +1458,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.30] - 2026-07-18
 
 ### Added
+
 - **GitHub ceremony tools** (`add-ship-ceremony-tools`): two repo-owned, stdlib-only tools that move
   the documented F10/F21 GitHub hazards out of agent recall and into guard clauses at the point of
   action (failure-modes fix program, item 3). `tools/ship-release.py` walks the tag→Release ceremony
@@ -1451,6 +1472,7 @@ requests — recorded here because the pattern is more useful than the individua
   `maintenance` spec: +2 Requirements. Conforming amendment, no ADR (template-parity precedent).
 
 ### Fixed
+
 - **`ship-release.py` reads `isLatest` from the only surface that carries it** (pre-tag fix, same
   version): live `gh release view --json` rejects `isLatest` (it exists on `release list` only) —
   found by dogfooding the driver on this very release, where it BLOCKED cleanly before any
@@ -1459,6 +1481,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.29] - 2026-07-18
 
 ### Changed
+
 - **Ceremony enumeration and verification deliverables are now command transcripts**
   (`require-transcript-verification`, ADR-0031): Gate 1's blast radius must be a pasted,
   re-runnable command transcript with full untruncated output and per-hit disposition; Gate 3
@@ -1472,6 +1495,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.28] - 2026-07-18
 
 ### Fixed
+
 - **Refine executor catalog linking is now idempotent** (`fix-append-idempotent-catalog-link`):
   `bank-execute` appended `- [[<stem>]]` to every `index_links` target unconditionally, so an
   `append` to an already-catalogued note duplicated its Catalog bullet (and an empty `index_links`
@@ -1483,6 +1507,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.27] - 2026-07-18
 
 ### Added
+
 - **Template–live parity check** (`add-template-parity-check`): a repo-owned, stdlib-only,
   detection-only tool (`tools/template-parity.py` + `tools/template-sync-manifest.json`) that verifies
   a deployed vault's LOCKSTEP scaffold (`99-Operations/scripts/`, `99-Operations/schemas/`) is
@@ -1496,6 +1521,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.26] - 2026-07-17
 
 ### Changed
+
 - **The ≥3-token naming floor is now enforced, not merely documented** (`enforce-naming-token-floor`,
   ADR-0030, completing **ADR-0015**): `vault_naming.py` gains `--check-strict FILENAME` (exemption-aware:
   `is_exempt` → `validate_name` → `slug_pattern` → `has_min_hyphen_tokens`); the commit gate calls it on
@@ -1515,6 +1541,7 @@ requests — recorded here because the pattern is more useful than the individua
   affected — 0 offenders, and the gate is `--diff-filter=AR` regardless.
 
 ### Fixed
+
 - **Refine executor could be stranded half-applied** (ADR-0030, found by two *pre-existing* tests failing
   once the gate went live): the executor writes `40-Treasury/<stem>.md` and *then* commits, so a sub-3
   stem passing pre-flight would be written and then blocked at commit. Its pre-flight now rejects the
@@ -1523,6 +1550,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.25] - 2026-07-17
 
 ### Added
+
 - **`PILLARS` tokens are validated as kebab slugs** (`enforce-pillar-slug-tokens`, ADR-0029): the linter
   validates the vocabulary at the point it resolves, before the frontmatter loop, using the existing
   `is_valid_slug()`. A malformed vocabulary exits immediately rather than cascading into a per-note
@@ -1530,6 +1558,7 @@ requests — recorded here because the pattern is more useful than the individua
   fragments, so `mental` stays valid.
 
 ### Changed
+
 - **Pillar naming rule stated and demonstrated** (ADR-0029): each pillar is **one** lowercase kebab slug;
   whitespace separates. A multi-word pillar is one hyphenated token (`mental-health`), never two words.
   `config.defaults.env`, `config.env.example`, and `docs/USING-THIS-TEMPLATE.md` now show the
@@ -1551,6 +1580,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.24] - 2026-07-17
 
 ### Removed
+
 - **Effort projections retired** (`retire-effort-projections`, ADR-0028): `kanban-render-script`
   (`~/bin/vault-kanban-render.py`, `10-Logbook/kanban.md`) and `dig-rollover-script`
   (`~/bin/vault-rollover.py`, daily `## Carry-over`) leave the fleet — 17 scripts → 15. Neither had a
@@ -1559,6 +1589,7 @@ requests — recorded here because the pattern is more useful than the individua
   does not project effort state — that lens is delegated to the harness.
 
 ### Changed
+
 - **Cadence retracted from the framework** (ADR-0028): no script declares `runtime: cron` or a
   `schedule:`; `cron`/`schedule` leave `note-frontmatter-schema.md`; `docs/USING-THIS-TEMPLATE.md`
   Step 5 no longer instructs installing a crontab. The vault is a **self-priming pump, not a driven
@@ -1574,6 +1605,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.23] - 2026-07-14
 
 ### Added
+
 - **GitHub Release object per version tag** (change `release-object-per-tag`; conforming override,
   additive — Gate-4 sign-off recorded in the proposal). The ship ceremony now documents and mandates
   tag → `gh release create --verify-tag --latest` → `gh release view` parity check → mirror, so a tag
@@ -1581,6 +1613,7 @@ requests — recorded here because the pattern is more useful than the individua
   tags ran to v0.1.22). Documented in `CONTRIBUTING.md` and `AGENTS.md`.
 
 ### Changed
+
 - **INV-14 outbound guard made target-aware and gap-closed** (ADR-0027; conforming — the Safety band is
   tightened, nothing relaxed). `outbound-publish-guard.py` now judges "targets the vault" by the
   command's *effective target* (`cd` / `git -C` / `gh -R`), not the shell's reported cwd — removing the
@@ -1593,6 +1626,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.22] - 2026-07-14
 
 ### Added
+
 - **Scope-review CI gate** (change `add-overreach-scope-review`; conforming override, additive —
   Gate-4 sign-off recorded in the proposal). Every PR now declares its authorized surface as a
   fenced ```scope block (for ceremony changes: the Gate-1 blast radius, machine-checked); a new
@@ -1614,6 +1648,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.21] - 2026-07-13
 
 ### Changed
+
 - **Relocated the constitution-override ceremony template out of the OpenSpec change tree and adopted
   OpenSpec 1.6.0** (change `relocate-override-template-openspec-16`; ADR-0026; `constitution-override`,
   procedural — touches the `protects:`-tagged `maintenance` spec and pointer text in `constitution.md`,
@@ -1629,6 +1664,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.20] - 2026-07-13
 
 ### Changed
+
 - **Agent may capture directly into `20-Claims/`** (change `permit-agent-claims-capture`; ADR-0025;
   `constitution-override` touching `access-control`). The Area Access Matrix Agent cell for `20-Claims/`
   moves from `—` to `RW` and footnote 2 is reworded: the agent may create Claim notes directly (operator
@@ -1640,6 +1676,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.19] - 2026-07-13
 
 ### Added
+
 - **OS/harness-enforced agent write scope — burn-in stage** (change: `os-enforced-agent-write-scope` —
   ADR-0022; enforcement for INV-4/INV-5, no new invariant). `vault-template/.claude/settings.json` now
   ships pre-action enforcement of the Area Access Matrix's Agent column: an OS sandbox
@@ -1655,6 +1692,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.18] - 2026-07-13
 
 ### Added
+
 - **Refine executor: empty `index_links` defaults to a pending-catalog holding index** (change
   `bank-execute-pending-catalog`; ADR-0024; `constitution-override` touching `maintenance`). An
   explicit empty `index_links` is no longer a silent orphan nor a hard block — the executor links the
@@ -1666,6 +1704,7 @@ requests — recorded here because the pattern is more useful than the individua
 ## [0.1.17] - 2026-07-06
 
 ### Added
+
 - **Runbooks + declared floors** (change `runbooks-and-floors`; fleet-review B6/B7).
   New `render-reconcile-runbook` (the INV-3 deploy/drift loop) and `refine-pipeline-runbook`
   (detect → propose → human gate → atomic bank, with B4 reject semantics). `maintenance` gains
@@ -1678,20 +1717,6 @@ requests — recorded here because the pattern is more useful than the individua
   INV-14 PreToolUse rail) gains a literate source note (`runtime: harness hook`, enum extended)
   so `reconcile` finally guards it against drift.
 
-### Changed
-- **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
-  join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
-  via `vault_naming.py --check`, usage/source/destination gates (exit 1/3), and pathspec-scoped
-  commits of exactly the moved effort — the last `add -A` sweeps in the fleet are gone.
-
-### Fixed
-- **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
-  (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
-  manifest disposition against `DISPOSITIONS` (typos FAIL — the old guard was near-tautological,
-  R7); bootstrap-runbook clean-ops line updated for the env-free hook/fleet reality (template;
-  live copy operator-applied).
-
-### Added
 - **Refine executor pre-flight + batch isolation** (change `bank-execute-pre-flight`; fleet-review
   B4). The sole automated Treasury writer now validates every proposal whole before any write:
   schema, path containment (target in `40-Treasury/`, links in `40-Treasury/Catalog/`), INV-11
@@ -1700,6 +1725,12 @@ requests — recorded here because the pattern is more useful than the individua
   any reject exits 1. `maintenance`: ADDED Requirement.
 
 ### Changed
+
+- **Shell pair conformance** (change `shell-pair-conformance`). `vault-slag.sh`/`vault-dump.sh`
+  join the fleet contract: env-free root resolution (inline bash copy), INV-11 slug validation
+  via `vault_naming.py --check`, usage/source/destination gates (exit 1/3), and pathspec-scoped
+  commits of exactly the moved effort — the last `add -A` sweeps in the fleet are gone.
+
 - **Commit ownership + close de-sweep** (change `commit-ownership-de-sweep`; operator decision
   B3-(a)). Every mutation now owns its scoped commit: daily-note commits the note it creates
   (`daily: opened <date>`); the refine executor banks each proposal atomically (`bank: <stem>` —
@@ -1717,6 +1748,13 @@ requests — recorded here because the pattern is more useful than the individua
   (`site-slag`/`spoil-dump`) deferred to the B3-era change.
 
 ### Fixed
+
+- **Fleet hygiene bundle** (change `fleet-hygiene-bundle`). `runtime:` enum gains `git hook`
+  (commit-gate note aligned; rendered hook unchanged); close-lint `--check` now validates every
+  manifest disposition against `DISPOSITIONS` (typos FAIL — the old guard was near-tautological,
+  R7); bootstrap-runbook clean-ops line updated for the env-free hook/fleet reality (template;
+  live copy operator-applied).
+
 - **Commit-gate hook is now environment-free** (change `fix-commit-gate-env-guard`). Deleted the
   vestigial `VAULT_ROOT` guard (set but never used) that broke bare-exact drive-path commits at
   their final step — the last blocker found by the Phase-1a live acceptance. INV-11 enforcement
@@ -1729,6 +1767,7 @@ requests — recorded here because the pattern is more useful than the individua
 Shared fleet plumbing `vault_lib` + drive-path adoption. (change: `add-shared-vault-lib` — ADR-0023)
 
 ### Added
+
 - **Shared fleet plumbing `vault_lib`** (ADR-0023 Accepted; change `add-shared-vault-lib` —
   Gate 4 signed 2026-07-05).
   New `vault-lib-script.md` → `~/bin/vault_lib.py`: vault-root resolution (env-first, config-marker
@@ -1739,6 +1778,7 @@ Shared fleet plumbing `vault_lib` + drive-path adoption. (change: `add-shared-va
   `maintenance` spec: ADDED Requirement + Script Inventory row.
 
 ### Changed
+
 - Drive-path scripts adopt `vault_lib` (`daily-close`, `daily-note`, `dig-rollover`,
   `kanban-render`, `bank-execute`; `render-reconcile` carries an inline bootstrap copy).
   Behavioral deltas (enumerated in ADR-0023): rollover and close-day gate refusals now exit 3
@@ -1749,20 +1789,38 @@ Shared fleet plumbing `vault_lib` + drive-path adoption. (change: `add-shared-va
 
 ## [0.1.15] - 2026-07-02
 
-Publication boundary (path-level default-deny manifest) + special-file naming exemptions. (changes: `publication-boundary-manifest` — ADR-0020; `naming-special-file-exemptions` — ADR-0021)
+Publication boundary (path-level default-deny manifest) + special-file naming exemptions. (changes:
+`publication-boundary-manifest` — ADR-0020; `naming-special-file-exemptions` — ADR-0021)
 
 ### Added
-- **Publication boundary — path-level default-deny manifest** (ADR-0020; extends ADR-0018/INV-14). `99-Operations/schemas/publish-manifest.json` is a default-deny allowlist of publishable framework paths; `push-guard-script` refuses a push to a `PUBLIC_REMOTE_ALLOWLIST` remote whose diff touches any non-allowlisted (private) path, path-by-path. Layers on the existing remote-level INV-14 gate; both allowlists empty by default. `access-control` (ADDED Requirement) + `maintenance` (MODIFIED Script Inventory) specs.
-- **Special-file naming exemptions** (ADR-0021; extends ADR-0015/INV-11). `naming-rules` gains `exempt_names` / `exempt_globs` (basename-matched) so tool-mandated / convention filenames (`README.md`, `CLAUDE.md`, dailies, `*.example`, …) are skipped by the kebab / ≥3-token rules; `is_exempt` is honored by the linter now (mechanical rejection still deferred per ADR-0015). `docs/naming-exemptions-rationale.md` documents each by dependency class.
-- **Framework/instance config split** — `99-Operations/config.defaults.env` (public defaults, sourced first) + `config.env.example` (stub); the live `config.env` is now a gitignored private instance. New `PUBLIC_REMOTE_ALLOWLIST` guard key.
+
+- **Publication boundary — path-level default-deny manifest** (ADR-0020; extends ADR-0018/INV-14).
+  `99-Operations/schemas/publish-manifest.json` is a default-deny allowlist of publishable framework paths;
+  `push-guard-script` refuses a push to a `PUBLIC_REMOTE_ALLOWLIST` remote whose diff touches any non-allowlisted
+  (private) path, path-by-path. Layers on the existing remote-level INV-14 gate; both allowlists empty by default.
+  `access-control` (ADDED Requirement) + `maintenance` (MODIFIED Script Inventory) specs.
+- **Special-file naming exemptions** (ADR-0021; extends ADR-0015/INV-11). `naming-rules` gains `exempt_names` /
+  `exempt_globs` (basename-matched) so tool-mandated / convention filenames (`README.md`, `CLAUDE.md`, dailies,
+  `*.example`, …) are skipped by the kebab / ≥3-token rules; `is_exempt` is honored by the linter now (mechanical
+  rejection still deferred per ADR-0015). `docs/naming-exemptions-rationale.md` documents each by dependency class.
+- **Framework/instance config split** — `99-Operations/config.defaults.env` (public defaults, sourced first) +
+  `config.env.example` (stub); the live `config.env` is now a gitignored private instance. New
+  `PUBLIC_REMOTE_ALLOWLIST` guard key.
 
 ### Changed
-- `docs/obsidian.md` — prominent "turn OFF *Automatically update internal links*" warning (governed renames conflict with auto-relinking; INV-3).
-- `docs/USING-THIS-TEMPLATE.md` — config defaults/instance setup (`cp config.env.example config.env`) + `PUBLIC_REMOTE_ALLOWLIST` / publish-manifest.
-- `vault-template/` mirror of the push-guard path-gate, the two naming meta-scripts, `publish-manifest.json`, and the config split.
+
+- `docs/obsidian.md` — prominent "turn OFF *Automatically update internal links*" warning (governed renames conflict
+  with auto-relinking; INV-3).
+- `docs/USING-THIS-TEMPLATE.md` — config defaults/instance setup (`cp config.env.example config.env`) +
+  `PUBLIC_REMOTE_ALLOWLIST` / publish-manifest.
+- `vault-template/` mirror of the push-guard path-gate, the two naming meta-scripts, `publish-manifest.json`, and the
+  config split.
 
 ### Fixed
-- Config-split blast radius: `.github/scripts/validate-scripts.sh` (sandbox now instantiates `config.env` from `config.env.example`) and `.github/workflows/ci.yml` `vocabulary-lint` (reads `config.defaults.env`) — both would otherwise break on the removed `config.env`.
+
+- Config-split blast radius: `.github/scripts/validate-scripts.sh` (sandbox now instantiates `config.env` from
+  `config.env.example`) and `.github/workflows/ci.yml` `vocabulary-lint` (reads `config.defaults.env`) — both would
+  otherwise break on the removed `config.env`.
 
 ---
 
@@ -1771,15 +1829,25 @@ Publication boundary (path-level default-deny manifest) + special-file naming ex
 `98-Warehouse` re-chartered as the **reference stockroom**. (change: `warehouse-reference-stockroom`; ADR-0019)
 
 ### Added
-- **`98-Warehouse/` reference stockroom** — retained source/reference material the operation draws on repeatedly (binaries *and* digitized references), organized into media shelves `Books/`, `Music/`, `Art/`, `Pictures/`, `Audio/`. Re-classified from generic "binary attachments / infrastructure" in `vault-structure` (*Three-Layer Model* + *Folder Structure*) and `access-control` (*Area Access Matrix*); both retain `protects:`.
-- **Shelf-naming scope scenario** — Warehouse shelf *folders* take human-friendly names under the universal path-component rule only; the kebab-case / ≥3-token convention is scoped to `.md` stems and `30-Sites/`/`70-Tailings/` effort folders + `40-Treasury/` stems, so it does not reach them.
+
+- **`98-Warehouse/` reference stockroom** — retained source/reference material the operation draws on repeatedly
+  (binaries *and* digitized references), organized into media shelves `Books/`, `Music/`, `Art/`, `Pictures/`,
+  `Audio/`. Re-classified from generic "binary attachments / infrastructure" in `vault-structure` (*Three-Layer Model* +
+  *Folder Structure*) and `access-control` (*Area Access Matrix*); both retain `protects:`.
+- **Shelf-naming scope scenario** — Warehouse shelf *folders* take human-friendly names under the universal
+  path-component rule only; the kebab-case / ≥3-token convention is scoped to `.md` stems and
+  `30-Sites/`/`70-Tailings/` effort folders + `40-Treasury/` stems, so it does not reach them.
 - `vault-template/98-Warehouse/{Books,Music,Art,Pictures,Audio}/.gitkeep`.
 
 ### Changed
+
 - `vault-template/00-Docs/README.md` — `98-Warehouse/` charter line.
 
 ### Fixed
-- Completed ADR-0016 propagation: `vault-structure` spec + `vault-template/99-Operations/schemas/refine-prompt-contract.md` `index_links` example `<pillar>-index.md` → `<pillar>-domain-index.md` (the pre-v0.1.9 straggler; `agent-integration` was already correct).
+
+- Completed ADR-0016 propagation: `vault-structure` spec +
+  `vault-template/99-Operations/schemas/refine-prompt-contract.md` `index_links` example `<pillar>-index.md` →
+  `<pillar>-domain-index.md` (the pre-v0.1.9 straggler; `agent-integration` was already correct).
 
 ---
 
@@ -1788,18 +1856,29 @@ Publication boundary (path-level default-deny manifest) + special-file naming ex
 Private by default — **INV-14** (Tier-0) + the outbound publish guard. (change: `private-by-default-publish-guard`; ADR-0018)
 
 ### Added
-- **`INV-14` — private by default; no unbid publication** (Tier-0, Safety band; appended per ADR-0008, INV-1–13 unchanged). A deployed vault never publishes outward: no automated actor may push/mirror vault content except to an operator-allowlisted remote, and public publication requires deliberate human confirmation — never an agent's unprompted suggestion. Carried by the `access-control` spec; defined in `project.md`; listed Tier-0 in `constitution.md`.
+
+- **`INV-14` — private by default; no unbid publication** (Tier-0, Safety band; appended per ADR-0008, INV-1–13
+  unchanged). A deployed vault never publishes outward: no automated actor may push/mirror vault content except to an
+  operator-allowlisted remote, and public publication requires deliberate human confirmation — never an agent's
+  unprompted suggestion. Carried by the `access-control` spec; defined in `project.md`; listed Tier-0 in
+  `constitution.md`.
 - **`push-guard-script`** → `99-Operations/hooks/pre-push`: deny-by-default, `PUSH_ALLOWLIST`-gated (deterministic, INV-6).
-- **Portable Claude Code `PreToolUse` guard** (`.claude/`, repo + vault-template): hard-denies vault-outward commands; loud ASK before any public repo creation / distribution-hub publish.
+- **Portable Claude Code `PreToolUse` guard** (`.claude/`, repo + vault-template): hard-denies vault-outward commands;
+  loud ASK before any public repo creation / distribution-hub publish.
 - **`config.env`** keys `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST` (empty = deny all pushes).
 
 ### Changed
-- Docs: README ("Private by default" + counts → 18 ADRs / 14 invariants), `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md` (Step 4b).
+
+- Docs: README ("Private by default" + counts → 18 ADRs / 14 invariants), `AGENTS.md`, `docs/USING-THIS-TEMPLATE.md`
+  (Step 4b).
 
 ### Fixed
+
 - `config.env` comment `close-daily` → `daily-close` (v0.1.12 straggler; non-`.md`, missed by the earlier `.md`-scoped grep).
 
-**Honest limit (ADR-0018):** Tier-0 guarantees *safe-by-default + governed + loud-to-remove*, not a physical impossibility — git hooks don't clone, `--no-verify` bypasses, an owner can opt out. OS-level egress control is deferred.
+**Honest limit (ADR-0018):** Tier-0 guarantees *safe-by-default + governed + loud-to-remove*, not a physical
+impossibility — git hooks don't clone, `--no-verify` bypasses, an owner can opt out. OS-level egress control is
+deferred.
 
 ---
 
@@ -1809,6 +1888,7 @@ Runbook naming brought to the ≥3-token convention; the daily-close / provenanc
 unified. Plus a moc→index residual sweep. (change: `runbook-naming-3token`; ADR-0017)
 
 ### Changed
+
 - **Runbooks → ≥3-token `silo-section-descriptor`** (constitution-override, conforming amendment;
   ADR-0017): `close-daily.md` → `daily-close-runbook.md`, `seal-provenance.md` →
   `provenance-seal-runbook.md` (last grandfathered system-artifact family). The ritual vocabulary is
@@ -1821,6 +1901,7 @@ unified. Plus a moc→index residual sweep. (change: `runbook-naming-3token`; AD
   (runbooks have no deploy target).
 
 ### Fixed
+
 - **moc→index residual cleanup** — purged stale "MOC" wording left over from the `moc → index`
   rename (v0.1.6 / ADR-0013) in four non-protected vault-template files: `bank-execute-script`
   prose, `treasury-orphan-script` (`moc_text` → `index_text`), `home-master-index` heading
@@ -1833,6 +1914,7 @@ unified. Plus a moc→index residual sweep. (change: `runbook-naming-3token`; AD
 `/vmm-session-rebooted` slash command — explicit cold-start prime trigger.
 
 ### Added
+
 - **`/vmm-session-rebooted`** Claude Code command (`.claude/commands/`, repo + vault-template) — a thin
   adapter that invokes the `session-bootstrap-loader` runbook (env + the four gates + JIT pointers).
   The most reliable prime trigger (it makes *engaging* the bootstrap the agent's explicit task). No
@@ -1845,6 +1927,7 @@ unified. Plus a moc→index residual sweep. (change: `runbook-naming-3token`; AD
 Session bootstrap loader — the cold-start prime mechanism (minimum bootstrap, maximum confidence).
 
 ### Added
+
 - **`96-Runbooks/session-bootstrap-loader`** runbook (harness-agnostic SSOT): at session start, source
   env, engage the four gates (governance-first · re-read-before-acting · autonomy-bans · clean-ops),
   and know the just-in-time pointers (the `llm-context-reboot` load-list, the deferred-not-built list,
@@ -1856,10 +1939,14 @@ Session bootstrap loader — the cold-start prime mechanism (minimum bootstrap, 
 
 ## [0.1.9] - 2026-06-29
 
-System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes brought to the `silo-section-descriptor` convention.
+System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — scripts, schemas, and Catalog indexes
+brought to the `silo-section-descriptor` convention.
 
 ### Changed
-- **Scripts** → `<domain>-<action>-script` (`.md` notes only; deploy targets unchanged — `.py` rename deferred; canonical mining verbs): e.g. `close-daily`→`daily-close-script`, `dump`→`spoil-dump-script`, `refine-execute`→`bank-execute-script`, `pre-commit`→`commit-gate-script` (deployed hook stays `pre-commit`).
+
+- **Scripts** → `<domain>-<action>-script` (`.md` notes only; deploy targets unchanged — `.py` rename deferred;
+  canonical mining verbs): e.g. `close-daily`→`daily-close-script`, `dump`→`spoil-dump-script`,
+  `refine-execute`→`bank-execute-script`, `pre-commit`→`commit-gate-script` (deployed hook stays `pre-commit`).
 - **Schemas** → `note-frontmatter-schema`, `runbook-format-schema`, `refine-prompt-contract`.
 - **Catalog indexes** → `<pillar>-domain-index` + `home-master-index` (the scope token anticipates future sub-sector indexes).
 - Specs synced: `maintenance`, `vault-structure`, `agent-integration`. See ADR-0016.
@@ -1871,6 +1958,7 @@ System-artifact naming (Informed-Upheaval Protocol, conforming amendment) — sc
 Token-minimum naming (Informed-Upheaval Protocol, conforming amendment) — the ≥3-token naming rule, codified as convention.
 
 ### Added
+
 - **Token-Minimum Naming requirement** in `naming-rules`: every `.md` stem carries **≥3 hyphen-tokens
   — the floor, not the ceiling** (use *more* where the extra tokens add human-meaningful specificity).
   System-artifact families use `silo-section-descriptor` (silo first); content stems are ≥3-token
@@ -1884,6 +1972,7 @@ Token-minimum naming (Informed-Upheaval Protocol, conforming amendment) — the 
 Mold naming (Informed-Upheaval Protocol, conforming amendment) — self-identifying molds.
 
 ### Changed
+
 - **Molds → `<note-type>-mold-blank.md`** — the four `97-Molds/` templates (`daily`, `effort`,
   `index`, `knowledge`) are renamed on the `silo-section-descriptor` convention so each mold is
   self-identifying in any flat / search / migrated view, and `index` no longer collides with the
@@ -1898,20 +1987,23 @@ Mold naming (Informed-Upheaval Protocol, conforming amendment) — self-identify
 Naming & identity (Informed-Upheaval Protocol, conforming amendment) — intuitive names + self-identifying artifacts.
 
 ### Changed
+
 - **`moc → index`** — Catalog overview notes are now `<pillar>-index.md` (`type: index`); the mold,
   the `index_links` proposal field, and CONST-05's label "(MOCs)" → "(indexes)" follow. "MOC" (Map
   of Content) was opaque PKM jargon; "index" is self-teaching. The *principle* (domain via metadata
-  + Catalog, never folders) is unchanged.
+  - Catalog, never folders) is unchanged.
 - **`_effort → <slug>/<slug>.md`** — a Site/Tailings/Spoil effort note is now the **folder-note**
   (stem == folder), self-identifying in any flat view (graph/search/migration) instead of an
   anonymous `_effort.md`. Maintenance scripts locate it as "the file whose stem equals its folder."
   See ADR-0013.
 
 ### Migration (existing forks/vaults)
+
 - `git mv 40-Treasury/Catalog/<pillar>-moc.md → -index.md` (+ `home`); `git mv 30-Sites/<slug>/_effort.md → <slug>/<slug>.md`
   (and Tailings/Spoil); repoint wikilinks (`/_effort|` → `/<slug>|`, `-moc` → `-index`); re-render scripts.
 
 ### Process
+
 - Constitution-override `naming-and-identity` (CONST-05 label, Tier 1), **authorized** by Keith Nielsen; ADR-0013.
 
 ---
@@ -1921,6 +2013,7 @@ Naming & identity (Informed-Upheaval Protocol, conforming amendment) — intuiti
 Spec-as-code runbooks + the daily close lifecycle (Informed-Upheaval Protocol, conforming amendment).
 
 ### Added
+
 - **`96-Runbooks/` band** — operational procedures as harness-agnostic *spec-as-code* (schema:
   `99-Operations/schemas/runbook.md`; CI `runbook-lint`). Two charter runbooks: **`seal-provenance`**
   (forensic sealing) and **`close-daily`** (daily disposition sweep).
@@ -1933,10 +2026,12 @@ Spec-as-code runbooks + the daily close lifecycle (Informed-Upheaval Protocol, c
 - `AGENTS.md` runbook pointer + agent operating notes; `CLAUDE.md` adapter.
 
 ### Changed
+
 - `vault-structure` Folder Structure adds `96-Runbooks/` (reserved band `90–96 → 90–95`); CONST-04/02 upheld.
 - `maintenance` spec: **Runbook Format** + **Daily Close Lifecycle** requirements.
 
 ### Process
+
 - Constitution-override `spec-as-code-runbooks` (conforming amendment, Tier 1), **authorized** by
   Keith Nielsen; ADR-0011, ADR-0012.
 
@@ -1947,6 +2042,7 @@ Spec-as-code runbooks + the daily close lifecycle (Informed-Upheaval Protocol, c
 Lifecycle vocabulary refinement (Informed-Upheaval Protocol, CONST-01) + the project rename.
 
 ### Changed
+
 - **Retired `prospect` as a Site status.** Prospecting is the *upstream, human* act that
   discovers Claims from the world — it is not a Site state. Sites are born at `dig`; the
   effort status set is now `dig | ore | slagged`. Updated `EFFORT_STATUSES`, the effort
@@ -1962,10 +2058,12 @@ Lifecycle vocabulary refinement (Informed-Upheaval Protocol, CONST-01) + the pro
   Title-Kebab); internal project identity **`value-memory-mining`** (lower-kebab).
 
 ### Migration (existing forks/vaults)
+
 - Drop `prospect` from `EFFORT_STATUSES` and set the effort mold default to `dig`;
   `git mv ~/bin/vault-dispose.sh` usage → `vault-dump.sh` (re-`render`).
 
 ### Process
+
 - Constitution-override change `lifecycle-vocabulary` (CONST-01, Tier 1), **authorized**
   by Keith Nielsen; ADR-0010. CONST-01's principle is sharpened, not sacrificed.
 
@@ -1976,6 +2074,7 @@ Lifecycle vocabulary refinement (Informed-Upheaval Protocol, CONST-01) + the pro
 Constitutional correction (Informed-Upheaval Protocol) — Layer-2 folder ordering.
 
 ### Changed
+
 - **Swapped `10-Claims` ↔ `20-Logbook`** so the daily logs sort to the top of the
   file explorer, conforming to CONST-04 ("daily logs at top"). The layout previously
   contradicted its own numbering principle. Result: `10-Logbook/` (the daily cockpit)
@@ -1985,10 +2084,12 @@ Constitutional correction (Informed-Upheaval Protocol) — Layer-2 folder orderi
   schemas, molds paths, diagrams (Folder Stack), and the layout trees.
 
 ### Migration (for existing forks/vaults)
+
 - `git mv 20-Logbook 10-Logbook` and `git mv 10-Claims 20-Claims`, then re-`render` the
   scripts. Anything pinned to the old paths (cron lines, external tooling) must update.
 
 ### Process
+
 - Recorded as constitution-override change `swap-logbook-claims-order` (CONST-04, Tier 1)
   with human sign-off; see `openspec/adr/0009-layer2-ordering-correction.md`. CONST-04's
   principle text is unchanged — this is a corrective amendment, not an override.
@@ -2001,6 +2102,7 @@ Documentation fills from dogfooding the live vault — Obsidian setup and the
 Claim→Site promotion workflow.
 
 ### Added
+
 - `docs/obsidian.md` — recommended Obsidian setup: core plugins; the
   **default-new-note-location → `10-Claims`** setting that keeps accidental/dangling-link
   notes out of the vault root; native Templates / Daily Notes for note creation; the
@@ -2011,12 +2113,14 @@ Claim→Site promotion workflow.
   "where's my work?" indices (`30-Sites/`, the kanban board, the daily carry-over).
 
 ### Changed
+
 - `vault-template/00-Docs/README.md` — clarified the two in-vault READMEs and noted that
   the full fork guide (`docs/USING-THIS-TEMPLATE.md`) and Obsidian guide (`docs/obsidian.md`)
   live in the template repo and do not copy into a forked vault; added pointers.
 - `README.md` and `docs/USING-THIS-TEMPLATE.md` link the new Obsidian guide.
 
 ### Deferred (captured in docs, not built)
+
 - A `vault-promote.sh` + an Obsidian "promote-from-inbox" punch-list button, a
   stray-fragment lint, and a `99-Operations` index MOC.
 
@@ -2028,12 +2132,14 @@ Adopter-friction fixes found by performing a real install of the template into a
 live Obsidian vault.
 
 ### Added
+
 - `vault-template/.gitignore` — a forked vault now ignores `.venv/`, `__pycache__`,
   the generated `10-Claims/_refine-queue.json`, and Obsidian per-machine UI state
   (`.obsidian/workspace*`, `.obsidian/cache`) out of the box. The template previously
   shipped without a vault-level `.gitignore`.
 
 ### Changed
+
 - Setup now installs `python-frontmatter` into a **vault-local venv** at
   `$VAULT_ROOT/.venv` rather than the system Python, which modern distros block under
   PEP 668. `config.env` (and `config.env.example`) prepend `$VAULT_ROOT/.venv/bin` to
@@ -2049,6 +2155,7 @@ First validated release. The deterministic engine (Phases 0–2) is proven again
 the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/deferred.
 
 ### Added
+
 - Initial repository structure: OpenSpec SDD scaffold, vault-template skeleton,
   constitution, 6 capability specs, 8 ADRs, 2 archived teaching changes,
   1 live change stub (add-telemetry-segment), CI pipeline, docs layer.
@@ -2058,6 +2165,7 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   boundary test. Wired as a CI matrix job (Python 3.12, 3.13).
 
 ### Fixed
+
 - `config.env` used an HTML comment (`<!-- SPDX -->`) on line 1, which broke
   `source 99-Operations/config.env`. Changed to a shell comment (`# SPDX`).
 - The literate-script render extractor used a non-line-anchored regex that
@@ -2073,12 +2181,14 @@ the full PRD acceptance suite; Phase 3 (agent operations) remains spec-only/defe
   `config.env`.
 
 ### Changed
+
 - Aligned proposal-schema MOC path examples with the kebab-case filenames
   (`<pillar>-moc.md`) used by the actual template (INV-11).
 - Supported Python floor set to **3.12+** (was advertised as 3.10+, which the
   version matrix showed was not actually met).
 
 ### Validated
+
 - Full PRD Phase 0→2 acceptance suite (A0.1–A2.6, plus orphan detector) against a
   sandboxed vault: 19/19 checks pass. All 13 operational scripts deploy via
   `render`, `reconcile` reports zero drift, and the refine pipeline

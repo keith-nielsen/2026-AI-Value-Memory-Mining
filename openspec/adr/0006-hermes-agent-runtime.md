@@ -7,6 +7,7 @@
 ## Context
 
 Phase 3 (agent-assisted refine operations) needs an agent runtime that:
+
 1. Supports a Kanban-style work queue (one card per refine task)
 2. Operates locally with a local inference model (Strix Halo / llama.cpp)
 3. Enforces a deposit-not-merge model (the worker's done state is "proposal deposited,"
@@ -14,6 +15,7 @@ Phase 3 (agent-assisted refine operations) needs an agent runtime that:
 4. Respects a single-host, trusted-local-user threat model
 
 Options:
+
 - **Claude Code as the agent** — excellent tooling; cloud model; violates the
   privacy/sovereignty posture for real personal content; deferred for cloud bootstrap
 - **Raw llama.cpp subprocess** — maximum control, minimum framework; no built-in

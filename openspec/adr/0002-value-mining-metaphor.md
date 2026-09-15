@@ -8,12 +8,14 @@
 ## Context
 
 A personal knowledge system needs an organizing frame that:
+
 1. Makes the pipeline self-teaching (stage names predict the next stage and current
    material state)
 2. Distinguishes stable crown-jewels from high-churn work and from infrastructure
 3. Puts the most frequently used areas at the top of any file explorer
 
 Alternatives considered for the frame:
+
 - **Garden/Evergreen** (Zettelkasten-adjacent) — broad cultural familiarity, but
   stage names don't predict material state; "evergreen" doesn't tell you where
   something came from or where it's going

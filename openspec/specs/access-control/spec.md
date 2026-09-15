@@ -9,7 +9,9 @@ protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]
 
 Define who may read and write each vault area, and which actions each actor class
 may perform. Enforcement is structural (code + hooks + CI), never trust-based.
+
 ## Requirements
+
 ### Requirement: Actor Classes
 
 The system SHALL recognize exactly three actor classes with distinct privileges:
@@ -23,6 +25,7 @@ The system SHALL recognize exactly three actor classes with distinct privileges:
   may write Treasury only via the executor gate.
 
 #### Scenario: Human is the only approving actor
+
 - **WHEN** a refine proposal must be promoted to `_refine-approved/` or a constitutional override must be signed off
 - **THEN** only a Human (H) actor may perform that action; Agent and Script actors cannot
 
@@ -31,7 +34,7 @@ The system SHALL recognize exactly three actor classes with distinct privileges:
 Each vault area SHALL grant the access shown below; any actor exceeding its cell is a violation.
 
 | Area | H | A | S | Notes |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | `99-Operations/` | RW | — | R | INV-5: actor ≠ owner of definition |
 | `97-Molds/` | RW | R | R | Templates; instantiation only |
 | `98-Warehouse/` | RW | W¹ | RW | Reference stockroom: retained source material (binaries + digitized refs), shelved by media type |
@@ -61,23 +64,30 @@ layer model.
 ⁴ Script writes Treasury only when applying a human-approved proposal from `_refine-approved/`.  
 ⁵ Future agent access (Mint/Forge) to be scoped when those segments are designed.  
 ⁶ Crucible uses an independent model/operator by design; main agent excluded (INV-8).  
-⁷ Agent write to `10-Logbook/` is permitted at both enforcement layers (ADR-0033): the framework owns no artifact there after ADR-0032 retired the daily cycle, and the silo is the write target for whatever external harness drives the effort cadence. INV-11 naming still applies at commit time — pre-action prevention is withdrawn, commit-time enforcement is not.
+⁷ Agent write to `10-Logbook/` is permitted at both enforcement layers (ADR-0033): the framework owns no artifact
+there after ADR-0032 retired the daily cycle, and the silo is the write target for whatever external harness drives
+the effort cadence. INV-11 naming still applies at commit time — pre-action prevention is withdrawn, commit-time
+enforcement is not.
 
 #### Scenario: Agent cannot write Treasury directly
+
 - **WHEN** an agent process attempts to write any file under `40-Treasury/`
 - **THEN** the commit-gate hook blocks the commit with an INV-4 violation message
 - **THEN** the refine executor is the only permitted write path
 
 #### Scenario: Agent cannot write Operations
+
 - **WHEN** an agent process attempts to write any file under `99-Operations/`
 - **THEN** the commit-gate hook blocks the commit with an INV-5 violation message
 
 #### Scenario: Agent cannot self-promote a proposal
+
 - **WHEN** an agent process moves a file from `_refine-proposals/` to `_refine-approved/`
 - **THEN** this is treated as an INV-4 violation (the gate is human-only by convention;
   OS-level enforcement is deferred per §14.1)
 
 #### Scenario: Agent may capture directly into 20-Claims
+
 - **WHEN** an agent process (at operator direction) writes a new Claim note under `20-Claims/`,
   outside `_refine-approved/`
 - **THEN** the write is permitted and is not a violation — `20-Claims/` is a Layer-2 Workings area and
@@ -86,6 +96,7 @@ layer model.
   `_refine-approved/` gate
 
 #### Scenario: The Logbook is agent-writable at both layers
+
 - **WHEN** the Agent writes a file under `10-Logbook/` — via a harness file tool or via a shell command
 - **THEN** the write succeeds: no permission deny rule matches the path, and the OS sandbox does not
   list the silo in `denyWrite`
@@ -108,6 +119,7 @@ therefore enforced by the deterministic boundary: the refine executor and the
 commit-gate hook (INV-11), plus OS-level ACLs when built (deferred, §14.1).
 
 #### Scenario: Script writes Treasury only through the gate
+
 - **WHEN** the refine executor runs
 - **THEN** it writes to `40-Treasury/` only for proposals present in `_refine-approved/`
 - **THEN** a proposal still in `_refine-proposals/` is never applied
@@ -119,6 +131,7 @@ The Layer-0 machinery cannot modify its own operating procedures. This is enforc
 by design (no script writes `99-Operations/`) and backstopped by the commit-gate hook.
 
 #### Scenario: Automation cannot modify Layer 0
+
 - **WHEN** any script, agent, or CI process attempts to write under `99-Operations/`
 - **THEN** the write is rejected; only a Human (H) actor may modify Layer-0 definitions
 
@@ -133,9 +146,13 @@ sourced first; `99-Operations/config.env` (gitignored, personal/machine override
 credentials.
 
 #### Scenario: No secrets in config; private instance is gitignored
+
 - **WHEN** `config.defaults.env` and `config.env` are inspected
-- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`, `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`, `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
-- **THEN** the live `config.env` is gitignored (private instance); only `config.defaults.env` + `config.env.example` are tracked/publishable
+- **THEN** they contain only structural configuration (`VAULT_ROOT`, `PILLARS`, `GRADES`, `REFINE_GATE_GRADES`,
+  `KNOWLEDGE_STAGES`, `EFFORT_STATUSES`, `SPOIL_STATUSES`, `VAULT_PUBLISH_GUARD`, `PUSH_ALLOWLIST`,
+  `PUBLIC_REMOTE_ALLOWLIST`) — no credentials
+- **THEN** the live `config.env` is gitignored (private instance); only `config.defaults.env` + `config.env.example`
+  are tracked/publishable
 
 ### Requirement: Crucible Independence (INV-8)
 
@@ -148,6 +165,7 @@ Build of the Crucible apparatus is deferred (§14.1); the exclusion is enforced 
 the access matrix above from day one.
 
 #### Scenario: Main agent excluded from Crucible
+
 - **WHEN** the main process agent attempts to read or write `80-Crucible/`
 - **THEN** access is denied; only the independent Crucible operator may act there
 
@@ -163,6 +181,7 @@ SHALL require explicit, deliberate **human** confirmation — and SHALL never be
 agent's unprompted suggestion.
 
 Enforcement is **structural**, never trust-based:
+
 - a deterministic `pre-push` hook (`push-guard-script`, INV-6) that denies by default and permits only
   an allowlisted remote; and
 - the agent harness guard (`.claude` `PreToolUse`) that hard-denies any outward command whose
@@ -184,18 +203,24 @@ the vault; INV-14 bounds *replication outward*. INV-14 is appended per the froze
 INV-1–13 are unchanged.
 
 #### Scenario: Automated push to a non-allowlisted remote is denied
+
 - **WHEN** an Agent or Script triggers `git push` from the vault to a remote not in `PUSH_ALLOWLIST`
 - **THEN** the `pre-push` hook aborts with an INV-14 violation; nothing is transmitted
 
 #### Scenario: Agent must not propose outbound publication
+
 - **WHEN** a task could be "helped" by pushing/mirroring vault content outward or creating a public repo
-- **THEN** the agent does not suggest or perform it; the harness `PreToolUse` guard denies the vault-outward command and requires deliberate human action for any public publication
+- **THEN** the agent does not suggest or perform it; the harness `PreToolUse` guard denies the vault-outward command
+  and requires deliberate human action for any public publication
 
 #### Scenario: Operator opt-in is explicit and deliberate
+
 - **WHEN** the operator wants an off-machine backup
-- **THEN** it is permitted only after the operator deliberately adds that (private) remote to `PUSH_ALLOWLIST`; a tired or quick assent solicited by an agent does not satisfy this
+- **THEN** it is permitted only after the operator deliberately adds that (private) remote to `PUSH_ALLOWLIST`; a
+  tired or quick assent solicited by an agent does not satisfy this
 
 #### Scenario: A publish to a sibling repo from a vault-rooted session is asked, not denied
+
 - **WHEN** the agent runs `gh release create` or `git push` whose effective target is a non-vault
   sibling repository (e.g. `cd <framework-repo> && gh release create …`, or `-R <owner/repo>`) from a
   session where `VAULT_ROOT` is set to the deployed vault
@@ -203,12 +228,14 @@ INV-1–13 are unchanged.
   command proceeds only on explicit human approval
 
 #### Scenario: A plain git push never defers silently
+
 - **WHEN** the agent runs a `git push` (including `git -C <path> push`) whose effective target is not the
   deployed vault
 - **THEN** the harness guard raises the ASK hard stop rather than deferring; the push cannot execute
   without explicit human confirmation, in any permission mode
 
 #### Scenario: Vault-outward push is still hard-denied
+
 - **WHEN** the agent runs any outward command whose effective target is inside the deployed vault (by
   cwd, by `git -C`/`cd` into the vault, or by naming the vault path as an operand)
 - **THEN** the harness guard HARD-DENIES it — unchanged; the ASK relaxation applies only to non-vault targets
@@ -231,14 +258,18 @@ deterministic `push-guard-script` (`pre-push`, INV-6); the same manifest MUST be
 public-export/mirror tool. Principle: *publish the machine, never the ore.*
 
 #### Scenario: Private path to a public remote is refused
-- **WHEN** a push targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the pushed diff touches a path not matched by `publish-manifest.json` `public_allow` (e.g. `30-Sites/…`, `98-Warehouse/…`, `99-Operations/config.env`)
+
+- **WHEN** a push targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the pushed diff touches a path not matched by
+  `publish-manifest.json` `public_allow` (e.g. `30-Sites/…`, `98-Warehouse/…`, `99-Operations/config.env`)
 - **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation naming the offending path; nothing is transmitted
 
 #### Scenario: Framework-only push to a public remote is permitted
+
 - **WHEN** a push targets a `PUBLIC_REMOTE_ALLOWLIST` remote and every path in the diff matches `public_allow`
 - **THEN** the push is permitted
 
 #### Scenario: Default-deny is fail-safe for new paths
+
 - **WHEN** a new top-level path exists that is not listed in `publish-manifest.json`
 - **THEN** it is treated as private and cannot be pushed to a public remote until deliberately added to `public_allow`
 
@@ -287,6 +318,7 @@ permission rules. A runtime lacking them provides detection, not prevention; ope
 reduced-trust and must be declared, not assumed equivalent.
 
 #### Scenario: Shell write to a protected area is denied at the kernel
+
 - **WHEN** an Agent shell command — directly, via redirection, or via any child process or interpreter —
   attempts to create, modify, or delete a file under a denied area (e.g. `40-Treasury/`,
   `99-Operations/`, `.claude/`)
@@ -294,6 +326,7 @@ reduced-trust and must be declared, not assumed equivalent.
   cooperation is involved
 
 #### Scenario: Structured-tool write to a script-owned artifact is denied
+
 - **WHEN** the Agent invokes a harness file tool against a script-owned or protected artifact
   (e.g. `99-Operations/scripts/<script>.md`, `97-Molds/<mold>.md`, `40-Treasury/<note>.md`)
 - **THEN** the harness permission layer denies the call pre-action
@@ -301,11 +334,13 @@ reduced-trust and must be declared, not assumed equivalent.
   at either layer (ADR-0033)
 
 #### Scenario: Driving a script is permitted only by exact invocation
+
 - **WHEN** the Agent runs a rendered vault script exactly as listed in the exclusion list (e.g.
   `99-Operations/bin/vault-refine-execute.py`)
 - **THEN** the script runs outside the sandbox and writes its owned artifacts normally
 
 #### Scenario: Opening a protected area requires a governed change
+
 - **WHEN** an area is removed from the denied set at either enforcement layer
 - **THEN** the removal is carried by its own governed change with an ADR stating what protection is
   withdrawn and what is accepted in exchange — a deployed vault's `.claude/settings.json` edit alone
@@ -399,10 +434,12 @@ a gate. This limit is recorded here rather than left to be discovered, because a
 to cover the harness and does not is worse than no check.
 
 #### Scenario: An exclusion naming a moved artifact is caught
+
 - **WHEN** a settings file declares a command path that no current script note declares as a `deploy_target`
 - **THEN** the settings resolution check fails, naming the file and the unresolved path
 
 #### Scenario: The check is proven capable of refusing
+
 - **WHEN** a settings file is temporarily pointed at a nonexistent artifact
 - **THEN** the settings resolution check fails, and the recorded failure is retained as evidence
 
@@ -422,6 +459,7 @@ A widening of agent write scope is a governed decision with its own human sign-o
 ride in as a side effect of a relocation.
 
 #### Scenario: The protected silo still refuses the agent after relocation
+
 - **WHEN** the capability probe attempts a real write into the silo holding the deploy directory
 - **THEN** the write is refused and the probe reports the silo protected
 
@@ -441,6 +479,7 @@ explicit operator step performed through the real harness after the relocation l
 SHALL be recorded. A path-resolution check establishes only that the named artifact exists.
 
 #### Scenario: The relocated exclusion is confirmed through the real harness
+
 - **WHEN** the relocation has landed and the operator invokes the relocated artifact through the harness
 - **THEN** the invocation proceeds under its exclusion, and the result is recorded as evidence
 
@@ -460,6 +499,7 @@ A finding restated more emphatically is not a stronger control. Where a rule has
 prose, restating it SHALL NOT be recorded as a remediation.
 
 #### Scenario: A command form known to be wrong is refused rather than described
+
 - **WHEN** the agent invokes a command form the estate has ruled out
 - **THEN** the invocation is refused by a control, and the refusal is attributable to that control
   rather than indistinguishable from the command's own failure
@@ -475,6 +515,7 @@ own redirect hint. A bare denial therefore generates a retry rather than a corre
 denial teaches the agent that the control is an obstacle rather than an instruction.
 
 #### Scenario: The refusal carries the replacement
+
 - **WHEN** a `gh` invocation is refused for routing through an endpoint this estate has measured
   non-deterministic
 - **THEN** the message names the REST equivalent and states the ground for the refusal in terms that
@@ -494,11 +535,13 @@ The permitted set SHALL be derived from a measured platform constraint rather th
 history, and SHALL include any form on which the estate's own capability instruments depend.
 
 #### Scenario: An unlisted form is refused by default
+
 - **WHEN** a `gh` subcommand that has never previously been ruled out is invoked
 - **THEN** it is refused, because it is absent from the permitted set rather than present in a
   forbidden one
 
 #### Scenario: The instrument that measures the channel is not refused by the policy
+
 - **WHEN** the capability probe invokes `gh auth status` to report the credential layer
 - **THEN** the invocation is permitted, because a policy that refuses the instrument measuring it
   destroys the evidence the estate relies on
@@ -516,6 +559,7 @@ directions: general-but-fails-open, and enumerated-but-fails-closed. Retaining b
 duplication, and SHALL NOT be removed as such by a later simplification.
 
 #### Scenario: The hook is absent and the known offenders are still refused
+
 - **WHEN** the hook is unrendered, crashed, or unregistered, and a known offending form is invoked
 - **THEN** the harness deny list refuses it without the hook participating
 
@@ -530,6 +574,7 @@ without this boundary will be credited with coverage it does not have — the sa
 estate's preflight scorecard was written to bound.
 
 #### Scenario: An internal invocation is outside the control's reach
+
 - **WHEN** a fleet script invoked through the Bash channel itself shells out to the guarded tool
 - **THEN** the hook does not observe that invocation, and the control's documentation states this
   boundary rather than leaving it to be discovered
@@ -549,6 +594,7 @@ of a live control in order to characterise it, because routing around a refusal 
 estate's guard-denial rule forbids regardless of the motive.
 
 #### Scenario: The evasion boundary is documented rather than demonstrated
+
 - **WHEN** the control's coverage is recorded
 - **THEN** the forms it provably does not catch are named as uncaught, and are not exercised by the
   agent to prove it

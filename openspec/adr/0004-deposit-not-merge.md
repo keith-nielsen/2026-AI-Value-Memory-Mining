@@ -8,10 +8,12 @@
 
 The refine pipeline needs to move material from Sites (Layer 2) into the Treasury
 (Layer 1) while satisfying two constraints:
+
 1. No agent/LLM process may write Treasury directly (INV-4)
 2. The human must remain the gate — automation proposes, humans approve
 
 Options:
+
 - **Direct agent write with review flag** — agent writes to Treasury, human reviews
   and may revert. Violates INV-4; trust-then-verify is weaker than gate-then-write.
 - **PR-based merge** — agent opens a PR; human merges. Git-native but heavy-weight

@@ -3,7 +3,9 @@
 
 **Status:** Accepted
 **Date:** 2026-07-17
-**Relates:** `maintenance` spec · change `enforce-pillar-slug-tokens` · constitution §2 (Tier 2 — pillar names) · extends ADR-0013 (naming-and-identity), ADR-0016 (system-artifact-naming) · constrained by ADR-0015 (≥3-token floor — deliberately **not** applied to pillar tokens)
+**Relates:** `maintenance` spec · change `enforce-pillar-slug-tokens` · constitution §2 (Tier 2 — pillar names) ·
+extends ADR-0013 (naming-and-identity), ADR-0016 (system-artifact-naming) · constrained by ADR-0015 (≥3-token floor —
+deliberately **not** applied to pillar tokens)
 
 ## Context
 

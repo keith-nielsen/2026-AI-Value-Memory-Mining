@@ -3,7 +3,8 @@
 
 **Status:** Accepted
 **Date:** 2026-06-29
-**Relates:** `maintenance` · `vault-structure` specs · change `runbook-naming-3token` · extends ADR-0011 (spec-as-code runbooks) / ADR-0012 (daily close lifecycle) / ADR-0015 (≥3-token) / ADR-0016 (system-artifact naming)
+**Relates:** `maintenance` · `vault-structure` specs · change `runbook-naming-3token` · extends ADR-0011 (spec-as-code
+runbooks) / ADR-0012 (daily close lifecycle) / ADR-0015 (≥3-token) / ADR-0016 (system-artifact naming)
 
 ## Context
 

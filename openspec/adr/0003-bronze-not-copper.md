@@ -8,12 +8,14 @@
 ## Context
 
 The value pipeline needs a grade system that:
+
 1. Measures **value only**, never effort (conflating the two is the classic PKM
    failure mode — high-effort low-value work gets over-promoted)
 2. Provides an at-a-glance ranking without requiring a lookup
 3. Has a clear threshold between "refine automatically" and "human decides"
 
 Options for the grade names:
+
 - **coal / copper / silver / gold** — familiar metals, but "copper" doesn't carry
   an unambiguous relative ranking intuition
 - **coal / bronze / silver / gold** — Olympic medal system: bronze = recognizable
@@ -23,6 +25,7 @@ Options for the grade names:
   doesn't compose well with the mining metaphor
 
 The threshold choice:
+
 - Auto-refine at `bronze` and above → too aggressive; bronze is marginal
 - Auto-refine at `silver` and above → human decides bronze; coal auto-slags
 - Auto-refine at `gold` only → under-automated

@@ -64,6 +64,7 @@ flowchart LR
 ```
 
 **Reading guide:**
+
 - Solid arrows → material flow (mandatory path)
 - Dashed arrows `-.->` → rare / observing paths
 - Thick arrow `==>` → the primary value deposit (ore becomes bullion)
@@ -112,6 +113,7 @@ stateDiagram-v2
 ```
 
 **Reading guide:**
+
 - `slagged` is the only re-entrant state — it can return to `ore` via re-prospect
 - `spent` and `waste` are true terminal states (no exit transition)
 - `refining` is a process, not a folder — it bridges Sites → Treasury
@@ -175,6 +177,7 @@ flowchart TB
 ```
 
 **Reading guide:**
+
 - The `Approve?` gate (green diamond) is the single chokepoint — nothing reaches the Treasury without it
 - The red dashed denial node shows the structurally impossible path: agent cannot write directly to Treasury (INV-4)
 - Handoff boundaries: Agent→Human = proposal JSON only; Human→Script = approved JSON only
@@ -224,6 +227,7 @@ flowchart TD
 ```
 
 **Reading guide:**
+
 - First decision: discard or keep? (proven false → Spoil)
 - Second: does it need special handling? (ultravaluable/ambiguous → Crucible)
 - Third: grade-gate check (silver/gold auto-refine; coal/bronze need manual decision)
@@ -291,6 +295,7 @@ flowchart TD
 ```
 
 **Reading guide:**
+
 - Top-to-bottom = touch frequency order (daily areas first, infrastructure last)
 - Folder number prefix = sort order in any file explorer
 - Subgraph colour = layer membership
@@ -334,6 +339,7 @@ flowchart LR
 ```
 
 **Reading guide:**
+
 - `render` is always user-invoked — no automation deploys to host without a human command
 - `reconcile` detects drift; it never overwrites (INV-3)
 - The dashed denial node: host artifacts are never authoritative and must never auto-update the source
@@ -402,13 +408,17 @@ flowchart LR
 ```
 
 **Reading guide:**
-- **Green thick path** is the only route into the protected zone: assigned Site → proposal → human → gate → script → Treasury. Every link passes through the human.
-- **Red thin dashed lines** are not rules the agent follows — they are capabilities it does not have. Each is annotated with the invariant that makes it structurally impossible.
+
+- **Green thick path** is the only route into the protected zone: assigned Site → proposal → human → gate → script →
+  Treasury. Every link passes through the human.
+- **Red thin dashed lines** are not rules the agent follows — they are capabilities it does not have. Each is
+  annotated with the invariant that makes it structurally impossible.
 - The agent box (blue tint) and the protected zone (red tint) never touch except through the gate.
-- Agent read access (not drawn): R on `10-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud bootstrap. Reads do not threaten containment; writes do.
+- Agent read access (not drawn): R on `10-Logbook`, `70-Tailings`, restricted R on `40-Treasury` during cloud
+  bootstrap. Reads do not threaten containment; writes do.
 
 | Denied path | Invariant |
-|---|---|
+| --- | --- |
 | Agent → Treasury (write) | INV-4 |
 | Agent → Operations | INV-5 |
 | Agent → `_refine-approved/` | cannot self-promote |

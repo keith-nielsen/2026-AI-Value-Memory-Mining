@@ -10,7 +10,9 @@ protects: [INV-4, INV-5, INV-8, INV-11]
 Define the Phase 3 agent-assisted refine harness: the proposal contract, the dry-run
 scaffolding, and the Hermes Agent runtime mapping. Build is spec-only in Phase 3;
 live wiring is deferred (§14.1).
+
 ## Requirements
+
 ### Requirement: Phase 3 Harness — Spec-Only Scaffolding
 
 The Phase 3 harness SHALL be built as disabled-by-default scaffolding:
@@ -25,15 +27,18 @@ with `is_valid_slug()` before deposit — local rejection before the executor's
 boundary check (INV-11, dual enforcement).
 
 #### Scenario: Dry-run produces a schema-valid proposal
+
 - **WHEN** the harness runs in `--dry-run` mode against a fixture Site
 - **THEN** it writes a JSON file to `20-Claims/_refine-proposals/` that validates against the proposal schema (§12.10)
 - **THEN** it makes no network call
 
 #### Scenario: Harness has no Treasury write path
+
 - **WHEN** the harness source is inspected
 - **THEN** there is no code path that opens, creates, or writes any file under `40-Treasury/` or `99-Operations/`
 
 #### Scenario: Harness rejects non-conforming target_note
+
 - **WHEN** the harness is given a fixture proposal with `target_note` stem `Bad:Name`
 - **THEN** it rejects it locally and writes nothing to `_refine-proposals/`
 
@@ -60,12 +65,14 @@ this agent output contract schema:
 ```
 
 Agent rules (from the prompt contract in `99-Operations/schemas/refine-prompt-contract.md`):
+
 - Distill, don't transcribe; uncertain findings go in `provenance_md`, not `insight_md`
 - Use only pillar values from `PILLARS` and grade values from `GRADES`
 - Flag suspected duplicates in `provenance_md`
 - `target_note` stem must be a valid kebab-case slug
 
 #### Scenario: Executor enforces the slug rule at the boundary
+
 - **WHEN** a fixture proposal with `target_note` stem `Bad:Name` is placed in `_refine-approved/`
 - **THEN** the refine executor rejects it with `REJECT: target_note stem 'Bad:Name' is not a valid kebab slug`
 - **THEN** it writes nothing to `40-Treasury/`
@@ -76,7 +83,7 @@ When Phase 3 is activated (live wiring deferred), the harness SHALL run as a
 Hermes Kanban worker with the following fixed mapping:
 
 | Parameter | Value | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Workspace | `dir:<VAULT_ROOT>/30-Sites/<slug>` | Absolute path; preserved on completion |
 | Dispatch mode | One-shot (not `--goal`) | Per-turn judge loop risks flooding local LLM |
 | Done state | `kanban_complete()` on deposit | Kanban done ≠ Treasury write |
@@ -90,14 +97,17 @@ by the executor + commit-gate hook, not by the runtime. The hook fires on every
 commit, including the worker's.
 
 Operational constraints for activation (not build items — Hermes config):
+
 - Cap `kanban.max_in_progress` to avoid flooding local LLM
 - Single-host boards — the two workstations run separate boards
 - Run `hermes dashboard` on localhost only (never `--host 0.0.0.0`)
 
 #### Scenario: Worker deposit does not write Treasury
+
 - **WHEN** a Hermes refine worker completes a card
 - **THEN** it calls `kanban_complete()` after depositing a proposal in `_refine-proposals/`
-- **THEN** it writes nothing to `40-Treasury/` or `99-Operations/`; the commit-gate hook backstops the boundary on the worker's commit
+- **THEN** it writes nothing to `40-Treasury/` or `99-Operations/`; the commit-gate hook backstops the boundary on the
+  worker's commit
 
 ### Requirement: Verification Deliverables Are Transcripts
 

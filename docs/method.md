@@ -103,7 +103,7 @@ decision principle. When you have extractable value, you have ore.
 Set `status: ore`. Now estimate the grade:
 
 | Grade | Meaning |
-|-------|---------|
+| ------- | --------- |
 | `gold` | Rare durable insight; changes how you operate |
 | `silver` | Solid finding; worth preserving and referencing |
 | `bronze` | Marginal; maybe worth keeping, maybe not |
@@ -195,7 +195,7 @@ Never re-mine Spoil. If you think something in `waste` was wrong, create a new C
 Pillars are your top-level life/knowledge domains. The default set ships with six:
 
 | Pillar | Scope |
-|--------|-------|
+| -------- | ------- |
 | `mental` | Cognition, psychology, mental models, philosophy |
 | `health` | Physical and wellbeing practices |
 | `financial` | Money, investing, economic reasoning |

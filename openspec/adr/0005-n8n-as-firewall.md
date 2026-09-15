@@ -7,11 +7,13 @@
 ## Context
 
 The agent pipeline (Phase 3+) needs an orchestration layer that:
+
 1. Controls which external services the agent runtime can reach (egress firewall)
 2. Provides event-driven triggers (new ore detected → dispatch refine card)
 3. Stays local-first and self-hostable (no SaaS dependency)
 
 Options:
+
 - **Direct Hermes → cloud/local-LLM** — no intermediary; maximum simplicity,
   minimum control; no egress filtering
 - **Zapier / Make** — cloud SaaS; violates the privacy/sovereignty posture of a

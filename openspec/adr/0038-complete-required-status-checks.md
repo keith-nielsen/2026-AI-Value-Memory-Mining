@@ -26,7 +26,7 @@ request revealed the exact context names. The ruleset was even **named for it** 
 contexts against **17** that actually run. The four unrequired ones were:
 
 | Context | Required? | Assessment |
-|---|---|---|
+| --- | --- | --- |
 | `Secret scan (INV-7)` | no | **Tier-0 invariant, runner could not block a merge** |
 | `INV-6 static (no fleet script calls the network)` | no | **Tier-0 invariant, same** |
 | `INV-6 dynamic (fleet suite in a network namespace)` | no | **Tier-0 invariant, same** |
@@ -89,7 +89,7 @@ A ruleset `PUT` **replaces the entire `rules` array**, so a hand-written payload
 `pull_request`, `deletion` or `non_fast_forward`. The applied method was: fetch the live ruleset,
 mutate only the `required_status_checks` context list, send it back —
 
-```
+```bash
 gh api -X PUT /repos/keith-nielsen/2026-AI-Value-Memory-Mining/rulesets/19666243 --input <payload>
 ```
 

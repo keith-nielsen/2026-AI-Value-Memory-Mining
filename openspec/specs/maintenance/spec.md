@@ -34,17 +34,20 @@ updated: YYYY-MM-DD
 ```
 
 #### Scenario: render deploys all scripts and reconcile confirms zero drift
+
 - **WHEN** `vault-render.py render` is run after Phase 1
 - **THEN** an executable file is produced at each `deploy_target` declared in the scripts
 - **WHEN** `vault-render.py reconcile` is then run
 - **THEN** it reports `ok` for all scripts (zero drift)
 
 #### Scenario: reconcile detects but does not fix drift
+
 - **WHEN** a deployed host script is hand-edited after render
 - **THEN** `reconcile` reports `DRIFT: <target> differs from <source>`
 - **THEN** reconcile does not overwrite the deployed file (INV-3)
 
 #### Scenario: render refuses a note that breaks the single-fence rule
+
 - **WHEN** `vault-render.py render` (or `reconcile`) encounters a meta-script note with zero or
   more than one `python|bash` code fence
 - **THEN** it prints `VIOLATION: <note> has N code fences (exactly 1 required)`, renders nothing
@@ -58,6 +61,7 @@ of what AI tools are installed. This is a hard invariant; scripts that would
 require network access are `[agent]` operations, not scripts.
 
 #### Scenario: A deterministic script makes no network or LLM call
+
 - **WHEN** any `[script]` operation runs
 - **THEN** it completes using only local filesystem and Git operations
 - **THEN** it issues no network request and invokes no model
@@ -75,12 +79,14 @@ Uncommitted operator working-tree content is never captured by a script commit.
 Commit message format: `<verb>: <subject>` (e.g., `bank: trustless-provenance-sealing`).
 
 #### Scenario: A banked proposal is one atomic commit
+
 - **WHEN** the refine executor applies an approved proposal
 - **THEN** it produces exactly one commit (`bank: <stem>`) containing the knowledge note, the
   appended Catalog index links, and the consumed proposal's deletion (when the proposal was
   tracked) — and nothing else
 
 #### Scenario: A mover seals with a scoped commit, never a sweep
+
 - **WHEN** `vault-slag.sh <slug>` moves an effort while unrelated uncommitted changes exist
   elsewhere in the working tree
 - **THEN** the commit contains exactly the moved effort, and the unrelated changes remain
@@ -102,7 +108,7 @@ dated log that only a human could author, and that git already records, is a los
 commit history rather than a second source.
 
 | Script note | Deploy target | Runtime | Purpose |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `render-reconcile-script.md` | `99-Operations/bin/vault-render.py` | manual | Deploy Layer-0 code blocks to their in-tree targets; detect drift |
 | `knowledge-lint-script.md` | `99-Operations/bin/vault-lint.py` | manual / pre-commit | Validate Treasury frontmatter and name conformance |
 | `treasury-orphan-script.md` | `99-Operations/bin/vault-orphans.py` | manual | Report Treasury notes not linked from any Catalog index (INV-12); detection only |
@@ -144,18 +150,23 @@ redundant exactly where it also stops being correct: with the script-directory p
 the only resolver — and it names a location the fleet no longer occupies.
 
 #### Scenario: Retiring a script removes its deploy target in lockstep
+
 - **WHEN** a script note is removed from the inventory
 - **THEN** its deploy target is deleted from the host in the same apply — `reconcile` iterates
   **notes**, so a deployed artifact whose note no longer exists is invisible to drift detection and
   would persist as operational code outside the render inventory (the R8 gap)
 
 #### Scenario: Push-guard denies an un-allowlisted push
+
 - **WHEN** `git push` runs from a deployed vault and the target remote URL is not listed in `PUSH_ALLOWLIST` or `PUBLIC_REMOTE_ALLOWLIST`
 - **THEN** the `pre-push` hook aborts the push (non-zero) with an INV-14 message
 
 #### Scenario: Push-guard applies the path-level manifest to a public remote
-- **WHEN** `git push` targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the diff includes a path not in `publish-manifest.json` `public_allow`
-- **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation; a push whose paths are all allowlisted is permitted
+
+- **WHEN** `git push` targets a remote in `PUBLIC_REMOTE_ALLOWLIST` and the diff includes a path not in
+  `publish-manifest.json` `public_allow`
+- **THEN** the `pre-push` hook aborts with an INV-14 path-boundary violation; a push whose paths are all allowlisted
+  is permitted
 
 ### Requirement: Runbook Format
 
@@ -170,12 +181,15 @@ to an `unknown/other` fallback over an enumerated state list. Harness files (`CL
 duplicate it.
 
 #### Scenario: runbook-lint validates a runbook
+
 - **WHEN** `runbook-lint` runs on a `96-Runbooks/*.md` file
 - **THEN** it exits 0 only if the required frontmatter keys and body sections are all present, and exits 1 otherwise
 
 #### Scenario: A runbook is harness-agnostic
+
 - **WHEN** the canonical runbook file is read
-- **THEN** it contains no tool-specific invocation as its source of truth (any Claude Code / Hermes specifics live in adapter files that reference it)
+- **THEN** it contains no tool-specific invocation as its source of truth (any Claude Code / Hermes specifics live in
+  adapter files that reference it)
 
 ---
 
@@ -204,6 +218,7 @@ pre-sourced environment. A hook that needs the vault root SHALL derive it from i
 caller's environment.
 
 #### Scenario: A drive-path script runs bare with no pre-sourced environment
+
 - **WHEN** a rendered drive-path script is invoked by its bare exact form (e.g.
   `99-Operations/bin/vault-refine-detect.py`) from a shell with no `VAULT_ROOT` set, cwd inside the vault
 - **THEN** it resolves the vault root via the config marker walk and completes normally
@@ -211,34 +226,40 @@ caller's environment.
 - **THEN** it prints a `BLOCKED:` line and exits `3`
 
 #### Scenario: A gate refusal is machine-distinguishable from success
+
 - **WHEN** `vault-slag.sh <slug>` runs for an effort whose source directory does not exist
 - **THEN** it prints a `BLOCKED:` line and exits `3`
 - **WHEN** the same mover runs for a valid effort
 - **THEN** it completes and exits `0`
 
 #### Scenario: The shared library self-check is read-only
+
 - **WHEN** `vault_lib.py` is executed bare inside a vault
 - **THEN** it prints the resolved root and a vocabulary summary, mutates nothing, and exits `0`
 
 #### Scenario: The commit-gate passes drive-path commits without environment
+
 - **WHEN** a drive-path script commits its owned artifact and the `core.hooksPath` pre-commit
   naming gate fires in a process with no `VAULT_ROOT` set
 - **THEN** the gate evaluates the staged names normally — INV-11 enforcement unchanged, a
   violating name is still `BLOCKED` — and does not fail on a missing environment variable
 
 #### Scenario: A repeated committing run is a clean no-op
+
 - **WHEN** a committing fleet script runs twice in a row with no underlying state change, so the
   second run's named paths are unchanged
 - **THEN** `commit_paths` prints an `unchanged — no commit needed` line, produces no commit, and
   exits `0` — it does not crash on an empty index
 
 #### Scenario: A scoped commit ignores unrelated staged content
+
 - **WHEN** unrelated files are already staged (e.g. by the operator) and a fleet script commits
   its owned artifact via `commit_paths`
 - **THEN** the resulting commit contains exactly the script's named paths, and the unrelated
   staged content remains staged and uncommitted
 
 #### Scenario: A shell mover is env-free, validated, and scoped
+
 - **WHEN** `vault-slag.sh <slug>` runs bare with no `VAULT_ROOT`, cwd inside the vault
 - **THEN** it resolves the root via the config marker walk; an invalid slug exits `1`
   (`INVALID` from the naming SSOT); a missing source or existing destination prints `BLOCKED:`
@@ -278,20 +299,24 @@ fleet contract); a fully applied (or empty) batch exits `0`. Rejected proposals 
 `_refine-approved/` for correction — the executor never deletes what it did not bank.
 
 #### Scenario: A malformed proposal is rejected without stopping the batch
+
 - **WHEN** the executor runs over a batch containing an unparseable or schema-incomplete proposal
   followed by a valid one
 - **THEN** the bad proposal is REJECTed with reasons, nothing of it is written, and the valid
   proposal is still banked with its atomic commit; the run exits `1`
 
 #### Scenario: Create never overwrites refined value
+
 - **WHEN** a `create` proposal targets a note that already exists in `40-Treasury/`
 - **THEN** the proposal is REJECTed (`INV-9`) and the existing note is byte-identical afterwards
 
 #### Scenario: A missing Catalog target rejects the whole proposal pre-write
+
 - **WHEN** a proposal names an `index_links` entry that does not exist
 - **THEN** the proposal is REJECTed and the knowledge note is NOT created — no half-applied state
 
 #### Scenario: An empty index_links defaults to the pending-catalog holding index
+
 - **WHEN** an approved proposal's `index_links` is an explicit empty list and
   `40-Treasury/Catalog/pending-catalog-index.md` exists
 - **THEN** the executor does NOT reject it; it banks the note and links it into
@@ -299,6 +324,7 @@ fleet contract); a fully applied (or empty) batch exits `0`. Rejected proposals 
   awaiting-catalog queue for later re-homing into its pillar index
 
 #### Scenario: A path escape is rejected
+
 - **WHEN** a proposal's `target_note` resolves outside `40-Treasury/` (e.g. via `..`) or an index
   link resolves outside `40-Treasury/Catalog/`
 - **THEN** the proposal is REJECTed with a containment reason and nothing is written
@@ -315,12 +341,14 @@ The fleet SHALL declare and honor explicit floors, so implementers and future mo
   assumed; Windows is an explicit non-goal (documented, not silently broken).
 
 #### Scenario: Hook-critical paths run without the venv
+
 - **WHEN** the pre-commit naming gate or `vault_naming.py --check` runs on a system Python with
   no third-party packages installed
 - **THEN** it completes normally — no `frontmatter` (or other third-party) import is reached on
   that path
 
 #### Scenario: A new third-party dependency is a governed decision
+
 - **WHEN** a change proposes any import beyond the standard library and `python-frontmatter`
 - **THEN** it names the dependency in its proposal and updates this requirement — silent
   dependency growth is a violation
@@ -338,17 +366,20 @@ constitution-override ceremony template SHALL exist at `openspec/templates/const
 and CI SHALL assert its presence at that path.
 
 #### Scenario: The pinned CLI makes validation reproducible
+
 - **WHEN** a contributor or CI runs `openspec validate --all --strict` after `npm install`
 - **THEN** the `@fission-ai/openspec` version resolved is exactly the one pinned in `package.json`
 - **THEN** the pin advances only through a change that re-proves the corpus validates green under the new version
 
 #### Scenario: A ceremony template is not enumerated as a change
+
 - **WHEN** `openspec validate --all` runs against the repository
 - **THEN** the constitution-override template at `openspec/templates/constitution-override/proposal.md` is
   NOT enumerated as a change and cannot fail the "change must have ≥1 delta" rule
 - **THEN** no blank scaffold resides under `openspec/changes/`
 
 #### Scenario: CI asserts the ceremony template exists at its fixed path
+
 - **WHEN** the constitution-lint CI job runs
 - **THEN** it fails if `openspec/templates/constitution-override/proposal.md` is absent
 - **THEN** every reference to the template across specs, docs, and workflows points at that same path
@@ -383,12 +414,14 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
   satisfies a required context cannot be dry-run on this plan.
 
 #### Scenario: PR without a Declared-scope block fails extraction
+
 - **WHEN** a pull request is opened whose body contains no fenced ```scope block
 - **THEN** the `scope-review` job fails at the extraction step, naming the fix (add the block per
   the PR template), and no checker invocation occurs
 - **THEN** the failure is not suppressed — the job has no `continue-on-error`
 
 #### Scenario: Diff touching an undeclared path is a failing finding
+
 - **WHEN** the PR diff modifies a file matched by no declared entry (e.g. an undeclared
   `docs/` file riding along with a scripts change)
 - **THEN** the checker reports a `scope.file` finding and the threshold step exits non-zero,
@@ -397,15 +430,18 @@ deterministically (INV-6 posture at the CI layer — offline, no LLM in the deci
 - **THEN** the lifecycle driver refuses to emit a merge command while that check is failing
 
 #### Scenario: Declared-only diff passes
+
 - **WHEN** every path in the PR diff is matched by a declared entry (exact path or directory
   prefix) and no undeclared dependencies/endpoints/env-vars are introduced
 - **THEN** the threshold step exits 0 and reports PASS with any low-severity advisories
 
 #### Scenario: Checker crash fails closed
+
 - **WHEN** the comparator receives a missing or malformed scope file or diff
 - **THEN** it exits non-zero (fail-closed); the gate never passes by silence
 
 #### Scenario: The job is renamed only while its context is unrequired
+
 - **WHEN** the job's `name` is changed, since the name is the check-context identity
 - **THEN** the change is made while the context is absent from the ruleset's required contexts
 - **THEN** any later addition to required contexts uses the new name, so no required context is
@@ -433,16 +469,19 @@ performs a networked GitHub call to enforce parity; the guarantee is the mandato
 step.
 
 #### Scenario: Shipping a version creates and verifies its Release
+
 - **WHEN** a merged change is shipped as `vX.Y.Z`
 - **THEN** the ceremony creates the annotated tag, creates the GitHub Release for it, and verifies with
   `gh release view vX.Y.Z` that the Release exists and is marked Latest before the ship is complete
 
 #### Scenario: A tag without a Release is an incomplete ship
+
 - **WHEN** a `vX.Y.Z` tag exists on the remote but `gh release view vX.Y.Z` does not resolve
 - **THEN** the ship is not complete; the release-creation step is performed (backfilled) so tag/Release
   parity holds
 
 #### Scenario: Release creation passes through the outbound hard stop
+
 - **WHEN** the agent runs `gh release create` (or the tag push) during a ship
 - **THEN** the INV-14 outbound guard raises the ASK hard stop, and the agent first presents an overview
   summary plus the absolute path to the governing `proposal.md`; the step proceeds only on explicit
@@ -574,40 +613,47 @@ references the repo) and NOT a CI gate (CI has no live vault to compare against)
   (no resolvable live vault, or a manifest with no lockstep prefixes).
 
 #### Scenario: A clean mirror reports zero drift
+
 - **WHEN** `tools/template-parity.py <VAULT_ROOT>` runs after a complete mirror
 - **THEN** every non-excluded file under each lockstep prefix is byte-identical between
   `vault-template/` and the live vault, it prints the count of files checked with `0 drift`, and
   exits `0`
 
 #### Scenario: A hand-edited or unmirrored lockstep file is drift
+
 - **WHEN** a deployed lockstep file differs from the template it was shipped from (an incomplete
   mirror, or a local edit)
 - **THEN** the tool prints `DIFFERS: <path>` and exits `1` — the incomplete apply is surfaced, and
   the tool does not modify either tree
 
 #### Scenario: A lockstep file present in only one tree is drift
+
 - **WHEN** a file under a lockstep prefix exists in the template but not the live vault (or the
   reverse)
 - **THEN** the tool prints `MISSING-IN-LIVE: <path>` (or `MISSING-IN-TEMPLATE: <path>`) and exits `1`
 
 #### Scenario: A generated artifact under a lockstep prefix is excluded, not flagged
+
 - **WHEN** a file listed in the manifest `exclude` (e.g. `naming-rules.json`) exists only in the live
   vault because the vault generates it
 - **THEN** the tool does NOT report it as drift; it is counted as excluded and the run can still exit
   `0`
 
 #### Scenario: No resolvable live vault is a blocked run, not a false pass
+
 - **WHEN** the tool is invoked with neither a live-vault argument nor `$VAULT_ROOT`, or against a
   path that is not a vault
 - **THEN** it prints a `BLOCKED:` line and exits `3` — it never reports parity by silence
 
 #### Scenario: A drifted runbook or ceremony command is detected, not silently tolerated
+
 - **WHEN** a deployed vault's `96-Runbooks/` or `.claude/commands/` file differs from the template
   it was shipped from — including by being an older revision that never received a mirror
 - **THEN** the tool reports it as `DIFFERS` and exits `1`, so a governance artifact that exists in
   the framework but never arrived in the vault cannot read as deployed
 
 #### Scenario: Per-instance configuration is not compared
+
 - **WHEN** a deployed vault's `.claude/settings.json`, `CLAUDE.md` or Catalog indexes differ from the
   template
 - **THEN** the tool does NOT report drift — these are seed, owned by the instance, and comparing them
@@ -624,11 +670,13 @@ genuinely new index named in `index_links` is still linked. INV-12 reachability 
 banked note remains reachable via ≥1 Catalog index.
 
 #### Scenario: Appending to an already-catalogued note does not duplicate its link
+
 - **WHEN** an `append` proposal names an `index_links` index that already contains `- [[<stem>]]`
 - **THEN** the executor extends the note and leaves that index unchanged — the bullet appears once,
   not twice — and the bank still produces its one atomic commit
 
 #### Scenario: A new index is still linked
+
 - **WHEN** a proposal names an `index_links` index that does NOT yet contain `- [[<stem>]]`
 - **THEN** the executor appends `- [[<stem>]]` to that index, so the note is reachable from it
 
@@ -758,7 +806,8 @@ SHALL exit with a distinct status of **4** and a message that names the path, st
 traceback for this case, and SHALL re-raise any other `OSError` unchanged.
 
 The denial itself is correct and is not relaxed: `vault-render.py render` writes only
-`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py` in emit
+`deploy_target`s (`99-Operations/bin/`, `99-Operations/hooks/`, `.claude/hooks/` — all in-tree) and `vault_naming.py`
+in emit
 mode writes only `99-Operations/schemas/naming-rules.json` — all areas the matrix marks `A: —` or
 places outside the vault. What changes is legibility. A bare traceback carries no signal that the
 failure is intentional, so the reader's first hypothesis is a broken deploy, a missing dependency, or a
@@ -771,6 +820,7 @@ Exit **4** is reserved for "denied by design" so that a caller can distinguish i
 reports drift, and `vault_naming.py --check` / `--check-strict` still gate commits.
 
 #### Scenario: Render refused by the sandbox explains itself
+
 - **WHEN** `vault-render.py render` attempts a `deploy_target` write and the OS sandbox refuses it with
   `EROFS`
 - **THEN** it prints the blocked path, states that render is an operator-only path denied by design,
@@ -779,12 +829,14 @@ reports drift, and `vault_naming.py --check` / `--check-strict` still gate commi
 - **THEN** it exits **4**, and no traceback is printed
 
 #### Scenario: Schema regeneration refused by the sandbox explains itself
+
 - **WHEN** `vault_naming.py` is run in emit mode and the write to
   `99-Operations/schemas/naming-rules.json` is refused with `EROFS`
 - **THEN** it prints an equivalent operator-only message and exits **4**
 - **THEN** `--check` and `--check-strict` are unaffected, so the commit gate continues to function
 
 #### Scenario: A genuine I/O fault is not swallowed
+
 - **WHEN** either script's write fails with an `OSError` whose `errno` is **not** `EROFS` — a full disk,
   a permission error, a missing parent
 - **THEN** the exception propagates unchanged, so a real fault is never disguised as a governance denial
@@ -827,35 +879,41 @@ gate.
   success) · `3` blocked (no resolvable live vault, or a manifest with no LOCKSTEP prefixes).
 
 #### Scenario: An already-mirrored vault is a no-op
+
 - **WHEN** `tools/template-mirror.py <VAULT_ROOT>` runs against a vault already byte-identical to the
   template's LOCKSTEP scaffold
 - **THEN** it copies nothing, the filesystem is unchanged, it prints the denominator'd tally with
   `0 drift`, and exits `0`
 
 #### Scenario: A missing lockstep file is mirrored forward
+
 - **WHEN** a LOCKSTEP file exists in `vault-template/` but is absent from the live vault
 - **THEN** the tool copies it repo → live (creating parent directories), re-derives parity showing
   `0 drift`, and exits `0`
 
 #### Scenario: A differing lockstep file is overwritten with the repo's bytes
+
 - **WHEN** a LOCKSTEP file exists in both trees with differing content (an incomplete or hand-edited
   mirror)
 - **THEN** the tool overwrites the live copy with the template's bytes, re-verifies byte-identical,
   and exits `0` — it never writes to the repo
 
 #### Scenario: A live-only lockstep file is reported, not deleted
+
 - **WHEN** a file exists under a LOCKSTEP prefix in the live vault only, with no counterpart in the
   template
 - **THEN** the tool does NOT delete or modify it, prints it under a distinct `MISSING-IN-TEMPLATE`
   header, and exits `2` — success and "found something needing a human" are visibly different states
 
 #### Scenario: An excluded generated artifact is never touched
+
 - **WHEN** a file listed in the manifest `exclude` (e.g. `naming-rules.json`, generated into the live
   vault by `vault_naming.py`) differs between the two trees
 - **THEN** the tool leaves it untouched and does not count it in the checked/drift tally, matching the
   parity check's behavior exactly
 
 #### Scenario: No resolvable live vault is a blocked run, not a false pass
+
 - **WHEN** the tool is invoked with neither a live-vault argument nor `$VAULT_ROOT`, or against a path
   that is not a vault
 - **THEN** it prints a `BLOCKED:` line and exits `3` — it never reports a mirror by silence
@@ -944,6 +1002,7 @@ text-matches the command the caller runs — keeps firing on every outward step.
 command, and the driver verifies on re-invocation that the action actually completed.
 
 #### Scenario: The branch does not contain the base tip
+
 - **WHEN** the driver runs on a branch that is not a descendant of the base's remote tip
 - **THEN** it emits a rebase command and exits `2`
 - **THEN** it does not emit any push, pull-request-create, or merge command
@@ -952,36 +1011,43 @@ command, and the driver verifies on re-invocation that the action actually compl
   about its own change
 
 #### Scenario: The base ref could not be refreshed
+
 - **WHEN** the fetch of the base ref fails
 - **THEN** the driver reports the base as UNVERIFIED and refuses to advance
 - **THEN** it does not evaluate base-currency against the stale remote-tracking ref
 
 #### Scenario: A local operation is still in progress
+
 - **WHEN** `.git/rebase-merge`, `.git/rebase-apply`, `.git/MERGE_HEAD`, or `.git/CHERRY_PICK_HEAD`
   is present
 - **THEN** the driver refuses with exit `1` and names the marker it found
 - **THEN** the refusal states that a half-finished rebase silently blocks branch deletion later
 
 #### Scenario: The remote branch has diverged from local
+
 - **WHEN** the remote branch exists and its commit SHA (secure hash algorithm value, the identifier
   of a commit) differs from the local branch SHA
 - **THEN** the emitted push command uses `--force-with-lease` and never a bare `--force`
 
 #### Scenario: A local command is emitted while another branch is checked out
+
 - **WHEN** the branch under test needs a local mutation and is not the checked-out branch
 - **THEN** the driver emits the branch switch first and does not emit the mutation
 
 #### Scenario: An emitted command is not executable as written
+
 - **WHEN** a required input for the next command is absent
 - **THEN** the driver refuses with exit `1` and names the missing input
 - **THEN** it does not emit a command containing a placeholder
 
 #### Scenario: A merge reports success but the branch survives
+
 - **WHEN** the pull request is merged and the remote branch still resolves on origin
 - **THEN** the driver emits the branch-deletion command rather than reporting the lifecycle complete
 - **THEN** the emitted reason states that the deletion is not implied by the merge's success report
 
 #### Scenario: The lifecycle has already completed
+
 - **WHEN** the branch is absent both locally and on origin and its pull request is merged
 - **THEN** the driver reports the lifecycle complete and exits `0`
 
@@ -997,12 +1063,14 @@ preconditions have not been reached, because an unreached step's command is a pr
 indistinguishable in the output from a verified one.
 
 #### Scenario: A route is requested before the lifecycle begins
+
 - **WHEN** `--plan` is invoked
 - **THEN** every remaining step is listed with its executor and its authority
 - **THEN** each step is marked as measured or projected
 - **THEN** no command text appears for any projected step
 
 #### Scenario: A step is emitted
+
 - **WHEN** the driver emits the next command
 - **THEN** the output also carries the route header showing position and remaining steps
 
@@ -1017,17 +1085,20 @@ For any step whose authority rests with the operator, the driver SHALL print wha
 in reviewable terms, and SHALL keep that statement short enough to be read rather than skipped.
 
 #### Scenario: A command the agent can run requires the operator's authority
+
 - **WHEN** the next command is a `git` push that the capability probe reports as runnable
 - **THEN** the driver names the agent as executor and the operator as authority
 - **THEN** it names the outbound ask as the mechanism by which that authority is discharged
 - **THEN** it does not instruct the operator to run the command themselves
 
 #### Scenario: A command the agent cannot run
+
 - **WHEN** the next command requires a credential this process does not hold
 - **THEN** the driver names the operator as executor
 - **THEN** the reason states both the technical cause and the policy that keeps it so
 
 #### Scenario: A push is emitted from a session whose working directory is a deployed vault
+
 - **WHEN** any push command is emitted
 - **THEN** it carries an explicit effective-target redirect
 - **THEN** the emitted command is not a bare push that the outbound guard would resolve to the vault
@@ -1044,16 +1115,19 @@ expiry and SHALL refuse to execute once stale, and consent recorded against one 
 over to a different one.
 
 #### Scenario: The head moved between emission and execution
+
 - **WHEN** a merge is requested with a head SHA that no longer matches the pull request
 - **THEN** the merge is refused by the platform and does not occur
 - **THEN** the driver reports the refusal as a raced state rather than a failure of the change
 
 #### Scenario: A saved plan is run after the state changed
+
 - **WHEN** a generated command file is executed and the asserted preconditions no longer hold
 - **THEN** the assertion fails and the mutation does not run
 - **THEN** the output states which precondition moved
 
 #### Scenario: A saved plan is run after it expires
+
 - **WHEN** a generated command file is executed past its stated expiry
 - **THEN** it refuses and directs the caller to re-derive the plan
 
@@ -1086,47 +1160,56 @@ as the merge is observed to have landed, so that the cleanup steps which legitim
 suppressed.
 
 #### Scenario: No check runs have registered yet
+
 - **WHEN** the head commit has zero check runs
 - **THEN** the driver reports NOT READY and exits `2`
 - **THEN** it does not report the checks as green and does not emit a merge
 
 #### Scenario: Mergeability has not been computed
+
 - **WHEN** the mergeability of the pull request is reported as uncomputed
 - **THEN** the driver reports NOT READY and exits `2`
 - **THEN** it does not treat an uncomputed result as mergeable
 
 #### Scenario: A wait is required
+
 - **WHEN** the driver reports that it is waiting on a platform condition
 - **THEN** it names a probe that tests that condition and returns an exit code
 - **THEN** it does not describe a wait that has no way to be tested
 
 #### Scenario: The read budget is nearly exhausted
+
 - **WHEN** the remaining rate budget falls below the cost of a further invocation
 - **THEN** the driver reports the remaining budget and the time until it resets
 
 #### Scenario: The mutation's response asserts a state the read view does not yet show
+
 - **WHEN** the driver is verifying a merge and the captured response of that merge asserts it landed
 - **THEN** the driver routes to the post-merge path on the strength of that response
 - **THEN** it confirms against the read view with bounded lag tolerance rather than requiring the read
   view to agree before it will proceed
 
 #### Scenario: Two endpoints disagree about the same fact
+
 - **WHEN** one read reports a pull request merged and another read of the same pull request does not
 - **THEN** the driver does not treat the endpoint it consulted first as authoritative
 - **THEN** it reports the disagreement rather than silently adopting either answer
 
 #### Scenario: A read returns nothing while a mutation is being verified
+
 - **WHEN** the driver is verifying a mutation and the read returns an empty result
 - **THEN** the driver treats the result as no answer yet
 - **THEN** it does not conclude that the mutation did not occur
 
 #### Scenario: A merge is being verified and the read view has not caught up
+
 - **WHEN** the driver is verifying a merge and no read confirms it within the retry ladder
 - **THEN** the driver reports WAITING and exits `2`
 - **THEN** it emits no command belonging to any step that precedes the merge, including local commands
   such as a rebase
 
 #### Scenario: The merge is confirmed and cleanup remains
+
 - **WHEN** the driver observes that the merge has landed while verifying it
 - **THEN** the restriction on emitting earlier steps is released
 - **THEN** the cleanup steps that follow the merge are emitted normally
@@ -1142,10 +1225,12 @@ for editing a pull request can fail
 silently behind a deprecated layer.
 
 #### Scenario: A body-derived check is failing after the body was corrected
+
 - **WHEN** the failing check derives its input from the pull request body
 - **THEN** the driver prescribes a push and states that a re-run would replay the stale payload
 
 #### Scenario: The body is corrected
+
 - **WHEN** the pull request body or title requires correction
 - **THEN** the emitted command uses the REST endpoint
 - **THEN** the driver re-reads the field afterwards to confirm the change landed
@@ -1159,11 +1244,13 @@ from a stored table or from recollection, because the environment that determine
 sessions and a stored answer preserves a wrong one.
 
 #### Scenario: Capabilities are reported without network access
+
 - **WHEN** a probe cannot reach its endpoint
 - **THEN** the probe reports that capability as failed and exits `0`
 - **THEN** it does not raise, because a probe that crashes teaches its caller to skip probing
 
 #### Scenario: gh is unavailable but git is not
+
 - **WHEN** `gh` cannot authenticate while `git` push and anonymous reads succeed
 - **THEN** the report attributes `gh` mutations to the operator and `git` mutations to the agent
 - **THEN** the report states the mechanism, not merely the verdict
@@ -1176,11 +1263,13 @@ programming interface) before requiring
 any channel SHALL be reported as UNAVAILABLE and SHALL NOT be synthesised from another layer.
 
 #### Scenario: A sandboxed agent reads pull request state
+
 - **WHEN** `gh` cannot reach the operating system (OS) keyring and reports an authentication failure
 - **THEN** `tools/pr-state.py` continues over the anonymous channel instead of exiting blocked
 - **THEN** the output marks the report DEGRADED and names the channel that answered
 
 #### Scenario: A GraphQL-only layer cannot be read
+
 - **WHEN** the reporter is running on the degraded channel
 - **THEN** the GraphQL-only layers are reported as UNAVAILABLE
 - **THEN** no line attributes REST-sourced data to GraphQL
@@ -1195,6 +1284,7 @@ automation or causes the pull request to be recreated. Locality SHALL be determi
 foreign branch as local.
 
 #### Scenario: A Dependabot pull request is driven
+
 - **WHEN** the branch exists on origin but not under `refs/heads/`
 - **THEN** the driver reports the branch as not local and skips the rebase and push guards
 - **THEN** after the merge it leaves the remote branch in place
@@ -1209,16 +1299,19 @@ occur. Branch deletion SHALL be a separate step whose effect is verified. Where 
 is itself stacked, the driver SHALL say so.
 
 #### Scenario: A pull request has children stacked on it
+
 - **WHEN** an open pull request targets the branch being merged as its base
 - **THEN** the driver refuses with exit `1` and names each child pull request
 - **THEN** the refusal prescribes retargeting each child before this merge
 
 #### Scenario: A merge is emitted
+
 - **WHEN** the driver emits a merge command
 - **THEN** that command does not also delete the branch
 - **THEN** branch deletion is emitted separately and confirmed by a subsequent read
 
 #### Scenario: The pull request under test is itself a stacked child
+
 - **WHEN** the base is not the default branch
 - **THEN** the driver reports that the pull request is stacked
 
@@ -1231,19 +1324,23 @@ SHALL be reported when a new one is proposed for the same branch, so that creati
 stated consequence rather than an accident.
 
 #### Scenario: Two open pull requests share a head branch
+
 - **WHEN** more than one open pull request has the same head
 - **THEN** the driver refuses with exit `1` and names each
 - **THEN** it does not select one
 
 #### Scenario: The pull request cannot be merged
+
 - **WHEN** the platform reports the pull request as not mergeable
 - **THEN** the driver refuses with exit `1`
 
 #### Scenario: The pull request is a draft
+
 - **WHEN** the pull request is marked draft
 - **THEN** the driver refuses with exit `1`
 
 #### Scenario: A closed-unmerged pull request exists for the branch
+
 - **WHEN** no open pull request exists but a closed-unmerged one does
 - **THEN** the driver reports it before emitting a create command
 
@@ -1263,22 +1360,26 @@ Capability SHALL be distinguished from authority: a channel the agent can execut
 operator authorization (INV-14), and measuring the former never confers the latter.
 
 #### Scenario: A credential error is not reported as a network verdict
+
 - **WHEN** a `git` operation fails with a credential-storage-lock error naming a read-only filesystem
 - **THEN** the prime reports a write-channel failure
 - **THEN** it does not report the network, the remote, or any other credential channel as unavailable
 
 #### Scenario: Capability is measured before it is asserted
+
 - **WHEN** the session is asked what it can write or reach and the probe has not yet run
 - **THEN** the probe is run and the answer is derived from its output
 - **THEN** no capability claim is issued from a stored path list or from a previous session's memory
 
 #### Scenario: A changed write scope contradicts recollection
+
 - **WHEN** the configured write scope has changed since the claim was last true
 - **THEN** the probe reports the current scope
 - **THEN** the probed scope governs and the conflicting recollection is discarded, because a stored
   answer preserves a wrong one
 
 #### Scenario: One channel fails while another succeeds
+
 - **WHEN** `gh` mutations are unavailable because the operator credential is unreadable by the session
 - **THEN** the report still attributes `git` mutations and anonymous reads to the channels that serve them
 - **THEN** the session continues on the working channels instead of reporting itself blocked
@@ -1310,18 +1411,21 @@ over the merge history, not an inference from commit subjects: a dedicated archi
 imply a separate pull request.
 
 #### Scenario: A change is ready to merge
+
 - **WHEN** a change's tasks are complete and its pull request has not yet been opened
 - **THEN** the change directory is moved into the archive, its delta is applied to the capability spec,
   and the CHANGELOG entry is recorded on that same branch
 - **THEN** the pull request that merges the change also carries its archive
 
 #### Scenario: A concurrent change touches the same capability spec
+
 - **WHEN** another in-flight change carries a delta against the same capability spec
 - **THEN** the archive is deferred and applied in merge order
 - **THEN** the deferral names the concurrent change, and the resulting second pull request is recorded
   as the accepted cost of the exception
 
 #### Scenario: A change merged without being archived
+
 - **WHEN** a change reaches `main` with no archive
 - **THEN** a second pull request to archive it is owed and is tracked as owed
 - **THEN** the capability spec is understood to be lagging the repository until that pull request lands
@@ -1349,21 +1453,25 @@ The check SHALL report the citing file and line for each unresolved identifier, 
 alone does not locate the assertion that must be corrected.
 
 #### Scenario: An identifier is cited in workflow configuration but no record exists
+
 - **WHEN** CI configuration cites an ADR identifier that resolves to no file
 - **THEN** the check fails and names the citing file and line
 - **THEN** the failure is reported as an unresolved citation, distinctly from a numbering gap
 
 #### Scenario: A live change declares a record it owes
+
 - **WHEN** a change directory outside the archive cites an ADR identifier that does not yet exist
 - **THEN** the check passes for that citation
 - **THEN** no annotation is required on the citation, because its location establishes that it is a proposal
 
 #### Scenario: A change carrying a forward reference is archived
+
 - **WHEN** a change directory containing an unresolved ADR citation is moved into the archive
 - **THEN** the check fails for that citation
 - **THEN** the failure names the record that is now owed
 
 #### Scenario: A record is added out of sequence
+
 - **WHEN** a new ADR is added whose number leaves an earlier number unused
 - **THEN** the contiguity check fails and names the missing number
 - **THEN** the result does not depend on any literal range held in the check itself
@@ -1398,26 +1506,31 @@ report that the archives are ordered, and SHALL name the changes involved, becau
 to one spec file can overwrite each other without ever conflicting.
 
 #### Scenario: A declared scope does not cover the diff
+
 - **WHEN** a pre-flight runs against a branch whose diff exceeds the scope declared in its body
 - **THEN** the undeclared paths are named before the branch is pushed
 - **THEN** the report distinguishes the removed and added sides of a rename, both of which the diff carries
 
 #### Scenario: A change cites a record it does not ship
+
 - **WHEN** a live change's archived form would fail an archive-sensitive check
 - **THEN** the pre-flight reports that the change must defer its archive
 - **THEN** it names the artifact that must exist first, rather than reporting only that the check failed
 
 #### Scenario: Two live changes touch one capability spec
+
 - **WHEN** more than one live change carries a delta against the same capability spec
 - **THEN** the pre-flight reports the archives as ordered and names the changes
 - **THEN** the later change is directed to rebase before archiving
 
 #### Scenario: A check cannot run in this environment
+
 - **WHEN** a check fails because the environment cannot execute it rather than because the repository is wrong
 - **THEN** the pre-flight reports it as not runnable here and names the limitation
 - **THEN** the result is excluded from the findings and does not fail the pre-flight
 
 #### Scenario: A step is decided by the platform
+
 - **WHEN** a route step's outcome is held by the platform rather than by repository state
 - **THEN** the pre-flight reports it as not locally decidable
 - **THEN** it does not report a predicted outcome for that step
@@ -1476,38 +1589,45 @@ assertion — SHALL continue to derive their subject from the working directory,
 them.
 
 #### Scenario: The probe is run from the vault
+
 - **WHEN** the capability probe runs with the working directory inside the vault
 - **THEN** it measures the declared estate roots rather than the working directory
 - **THEN** the framework-repository channels are measured against `FRAMEWORK_ROOT`, not against the vault
 
 #### Scenario: A remoteless vault is reported
+
 - **WHEN** the vault has no configured remote
 - **THEN** the probe reports INV-14 as holding
 - **THEN** it does not report a failed remote read, a failed push, or an unresolved repository slug
 
 #### Scenario: A vault has acquired a remote
+
 - **WHEN** the vault has any configured remote
 - **THEN** the probe reports an INV-14 violation naming the remote
 - **THEN** the violation is reported as a finding, not as a working capability
 - **THEN** the probe does not attempt a push to establish whether the remote would accept one
 
 #### Scenario: The framework repository is not declared
+
 - **WHEN** `FRAMEWORK_ROOT` is unset
 - **THEN** every framework-repository layer is reported `UNDECLARED`
 - **THEN** no layer is reported `FAILED`, because an absent declaration is not a measured failure
 
 #### Scenario: A protected subtree refuses the probe's write
+
 - **WHEN** the probe attempts a write into a subtree under an autonomy ban and the write is refused
 - **THEN** the protection is reported as holding for that subtree
 - **THEN** no operator action is prescribed, because this is the expected result
 
 #### Scenario: A protected subtree accepts the probe's write
+
 - **WHEN** the write into a subtree under an autonomy ban succeeds
 - **THEN** the probe reports a protection failure naming the subtree
 - **THEN** the report states that the invariant is unenforced for the session and names the operator
   action, because the guard is enforced outside the vault and cannot be repaired from within it
 
 #### Scenario: The probe cannot remove the artifact it created
+
 - **WHEN** the probe's write succeeds and the removal of that artifact fails
 - **THEN** the probe reports the residue and its absolute path separately from the protection failure
 - **THEN** the report names the removal the operator must perform and the check confirming the residue
@@ -1530,16 +1650,19 @@ trailing remediation boilerplate in place of the diagnosis, and an unattributed 
 corrupted output.
 
 #### Scenario: A required value could not be resolved
+
 - **WHEN** an identifier a channel depends on cannot be resolved
 - **THEN** the probe reports the unresolved precondition and names it
 - **THEN** it does not attempt the dependent channel and does not report that channel as failed
 
 #### Scenario: The probe's own code raises
+
 - **WHEN** an exception is raised inside the probe rather than by the channel under test
 - **THEN** the report distinguishes a probe defect from a channel result
 - **THEN** no runtime exception text appears in a state column
 
 #### Scenario: A subprocess error is quoted
+
 - **WHEN** the probe quotes stderr from a command it ran
 - **THEN** the quotation is attributed to that command
 - **THEN** the line quoted is the one naming the cause, not the last line of the output
@@ -1584,29 +1707,34 @@ declaration the change is missing. A guard that reports only a verdict obliges i
 remedy, which is the condition under which readers learn to route around guards.
 
 #### Scenario: A protected specification is modified with no declaration
+
 - **WHEN** a diff modifies a specification file carrying a `protects:` frontmatter tag
 - **AND** the change supplies no constitutional-impact declaration
 - **THEN** the gate refuses the change
 - **THEN** the refusal names the touched file, the identifiers it carries, and the declaration required
 
 #### Scenario: A declaration states that nothing is overridden
+
 - **WHEN** a diff modifies a protected specification
 - **AND** the declaration names no overridden identifier
 - **THEN** the gate passes
 - **THEN** the gate does not evaluate whether the declaration is accurate
 
 #### Scenario: A declaration names an overridden identifier
+
 - **WHEN** a declaration names one or more overridden identifiers
 - **AND** the diff carries no `constitution-override` change directory
 - **THEN** the gate refuses the change
 - **THEN** the refusal names the identifiers claimed as overridden
 
 #### Scenario: A constitution-override change is evaluated by the gate
+
 - **WHEN** a diff carries a `constitution-override` change directory with its four gate sections present
 - **THEN** the gate passes
 - **THEN** the gate does not refuse the change on account of the protected files that change touches
 
 #### Scenario: A file quotes the protects tag in prose
+
 - **WHEN** a diff modifies a file that contains the string `protects:` in its body but carries no
   `protects:` frontmatter tag
 - **THEN** the gate does not fire
@@ -1614,6 +1742,7 @@ remedy, which is the condition under which readers learn to route around guards.
   outside the subject set on this basis
 
 #### Scenario: An archive synchronises a delta into a protected specification
+
 - **WHEN** a diff moves a change directory into the archive and applies its delta into a protected
   specification
 - **AND** the archived change directory carries a constitutional-impact declaration
@@ -1634,16 +1763,19 @@ The declaration SHALL be discoverable without network access and without a pull 
 so that the gate can be evaluated locally before a change is pushed.
 
 #### Scenario: The declaration is present only in the pull-request body
+
 - **WHEN** a change places its constitutional-impact declaration in the pull-request body alone
 - **THEN** the gate refuses the change
 - **THEN** the refusal states that the declaration must be committed to the tree
 
 #### Scenario: The gate is evaluated locally before any pull request exists
+
 - **WHEN** the gate runs against a local branch with no pull request open
 - **THEN** it reaches the same verdict it would reach in continuous integration
 - **THEN** it requires no network access to do so
 
 #### Scenario: A declaration is amended after review
+
 - **WHEN** a committed declaration is amended
 - **THEN** the amendment appears in the diff under review
 - **THEN** continuous integration re-evaluates the gate against the amended declaration
@@ -1684,34 +1816,40 @@ prefix that displaces a leading directory change — and a guard that reports on
 its reader to find the cause at the moment they have already demonstrated they cannot.
 
 #### Scenario: The emitted command is run verbatim
+
 - **WHEN** an outward command targets a governed repository
 - **AND** it is byte-identical to a live recorded emission for the current branch
 - **THEN** the guard allows it without raising a confirmation
 - **THEN** it reports which recorded step authorised it
 
 #### Scenario: The emitted command is run with modifications
+
 - **WHEN** an outward command targets a governed repository
 - **AND** a live emission exists but the command text differs from it
 - **THEN** the guard raises the confirmation that is raised today
 - **THEN** it reports the difference between the presented and recorded commands
 
 #### Scenario: No emission has been recorded
+
 - **WHEN** an outward command targets a governed repository
 - **AND** no live recorded emission exists
 - **THEN** the guard raises the confirmation that is raised today
 - **THEN** it does not refuse the command
 
 #### Scenario: An outward command targets an ungoverned repository
+
 - **WHEN** an outward command's effective target is neither the vault nor a governed repository
 - **THEN** the guard behaves exactly as it does today
 - **THEN** no recorded emission is required for it to proceed
 
 #### Scenario: An outward command targets the vault
+
 - **WHEN** an outward command's effective target is the deployed vault
 - **THEN** the guard refuses it
 - **THEN** the presence or absence of a recorded emission does not change that outcome
 
 #### Scenario: The record is expired or written for another branch
+
 - **WHEN** a recorded emission exists but has expired, or names a branch other than the current one
 - **THEN** the guard treats it as absent
 - **THEN** the confirmation raised today is raised
@@ -1736,11 +1874,13 @@ An allowance granted by this mechanism SHALL therefore be reported as a match ag
 SHALL NOT be reported as an authorisation, an approval, or a verification.
 
 #### Scenario: The mechanism is described in documentation
+
 - **WHEN** the emission record is described in a specification, decision record, or script note
 - **THEN** the description states that the record is writable by the agent it governs
 - **THEN** it states that the mechanism addresses error rather than intent
 
 #### Scenario: An allowance is reported to the reader
+
 - **WHEN** the guard allows a command because it matched a recorded emission
 - **THEN** the report states that the command matched a record
 - **THEN** the report does not claim the command was authorised or verified
@@ -1776,16 +1916,19 @@ makes every previously-emitted transcript ambiguous, because nothing in the olde
 meaning was in force.
 
 #### Scenario: A state is emitted as a single word
+
 - **WHEN** the capability report emits any state
 - **THEN** that state contains no whitespace
 - **THEN** it is one of the declared state constants
 
 #### Scenario: An undeclared state is introduced
+
 - **WHEN** a state is emitted that is not in the declared set
 - **THEN** the automated check fails
 - **THEN** the failure names the offending state
 
 #### Scenario: A credential row reports three distinguishable conditions
+
 - **WHEN** the tool is present and its credential is usable
 - **THEN** the state reports the credential as usable
 - **WHEN** the tool is present and no usable credential exists
@@ -1794,11 +1937,13 @@ meaning was in force.
 - **THEN** the state reports the tool as absent, distinctly from the credential case
 
 #### Scenario: A row is named for its measurement
+
 - **WHEN** a row is produced by inspecting a credential
 - **THEN** the row is named for the credential
 - **THEN** it is not named for an operation whose possibility is inferred from it
 
 #### Scenario: A state token would be falsified from outside the process
+
 - **WHEN** a candidate state asserts what is possible rather than what was found
 - **THEN** it is rejected as a state name
 - **THEN** the finding is expressed as what this process observed
@@ -1823,16 +1968,19 @@ that parses it binds to column widths, so every cosmetic change becomes a breaki
 machine-readable form available, the human table remains free to change.
 
 #### Scenario: A channel that was exercised is reported as attempted
+
 - **WHEN** the report includes a channel it actually exercised
 - **THEN** the evidence records that the channel was attempted
 - **THEN** the evidence names the channel that was exercised
 
 #### Scenario: A channel whose precondition was inspected is not reported as attempted
+
 - **WHEN** the report includes a channel for which only a precondition was read
 - **THEN** the evidence records an inspection rather than an attempt
 - **THEN** the reader can distinguish it from a channel that was exercised
 
 #### Scenario: A consumer reads the report without parsing the table
+
 - **WHEN** the report is requested in its machine-readable form
 - **THEN** each channel is emitted with its state, its runner, its authority, and its evidence as
   separate fields
@@ -1861,14 +2009,17 @@ against ground truth can. An enumeration maintained by hand is a duplicate of a 
 fact, and drifts the moment anything ships.
 
 #### Scenario: A shipped script missing from the inventory is caught
+
 - **WHEN** a script note exists in `99-Operations/scripts/` with no row in an enumeration
 - **THEN** the conformance check fails, naming the missing note
 
 #### Scenario: An inventory naming a nonexistent script is caught
+
 - **WHEN** an enumeration names a script note that does not exist
 - **THEN** the conformance check fails, naming the phantom entry
 
 #### Scenario: A stated count disagreeing with its own table is caught
+
 - **WHEN** an enumeration's stated count differs from the number of rows it presents
 - **THEN** the conformance check fails, naming both numbers
 
@@ -1883,6 +2034,7 @@ reader to edit an unread field teaches that the documentation is approximate —
 documented absolute contradicted by practice teaches.
 
 #### Scenario: A cron expression against a manual script is caught
+
 - **WHEN** a live document states a schedule for a note whose `runtime:` is not `cron`
 - **THEN** the cadence conformance check fails, naming the document and the note
 
@@ -1898,6 +2050,7 @@ indistinguishable from an exit code alone.
 An uncovered fleet member is code whose relocation, refactor or retirement nothing would catch.
 
 #### Scenario: A detection-only member is proven not to mutate
+
 - **WHEN** a detection-only fleet member runs against a fixture vault
 - **THEN** it reports its findings, and the vault's git status and commit count are unchanged
 
@@ -1932,18 +2085,22 @@ configuration only, never by a shell profile, so the contribution is scoped to s
 ends when they exit.
 
 #### Scenario: A note declaring a host deploy target is refused
+
 - **WHEN** a script note declares a `deploy_target` outside the vault tree
 - **THEN** the standalone lint fails, naming the note and the offending target
 
 #### Scenario: The fleet runs with no usable home directory
+
 - **WHEN** a fleet member that imports a sibling module is invoked with `HOME` set to a nonexistent path
 - **THEN** it resolves its sibling and completes normally
 
 #### Scenario: The fleet is reachable from a non-login shell
+
 - **WHEN** the vault configuration is sourced in a non-login shell
 - **THEN** every fleet member is reachable by name
 
 #### Scenario: A fleet run leaves no bytecode in the deployed location
+
 - **WHEN** every Python fleet member has been invoked at least once
 - **THEN** no `__pycache__` directory exists in the deploy directory
 
@@ -1966,10 +2123,12 @@ The exclusion SHALL name the generated output directory specifically, never a pa
 tracked scaffold, because a blanket rule silently hides the next artifact deployed beneath it.
 
 #### Scenario: A render leaves the working tree clean
+
 - **WHEN** `render` deploys the full fleet into a vault with no other pending changes
 - **THEN** the vault's version-control status reports no modifications
 
 #### Scenario: Parity is unaffected by the deploy directory
+
 - **WHEN** template↔vault parity runs after a render
 - **THEN** it reports zero drift and does not compare the deploy directory
 
@@ -2002,18 +2161,22 @@ The linter SHALL NOT modify the settings file. Repairing the path requires knowi
 intended vault root, which is exactly the judgement the refusal exists to hand back.
 
 #### Scenario: The shipped placeholder was never edited
+
 - **WHEN** the linter runs against a deployment whose declared store path is the shipped placeholder
 - **THEN** it refuses, naming the unresolved path and the case it matched
 
 #### Scenario: The declared path points outside the vault
+
 - **WHEN** the declared path resolves to a directory outside the vault root
 - **THEN** it refuses, naming the escape distinctly from a non-existent path
 
 #### Scenario: A correctly configured store
+
 - **WHEN** the declared path resolves to a directory inside the vault root
 - **THEN** the linter passes, and reports nothing about the notes inside it
 
 #### Scenario: No store is configured
+
 - **WHEN** the settings file is absent, or carries no store declaration
 - **THEN** the linter passes — the store is optional
 
@@ -2039,11 +2202,13 @@ guide. The reader who needs it is looking at the file that caused the behaviour,
 is read after the wrong conclusion has already been drawn.
 
 #### Scenario: The environment file documents its own effect
+
 - **WHEN** a reader opens the shipped environment file at the point of the `PATH` prepend
 - **THEN** the consequence for interpreter resolution is stated there, naming both invocation forms
   and citing the measurement that established it
 
 #### Scenario: The statement sits at the cause, not in the header
+
 - **WHEN** the environment file is read from the top by someone who has not yet run anything
 - **THEN** the statement is found beside the prepend that causes the behaviour, so it is read at the
   moment it becomes relevant rather than before the behaviour it explains has occurred
@@ -2063,6 +2228,7 @@ This is the same class as a capability asserted from a single error message: the
 about the process that emitted it and silent about the question actually being asked.
 
 #### Scenario: A module reports itself missing under the shadowed interpreter
+
 - **WHEN** `python3 -m <tool>` reports `No module named <tool>` in a shell that has sourced the
   environment file
 - **THEN** the tool is not reported absent until the bare-name invocation has been tried
@@ -2070,6 +2236,7 @@ about the process that emitted it and silent about the question actually being a
   attributed to interpreter resolution, not to installation state
 
 #### Scenario: The tool is genuinely absent
+
 - **WHEN** both the module form and the bare-name form fail
 - **THEN** the tool may be reported absent, and the report names both invocations as evidence
 

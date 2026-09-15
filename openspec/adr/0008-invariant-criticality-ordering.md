@@ -21,7 +21,7 @@ Renumber INV-1 through INV-13 by **criticality band** (Substrate → Safety →
 Value → Consistency), so lower numbers reflect more fundamental invariants:
 
 | Band | INVs | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Substrate | INV-1–3 | Touched in every operation; foundational to what the system is |
 | Safety | INV-4–8 | Highest blast radius if violated; access control and containment |
 | Value | INV-9–10 | Preservation guarantees for the output of the system |
@@ -30,20 +30,20 @@ Value → Consistency), so lower numbers reflect more fundamental invariants:
 The **mapping from old to new IDs** is recorded here as the authoritative translation:
 
 | Old | New | Name |
-|-----|-----|------|
+| ----- | ----- | ------ |
 | INV-1 | INV-1 | Format |
 | INV-5 | INV-2 | One mutation, one commit |
 | INV-6 | INV-3 | Layer 0 is source of truth |
 | INV-4 | INV-4 | Bounded write scope |
 | INV-11 | INV-5 | Actor ≠ owner of its own definition |
 | INV-10 | INV-6 | Deterministic layer is offline |
-| INV-9  | INV-7 | No secrets in vault |
+| INV-9 | INV-7 | No secrets in vault |
 | INV-12 | INV-8 | Crucible independence |
-| INV-7  | INV-9 | Refined value is never discarded |
-| INV-8  | INV-10 | Tailings are retained |
+| INV-7 | INV-9 | Refined value is never discarded |
+| INV-8 | INV-10 | Tailings are retained |
 | INV-13 | INV-11 | Name conformance, enforced at the boundary |
-| INV-2  | INV-12 | Domain via metadata, not folders |
-| INV-3  | INV-13 | Wikilinks |
+| INV-2 | INV-12 | Domain via metadata, not folders |
+| INV-3 | INV-13 | Wikilinks |
 
 ## INV IDs are now frozen
 
