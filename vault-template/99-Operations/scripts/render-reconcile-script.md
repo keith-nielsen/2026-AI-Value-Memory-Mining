@@ -46,7 +46,14 @@ drift = 0
 bad = 0
 for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
     post = frontmatter.load(note)
-    target = pathlib.Path(os.path.expanduser(str(post["deploy_target"])))
+    # Resolve the target against the SAME root the notes came from. A `deploy_target` is
+    # written relative in every note, so a bare Path() resolved it against the process CWD
+    # while the notes came from _vault_root() -- env-first. When those two disagreed the tool
+    # compared one vault's notes against another vault's files and printed `ok`, and in
+    # render mode it would have WRITTEN this vault's code into that tree. Measured
+    # 2026-09-08 with VAULT_ROOT on the live vault and cwd in a clone.
+    _dt = pathlib.Path(os.path.expanduser(str(post["deploy_target"])))
+    target = _dt if _dt.is_absolute() else (vault / _dt)
     blocks = CODE.findall(post.content)
     if len(blocks) != 1:
         # exactly-one-fence rule (spec: "a single fenced code block") — a second fence

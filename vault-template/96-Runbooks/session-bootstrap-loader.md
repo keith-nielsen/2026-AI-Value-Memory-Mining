@@ -39,7 +39,12 @@ sessions without notice, so the prime also **measures** its own reach rather tha
    - **Re-read before acting** — apply an established rule from its artifact (spec / memory / runbook),
      never from recollection.
    - **Autonomy bans** — no autonomous writes to `40-Treasury/` or `99-Operations/` (INV-4/5).
-   - **Clean ops** — hooks and the script fleet are env-free (root self-resolution, ADR-0023);
+   - **Clean ops** — hooks and the script fleet resolve their root **env-FIRST**: `VAULT_ROOT`
+     wins if set, and only then does the walk up from the working directory apply (ADR-0023,
+     `vault_lib.find_vault_root`). ⚠ This is *not* "env-free" — an earlier wording said so, and
+     that false claim is what let a validation harness compare one vault against another while
+     reporting a clean pass. **Pin `VAULT_ROOT` explicitly whenever the target is not the tree you
+     are standing in.**
      source `config.env` only for operator-shell conveniences (venv on `PATH`, vocabulary
      overrides); separate the action from its verification.
    - **Measure, don't infer** — never assert a *capability* limit (write scope, network reach, auth)
