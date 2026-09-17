@@ -2426,11 +2426,13 @@ to that root. An absolute path SHALL be honoured as written, because an absolute
 instruction rather than an unresolved fragment.
 
 #### Scenario: A relative artifact path is joined to the resolved root
+
 - **WHEN** a tool resolves a relative path taken from an artifact belonging to a configured root
 - **THEN** the path is joined to that root, and the result does not depend on the working directory
   the tool happened to be started from
 
 #### Scenario: Standing in a different tree does not change the verdict
+
 - **WHEN** the tool is invoked with a configured root naming one tree, from a working directory
   inside a different tree
 - **THEN** every operand is read from the configured tree, and no artifact of the other tree is read,
@@ -2459,11 +2461,13 @@ Where the claim is about a behaviour a test cannot reach, the document SHALL sta
 unverified rather than as fact.
 
 #### Scenario: A gate's behavioural claim has a test behind it
+
 - **WHEN** a runbook or gate asserts how a shipped tool resolves, refuses, or reports
 - **THEN** a test asserts the same property against the shipped implementation, and that test has
   been observed to fail without it
 
 #### Scenario: An unverifiable claim is marked, not asserted
+
 - **WHEN** a behaviour cannot be reached by any available instrument
 - **THEN** the document says so at the point of the claim, so a reader can tell a measured statement
   from an expectation
