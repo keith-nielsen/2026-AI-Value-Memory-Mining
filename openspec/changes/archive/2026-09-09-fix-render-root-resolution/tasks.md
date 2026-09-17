@@ -53,3 +53,45 @@
       confirm F0.2 now fails when deliberately mis-pinned.
       *Done when:* the harness is demonstrated capable of catching its own misconfiguration — the
       property it lacked when it reported a clean pass against the wrong tree.
+
+## 8. Gate 4 — operator authorization (Tier-0 touch)
+
+Archiving synced this change's delta into `openspec/specs/maintenance/spec.md`, whose frontmatter
+carries `protects: [INV-2, INV-3, INV-6]` — all **Tier 0 (Inviolable)** per `constitution.md` §2.
+The `AGENTS.md` hard stop requires the principle, its rationale and its "what breaks" consequence to
+be surfaced, and explicit human confirmation received, before the change goes outward.
+
+Surfaced, with the sacrifices stated rather than minimised:
+
+- **INV-3 is strengthened, not relaxed.** The fix is authored in the literate note, never in the
+  rendered file, and `reconcile` stays detection-only. What changes is that it detects drift in the
+  tree it was pointed at rather than sometimes reporting on another one.
+- **INV-6 and INV-2 are untouched.** The change is a path join — no I/O is added, and no commit
+  ceremony is altered.
+- **The behaviour change is a narrowing.** After the fix the tool reads and writes strictly fewer
+  paths than before, only those under the resolved root. No caller gains reach, no guarantee is
+  relaxed, no check is removed.
+- **The cost is permanent constraint.** The two ADDED requirements bind every future tool in the
+  estate, and anything relying — knowingly or not — on cwd-relative resolution will now get a
+  different verdict.
+- **What breaks if this is wrong:** `render` mode writes. A root-resolution defect here does not fail
+  loudly; it deploys one tree's code blocks into another tree's paths while reporting `ok`, which is
+  the exact failure this change exists to close.
+
+⚠ The `constitutional-diff-gate` is **report-only during burn-in and cannot fail the build**, so this
+sign-off is the operative control, not CI.
+
+⚠ Recorded eight days after this change was archived (2026-09-09). The branch was parked; the
+sign-off was taken on 2026-09-17 after the rebase onto `main` (`5ed499d`). The 2026-09-13 sign-off
+for `md-content-preservation-check` explicitly excluded this change, so the gap is deliberate and
+this record closes it rather than backdating it.
+
+- [x] 8.1 Tier-0 touch surfaced with its consequence; **Approved** — Keith Nielsen, 2026-09-17 15:30:17 GMT (+08:00 local)
+      Given after the four sacrifices above were put to the operator explicitly, together with the
+      state of the branch at the time of asking: rebased onto `main` (`5ed499d`) with one spec
+      conflict resolved by keeping all six tail requirements in landing order and no requirement text
+      altered; 8 markdownlint findings introduced by the rebase and repaired to 0 on the exact
+      invocation `ci.yml` uses; suite 424 passed before and after; and `preflight.py --body-file`
+      CLEAR at 13/16 CI jobs reproduced, scope-review PASS over all 10 files.
+      The operator's words: *"Approved, Keith Nielsen"*, with the timestamp recorded in GMT and the
+      local offset included at their instruction.
