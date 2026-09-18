@@ -2,16 +2,45 @@
 
 ## 1. The detector, red before anything else
 
-- [ ] 1.1 Enumerate every `gh` invocation in the tree **by mechanism, not by pattern**: AST over
+**BUILT AND OBSERVED RED — `tests/test_gh_form_conformance.py`, 2026-09-18.** 4 checks, 1 failing by
+design, 32 files scanned, 0 parse failures. The failing check names **exactly the seven predicted
+sites, no more and no fewer**:
+
+```
+7 shipped `gh` form(s) are refused by the estate's own guard:
+  tools/pr-flow.py:1919                       gh pr create      (emitted)
+  tools/pr-state.py:112                       gh pr view        (executed)
+  tools/pr-state.py:181                       gh run list       (executed)
+  tools/ship-release.py:343                   gh release create (emitted)
+  .github/workflows/openspec-canary.yml:49    gh label create   (CI)
+  .github/workflows/openspec-canary.yml:51    gh issue list     (CI)
+  .github/workflows/openspec-canary.yml:55    gh issue create   (CI)
+```
+
+⚠ **Canary `:51` is in that list only because the detector unwraps command substitution.** It is
+`open=$(gh issue list …)`, the shape the guard itself is blind to, and the 2026-09-18 dry run missed
+it. The blind spot was designed out rather than inherited — see 1.5.
+
+**Three sources of noise were removed after the first red run**, each a real lesson:
+- sink calls now examine **only the first positional argument** — `emit(route, "pr", cmd, why=…)`
+  carries prose in keyword arguments that names refused forms *on purpose*, and walking the whole
+  call reported the driver's own explanation of why it avoids `gh pr merge` as an emission;
+- the notes' python fences are **parsed as code**, not scanned as lines — scanning reported the
+  guard note's own comments and refusal messages, i.e. the one file whose job is to name refused
+  forms;
+- workflow line continuations are **joined before lexing** — a `\`-split command was being reported
+  as unlexable when the file is perfectly well formed.
+
+- [x] 1.1 Enumerate every `gh` invocation in the tree **by mechanism, not by pattern**: AST over
       `tools/*.py`, `.claude/hooks/*.py` and `.github/scripts/*.py` for both executed argv lists and
       emitted command strings; `run:` blocks for `.github/workflows/*.yml`; code fences for
       `vault-template/99-Operations/scripts/*.md`.
       *Done when:* the enumeration's denominator is printed (files parsed, parse failures) so a
       silent miss is visible. A count with no denominator is the defect this file exists to stop.
-- [ ] 1.2 Submit each enumerated form to `gh-invocation-guard.py` — **import the guard, never restate
+- [x] 1.2 Submit each enumerated form to `gh-invocation-guard.py` — **import the guard, never restate
       its rule.** Restating is class 9, and the 2026-09-08 ledger sweep already proved the import
       approach works by using the guard as its oracle.
-- [ ] 1.3 **Observe it FAIL, and record what it names.** Expected: the seven non-conforming sites.
+- [x] 1.3 **Observe it FAIL, and record what it names.** Expected: the seven non-conforming sites.
       *Done when:* the red run's output is pasted into this file. **If it names more than seven, the
       extra rows are the finding and this task's expectation was wrong — do not trim the output to
       match the prediction.**
@@ -25,17 +54,17 @@
       - **The miss was canary `:51`**, `open=$(gh issue list …)` — see 1.5.
       - **Conformance of the targets is already confirmed:** all nine proposed `gh api` replacements
         pass the guard unchanged, so the conversion aims at known-good forms.
-- [ ] 1.5 **Extract invocations from inside command substitution** — `$( )`, backticks, and
+- [x] 1.5 **Extract invocations from inside command substitution** — `$( )`, backticks, and
       subshells — or the detector reproduces the guard's own blind spot. ⚠ Measured 2026-09-18: the
       guard PERMITS `open=$(gh pr list)`, ``open=`gh pr list` ``, `echo $(gh pr list)` and
       `( gh pr list )` while denying the plain form, because `open=$(gh` parses as an environment
       assignment. **The detector must NOT inherit this.** Hardening the guard itself is out of scope
       here — different control, its own spec delta and Gate 4 — and is recorded in
       `gh-form-findings-ledger.md`.
-- [ ] 1.6 **Unlexable input is a FINDING, never a skip.** `guard.segments()` raises on a trailing
+- [x] 1.6 **Unlexable input is a FINDING, never a skip.** `guard.segments()` raises on a trailing
       backslash or an unbalanced quote, and the hook's `main()` does `except Exception: return`,
       i.e. fail open. A detector that skipped unlexable lines would inherit exactly that.
-- [ ] 1.4 A test asserting coverage does not depend on registration: add a deliberately
+- [x] 1.4 A test asserting coverage does not depend on registration: add a deliberately
       non-conforming emission in a fixture and confirm the detector catches it without being told.
 
 ⚠ **The 2026-09-08 ledger sweep — the one generated with the guard as oracle — captured canary lines
