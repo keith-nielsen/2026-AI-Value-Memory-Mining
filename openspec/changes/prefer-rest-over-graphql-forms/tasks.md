@@ -248,8 +248,35 @@ checking decisions alone would have read the crash as fourteen ordinary failures
 
 ## 4. Convert the seven, each with its measured trap
 
-- [ ] 4.1 `pr-state.py:112` — `gh pr view --json` → `gh api repos/{slug}/pulls/{n}`.
-- [ ] 4.2 `pr-state.py:181` — `gh run list --commit` → `gh api`.
+**4.1 + 4.2 + 5.2 DONE 2026-09-19.** The detector now names **five** sites, not seven.
+`tools/pr-state.py` carries no `gh` subcommand at all and ran END TO END against the live
+repository (PR #120): every layer answered `via anon-rest`, 36/36 checks, two workflow runs with
+`name` populated.
+
+⚠ **4.2's pre-registered trap does NOT apply — measured, and the plan was wrong.** A single
+`/actions/runs?head_sha=` call was expected to drop workflow names. Against the live repository all
+four consumed fields (`name`, `status`, `conclusion`, `event`) are present, `name` = `"CI"`. The
+second request `gh run list` makes serves its own workflow-to-name mapping, not a field REST lacks.
+A pre-registered trap that turns out not to exist is a finding too.
+
+⚠ **4.1 was a REMOVAL, not a conversion.** Converting `gh pr view` to `gh api repos/{slug}/pulls/{n}`
+would have duplicated `gh_read.pull_request`, which already tries anonymous REST and then `gh api`.
+Its only unique value was the two GraphQL-only fields: `mergeStateStatus` now comes from REST
+`mergeable_state` (5.2) and the rollup already had a labelled REST substitute. **What genuinely
+goes:** the case where `slug_from_remote` cannot parse `origin` but `gh` could resolve the repo
+itself — that degrades to BLOCKED with the reason named, per this reporter's own rule that a
+degraded layer is reported, never synthesised.
+
+⚠ **The run layer STOPPED needing `gh` installed.** It used to print UNAVAILABLE without it; it now
+reads anonymously first, so a channel that was dark on a confined session answers.
+
+⚠ **The ceremony fixtures were GraphQL-shaped and had to move** (5.1's class): `pr-state` reads
+REST, so a stub answering camelCase would prove the tool works against a payload GitHub never
+sends. The stub's `pr view` and `run list` branches are now **deliberately unhandled** — a stub that
+still answered them would let a reversion to the subcommand form pass green.
+
+- [x] 4.1 `pr-state.py:112` — `gh pr view --json` → `gh api repos/{slug}/pulls/{n}`.
+- [x] 4.2 `pr-state.py:181` — `gh run list --commit` → `gh api`.
       ⚠ **Measure first what the caller consumes.** `gh run list` issues TWO requests
       (`/actions/runs` **and** `/actions/workflows?per_page=100`); a single `/actions/runs?head_sha=`
       call drops workflow names. *Done when:* the fields used downstream are enumerated and shown
@@ -287,7 +314,7 @@ checking decisions alone would have read the crash as fourteen ordinary failures
       `gh api` carries the slug inline. Change the premise **in the same commit**, and widen its
       scope: it reads only `ship-release.py`'s `_emit_next(…)` today and never sees `pr-flow.py`'s
       `emit(…)` sites, which is the second reason `gh pr create` stood unnoticed.
-- [ ] 5.2 `pr-state.py` — populate `mergeStateStatus` from REST `mergeable_state` (same enum,
+- [x] 5.2 `pr-state.py` — populate `mergeStateStatus` from REST `mergeable_state` (same enum,
       lowercased) instead of `UNAVAILABLE (GraphQL-only)`. ⚠ `mergeable_state` is thinly documented:
       **pin the observed values in a test**. `mergeable` is computed asynchronously, so `null` on a
       cold read is a real state — `--ready mergeable` already polls it.

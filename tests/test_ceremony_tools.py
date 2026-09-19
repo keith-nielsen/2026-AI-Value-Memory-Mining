@@ -61,6 +61,16 @@ if args[:1] == ["api"]:
             sys.stdout.write("[]")
             raise SystemExit(0)
         serve(d / "releases.json", "[]")
+    # pr-state's layers, REST now that no GraphQL channel remains. The fixtures carry REST shapes
+    # (`html_url`, `head.sha`, `mergeable_state`, `check_runs`, `workflow_runs`) because that is
+    # what the tool reads — a stub answering the old GraphQL shape would prove the tool works
+    # against a payload GitHub never sends.
+    if "/pulls/" in path:
+        serve(d / ("pr-" + path.rstrip("/").split("/")[-1] + ".json"))
+    if "/check-runs" in path:
+        serve(d / "check-runs.json", '{"check_runs": []}')
+    if "/actions/runs" in path:
+        serve(d / "runs.json", '{"workflow_runs": []}')
     sys.stderr.write("gh-stub: unhandled api path: %r\\n" % (path,))
     raise SystemExit(1)
 if args[:2] == ["release", "view"]:
@@ -77,14 +87,9 @@ if args[:2] == ["release", "view"]:
     raise SystemExit(1)
 if args[:2] == ["release", "list"]:
     serve(d / "releases.json", "[]")
-if args[:2] == ["pr", "view"]:
-    p = d / ("pr-" + args[2] + ".json")
-    if p.is_file():
-        serve(p)
-    sys.stderr.write("no pull requests found\\n")
-    raise SystemExit(1)
-if args[:2] == ["run", "list"]:
-    serve(d / "runs.json", "[]")
+# `pr view` and `run list` are DELIBERATELY UNHANDLED (2026-09-19). Both were converted to REST,
+# and a stub that still answered them would let a reversion to the subcommand form pass green —
+# the tool would work in tests against a channel the guard refuses in production.
 sys.stderr.write("gh-stub: unhandled: %r\\n" % (args,))
 raise SystemExit(1)
 """
@@ -270,12 +275,27 @@ def test_ship_parity_tally_flags_release_gap(ceremony):
 # ------------------------------------------------------------------- pr-state
 
 
+# REST shapes, 2026-09-19. pr-state no longer reads a GraphQL payload at all, so a fixture in the
+# old camelCase shape would assert the tool works against something GitHub never sends. Field names
+# here are GitHub's: `html_url`, `draft`, `mergeable_state`, `base.ref`, `head.sha`.
 PR_BASE = {
-    "number": 7, "title": "test pr", "url": "https://example.invalid/pr/7",
-    "state": "OPEN", "isDraft": False, "mergeable": "MERGEABLE",
-    "mergeStateStatus": "CLEAN", "baseRefName": "main", "headRefName": "main",
-    "headRefOid": "", "statusCheckRollup": [],
+    "number": 7, "title": "test pr", "html_url": "https://example.invalid/pr/7",
+    "state": "open", "draft": False, "mergeable": True, "mergeable_state": "clean",
+    "base": {"ref": "main"}, "head": {"ref": "main", "sha": ""},
 }
+
+
+def rest_pr(head_sha, *, base="main"):
+    """A REST pull-request payload with the head sha and base the test needs."""
+    pr = json.loads(json.dumps(PR_BASE))          # deep copy: `base`/`head` are nested dicts
+    pr["head"]["sha"] = head_sha
+    pr["base"]["ref"] = base
+    return pr
+
+
+def check_runs(*runs):
+    """`/commits/{sha}/check-runs` — (name, status, conclusion) triples in GitHub's own casing."""
+    return {"check_runs": [{"name": n, "status": s, "conclusion": c} for n, s, c in runs]}
 
 
 def test_pr_state_blocked_when_pr_not_found(ceremony):
@@ -285,17 +305,14 @@ def test_pr_state_blocked_when_pr_not_found(ceremony):
 
 
 def test_pr_state_reports_every_layer_by_name(ceremony):
-    pr = dict(PR_BASE)
-    pr["headRefOid"] = ceremony.head()
-    pr["statusCheckRollup"] = [
-        {"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
-    ceremony.stub("pr-7.json", pr)
-    ceremony.stub("runs.json", [
+    ceremony.stub("pr-7.json", rest_pr(ceremony.head()))
+    ceremony.stub("check-runs.json", check_runs(("ci", "completed", "success")))
+    ceremony.stub("runs.json", {"workflow_runs": [
         {"name": "CI", "status": "completed", "conclusion": "success",
-         "event": "pull_request"}])
+         "event": "pull_request"}]})
     r = ceremony.run_tool(PRSTATE, "7")
     assert r.returncode == EXIT_OK
-    for token in ("layer [pr-state-machine · GraphQL]:", "layer [branch]:",
+    for token in ("layer [pr-state-machine · REST]:", "layer [branch]:",
                   "layer [check-aggregation]: 1 of 1 checks successful",
                   "layer [workflow-run]: CI (pull_request): success",
                   "layer [event-payload]:", "note [mutation-verify]:"):
@@ -305,25 +322,19 @@ def test_pr_state_reports_every_layer_by_name(ceremony):
 
 
 def test_pr_state_flags_deleted_base_branch(ceremony):
-    pr = dict(PR_BASE)
-    pr["baseRefName"] = "gone-parent-branch"
-    pr["headRefOid"] = ceremony.head()
-    ceremony.stub("pr-7.json", pr)
+    ceremony.stub("pr-7.json", rest_pr(ceremony.head(), base="gone-parent-branch"))
     r = ceremony.run_tool(PRSTATE, "7")
     assert r.returncode == EXIT_OK
     assert "HAZARD [branch]: base branch 'gone-parent-branch' is deleted" in r.stdout
 
 
 def test_pr_state_pending_checks_are_not_failures(ceremony):
-    pr = dict(PR_BASE)
-    pr["headRefOid"] = ceremony.head()
-    pr["statusCheckRollup"] = [
-        {"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"},
-        {"name": "fleet", "status": "IN_PROGRESS", "conclusion": None}]
-    ceremony.stub("pr-7.json", pr)
-    ceremony.stub("runs.json", [
+    ceremony.stub("pr-7.json", rest_pr(ceremony.head()))
+    ceremony.stub("check-runs.json", check_runs(
+        ("ci", "completed", "success"), ("fleet", "in_progress", None)))
+    ceremony.stub("runs.json", {"workflow_runs": [
         {"name": "CI", "status": "completed", "conclusion": "success",
-         "event": "pull_request"}])
+         "event": "pull_request"}]})
     r = ceremony.run_tool(PRSTATE, "7")
     assert r.returncode == EXIT_OK
     assert "layer [check-aggregation]: 1 of 2 checks successful, 1 pending" in r.stdout
@@ -333,15 +344,12 @@ def test_pr_state_pending_checks_are_not_failures(ceremony):
 
 
 def test_pr_state_names_disagreeing_layers(ceremony):
-    pr = dict(PR_BASE)
-    pr["headRefOid"] = ceremony.head()
-    pr["statusCheckRollup"] = [
-        {"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"},
-        {"name": "scope-review", "status": "COMPLETED", "conclusion": "FAILURE"}]
-    ceremony.stub("pr-7.json", pr)
-    ceremony.stub("runs.json", [
+    ceremony.stub("pr-7.json", rest_pr(ceremony.head()))
+    ceremony.stub("check-runs.json", check_runs(
+        ("ci", "completed", "success"), ("scope-review", "completed", "failure")))
+    ceremony.stub("runs.json", {"workflow_runs": [
         {"name": "CI", "status": "completed", "conclusion": "success",
-         "event": "pull_request"}])
+         "event": "pull_request"}]})
     r = ceremony.run_tool(PRSTATE, "7")
     assert r.returncode == EXIT_OK
     assert "LAYERS-DISAGREE:" in r.stdout
