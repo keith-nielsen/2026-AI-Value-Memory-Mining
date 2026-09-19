@@ -15,11 +15,13 @@
 3. **One source of truth for that set**, carried inside the guard note (which must work in roots that
    have no `docs/`) and pinned to `docs/version-control-legal-moves.md` by an equality test. Drift
    fails CI.
-4. **Two instruments, distinct jobs, neither substituting for the other:**
-   - the **guard** governs what *executes* on the agent's channel, at runtime;
+4. **Three instruments, distinct jobs, none substituting for another:**
+   - the **invocation guard** governs what *executes* on the agent's channel, at runtime;
    - the **detector** governs what the repo *ships* — emitted commands and documented instructions a
      human will copy. ⚠ It is also the only one that reaches the **Actions runner**, where no hook
      runs and the `gh` binary is not ours.
+   - the **outbound guard** (INV-14) governs what *leaves the machine*, and is a **different axis
+     from both**: it does not care whether a form is permitted, only whether it publishes.
 5. **Every emitted mutation carries a server-side precondition** where the API offers one. A
    precondition enforced at GitHub is the only control that survives being pasted into a shell we do
    not control.
@@ -27,6 +29,14 @@
    under `vault-template/`, so render + mirror deploy it, and `template-parity` proves it.
    ⚠ **The vault has no CI**: vault-side conformance rests on the deployed hook and parity, never on
    the detector.
+7. **No conversion in §4 silently lowers an INV-14 ask.** Every form that raises the outbound banner
+   today raises it in its REST shape too. **MEASURED 2026-09-19, and this is why the item exists:**
+   `gh release create v1.2.3 --verify-tag --notes-file n.md` → `ask` (the full banner);
+   `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` → **silence, exit 0**. `OUTWARD` and
+   `PUBLISH` key on the literal token `gh release (create|edit|upload)`
+   (`outbound-publish-guard.py:32,39`), so §4.4 *as first written* deleted the ask on the one path
+   that publishes artifacts to the world. The vault battery predicted this as **B8/B9** before it was
+   measured; the plan had lost it. Folded into this change by operator decision, 2026-09-19.
 
 ### Explicitly NOT in the end state — decided, do not re-litigate
 
@@ -82,18 +92,35 @@ including this one's.
 - [ ] 2.1 Add a machine-readable fenced block to `docs/version-control-legal-moves.md` §2, listing
       each sanctioned write: method · endpoint template · runs · authority · precondition. Use a
       fenced typed block, consistent with the estate's existing ```scope and ```constitutional-impact
-      convention — one file that both a human and a tool read.
-- [ ] 2.2 Carry the same set inside `vault-template/99-Operations/scripts/gh-invocation-guard-script.md`.
-      ⚠ **The guard must stay self-contained and stdlib-only** (INV-6, and it renders into roots with
-      no `docs/`), so it cannot read the doc at runtime.
+      convention — one file that both a human and a tool read. Fields: **method · endpoint template ·
+      runs · authority · precondition · outbound** (2.5).
+- [ ] 2.2 Carry the same set inside `vault-template/99-Operations/scripts/gh-invocation-guard-script.md`,
+      and the **outbound subset** (the rows marked outbound in 2.5) inside
+      `vault-template/99-Operations/scripts/outbound-publish-guard-script.md`.
+      ⚠ **Both guards must stay self-contained and stdlib-only** (INV-6, and they render into roots
+      with no `docs/`), so neither can read the doc at runtime.
+      ⚠ **The notes are the source of truth, not the hooks.** Verified 2026-09-19: each note's
+      ` ```python ` block is **byte-identical** to its rendered `.claude/hooks/*.py` copy. Edit the
+      note; render and mirror deploy it (§8.9).
 - [ ] 2.3 **Equality test**, observed failing first on a deliberately divergent table: the doc's block
-      and the guard's list are the same set. **This test is what makes 2.2 an import rather than a
+      and **each** guard's list are the same set — the full set for the invocation guard, the outbound
+      subset for the outbound guard. **This test is what makes 2.2 an import rather than a
       restatement** — restating a rule with no equality test is the class-9 defect.
 - [ ] 2.4 The initial set, to be confirmed against the doc rather than from this list:
       `POST /repos/{slug}/pulls` · `PATCH /repos/{slug}/pulls/{n}` ·
       `PUT /repos/{slug}/pulls/{n}/merge` (precondition `sha`) · `POST /repos/{slug}/releases`
       (precondition: tag read) · `POST /repos/{slug}/labels` · `POST /repos/{slug}/issues` ·
       `DELETE /repos/{slug}/releases/{id}` (the UAT revert path).
+      ⚠ **`PUT /repos/{slug}/rulesets/{id}` is an open question, not an omission.**
+      `openspec/adr/0038-complete-required-status-checks.md:93` documents that exact write as an
+      operator instruction. It is **outside the detector's scan scope** (which is `tools/`,
+      `.claude/hooks/`, `.github/scripts/`, `.github/workflows/`, and the `vault-template/…/scripts/`
+      python fences — never `docs/` or ADR prose), so 3.4 will stay silent about it while 3.1 refuses
+      it at runtime. *Decide explicitly:* admit it to the set, or amend the ADR line — leaving it is
+      how a documented instruction becomes false.
+- [ ] 2.5 **Each row carries whether the endpoint is OUTWARD** — i.e. whether reaching it must raise
+      the INV-14 ask. This is the field §0.7 exists to protect, and it is what makes the block
+      readable by **two** guards rather than one.
 
 ## 3. The method split in the guard
 
@@ -107,6 +134,31 @@ including this one's.
       endpoint. ⚠ This matters **more** than 3.1: it covers emitted commands and the Actions runner,
       where no hook runs.
 
+### 3a. The outbound guard learns the REST forms (B8/B9 — folded in 2026-09-19)
+
+- [ ] 3a.1 Extend `OUTWARD` / `PUBLISH` in
+      `vault-template/99-Operations/scripts/outbound-publish-guard-script.md` so a REST write to an
+      outbound-marked endpoint (2.5) raises the same ask the subcommand form raises today.
+      Minimum coverage: `POST /repos/{slug}/releases`, `PATCH|DELETE /repos/{slug}/releases/{id}`,
+      and the release **asset upload** host, which is `uploads.github.com`, not the API host.
+- [ ] 3a.2 **B9 red→green** — a test that `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` is
+      **NOT** asked before the change and **is** asked after. ⚠ *"A B9 that is green on both sides
+      proves nothing"* — observe the red first, per the battery.
+- [ ] 3a.3 **B8 green→green** — `gh release create …` still raises the ask. The regression half is
+      not optional: widening a matcher is exactly how the original clause gets lost.
+- [ ] 3a.4 **Check what the HARD DENY does to the REST form — it TIGHTENS, and that needs a decision.**
+      Read 2026-09-19, `_targets_vault()` in order: the literal `VAULT` path in the command → true;
+      an explicit **`-R owner/repo` → false** ("names a GitHub repo, not the local vault working
+      tree"); then `git -C` / a leading `cd`; otherwise **fall back to the reported `cwd`**.
+      `gh api` carries the slug **inline in the path** and has no `-R`, so it never reaches that
+      early-out and lands on the cwd fallback. Consequence once 3a.1 makes `OUTWARD` match it: a REST
+      release write issued from a vault cwd is **hard-denied even when the slug is another repo**,
+      where `gh release create -R other/repo` today only **asks**. *Done when:* both shapes are
+      pinned by tests and the asymmetry is either accepted deliberately or closed by teaching
+      `_targets_vault()` to read the inline slug.
+- [ ] 3a.5 Keep the banner's teaching intact — it is read at the moment of approval, and the command
+      it prints must be the command that runs.
+
 ## 4. Convert the seven, each with its measured trap
 
 - [ ] 4.1 `pr-state.py:112` — `gh pr view --json` → `gh api repos/{slug}/pulls/{n}`.
@@ -118,9 +170,21 @@ including this one's.
 - [ ] 4.3 `pr-flow.py:1919` — emitted `gh pr create` → `gh api -X POST repos/{slug}/pulls`
       with `-f title=` `-f head=` `-f base=` `-F body=@<file>`.
 - [ ] 4.4 `ship-release.py:343` — emitted `gh release create` → `gh api -X POST repos/{slug}/releases`.
+      ⚠ **BLOCKED ON 3a.1 — do not land this conversion before the outbound guard covers the REST
+      form.** Measured 2026-09-19: the subcommand raises the INV-14 ask, the REST equivalent passes in
+      silence (§0.7). Landing 4.4 first leaves the publish path ungated for the length of that gap.
       ⚠ `--verify-tag` has no REST equivalent; its replacement is an explicit
       `GET repos/{slug}/git/ref/tags/{tag}` **before** the POST — the pattern
       `uat-release-roundtrip.sh` already proved at its step 1.
+      ⚠ **That script is NOT in this repo.** It lives in the vault:
+      `30-Sites/estate-gap-reconciliation/uat-release-roundtrip.sh`, with its evidence in
+      `uat-evidence-20260909-095053/` and the coverage analysis in `rest-conversion-test-battery.md`
+      (which is also where B8/B9 come from). Searching the tree for it finds nothing.
+      ⚠ From that battery, two limits on what the round-trip proved: **`make_latest` is request-only
+      and is not echoed in the response**, so a draft cannot confirm it was honoured; and
+      `target_commitish` came back as `main` — the field that would have created a tag had one not
+      existed. **The first real release is the first true test of the write**, which argues for
+      converting on a patch release with no other content.
 - [ ] 4.5 canary `:49` `gh label create` → `GET …/labels/openspec-canary`, and on 404 `POST …/labels`.
       ⚠ Removes a `2>/dev/null || true` that makes an auth failure indistinguishable from "already
       exists" — the estate's catalogued `|| true` vacuity defect, in CI.
@@ -149,6 +213,11 @@ including this one's.
 - [ ] 5.5 Import into ADR-0045's rationale the strongest argument found in the survey, which the ADR
       does not currently make: **hooks run outside the model as separate processes, so prompt
       injection cannot talk its way past them.**
+- [ ] 5.6 **The outbound guard is now in this change's blast radius** (§3a). Its note, its rendered
+      hook in all three roots, and `docs/version-control-legal-moves.md` §1.3 — which enumerates the
+      ASK set as subcommand forms — all move together. ⚠ §1.3's list is the **documented** copy of
+      what 3a.1 edits; leaving it describing only `gh release create|edit|upload` reproduces the
+      class-9 defect on the surface a human reads.
 
 ## 6. Regression
 
@@ -159,6 +228,9 @@ including this one's.
       without it the body step prints `SKIP`, and a SKIP reads exactly like a PASS.
 - [ ] 6.5 A mutation matrix behind the detector and the method split — an instrument that cannot be
       shown to fail is not evidence, and this change's premise is that unexercised instruments rot.
+- [ ] 6.6 **B8 and B9 run as a pair**, per `rest-conversion-test-battery.md`: B8 green→green (no
+      regression on the subcommand form), B9 red→green (the new REST coverage). Record the red
+      observation, not just the green one — a B9 green on both sides proves nothing.
 
 ## 7. Gate 4 — operator authorization (Tier-0 touch)
 
@@ -175,6 +247,12 @@ To be surfaced — **drafted by the agent; the sign-off is human-only and is NOT
   a typo'd version silently tagging a branch head is what weakens.
 - **The "no new ADR is owed" reading lowers this very gate**, and should be checked against ADR-0045
   §Decision before it is relied upon.
+- **The INV-14 outbound rail is edited, not merely relied upon** (§3a, folded in by operator decision
+  2026-09-19). The conversion **removed an ask before it added one** — measured, §0.7 — so the rail's
+  coverage now depends on a matcher this change writes. Two named consequences: the release publish
+  is gated by a form the guard learned yesterday rather than one it has held since INV-14 was
+  written; and the vault HARD DENY **tightens** for `gh api`, because the inline slug misses the
+  `-R owner/repo` early-out and falls back to cwd (3a.4).
 - **What breaks if this is wrong:** these are the controls other work is judged by. A defect here
   does not fail loudly — it produces a confident, well-formed, wrong answer.
 
@@ -210,8 +288,9 @@ change*). Every command below is either emitted by the driver or verifies it. Ru
 - [ ] 8.7 **Merge** goes through `gh api -X PUT …/merge` carrying `sha=`, never `gh pr merge`.
 - [ ] 8.8 **Cleanup** — `remote-gone` then `local-gone`, each verified by re-invoking the driver, then
       `LIFECYCLE COMPLETE`.
-- [ ] 8.9 **Deploy-down is operator-run** and is NOT optional for this change: the guard lives in a
-      literate note, so until `template-mirror.py` and `vault-render.py render` run, **the live fleet
-      still carries the old guard**. Then verify: `template-parity.py $VAULT_ROOT` → 0 drift, and
+- [ ] 8.9 **Deploy-down is operator-run** and is NOT optional for this change: **both** guards live in
+      literate notes, so until `template-mirror.py` and `vault-render.py render` run, **the live fleet
+      still carries the old guards** — including the outbound rail that §3a widens.
+      Then verify: `template-parity.py $VAULT_ROOT` → 0 drift, and
       `vault-render.py reconcile` → 15/15 ok.
       ⚠ Run render with the working directory **at the vault root** — see the render-root defect.
