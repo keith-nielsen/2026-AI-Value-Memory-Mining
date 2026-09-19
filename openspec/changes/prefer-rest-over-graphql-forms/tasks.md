@@ -190,15 +190,31 @@ emissions. It loosens nothing — the collection path after the slug must still 
 
 ### 3a. The outbound guard learns the REST forms (B8/B9 — folded in 2026-09-19)
 
-- [ ] 3a.1 Extend `OUTWARD` / `PUBLISH` in
+**BUILT AND TESTED 2026-09-19 — `tests/test_outbound_rest_coverage.py`, 17 passed.** Red first: 7
+failures before 3a.1 (five B9 spellings, the upload host, and the mutation). Full suite **480
+passed, 1 failed** — the §1 detector, unchanged.
+
+⚠ **The rail's REST half is DERIVED from `OUTBOUND_ENDPOINTS`, not hand-written.** A second copy
+here would drift from docs §2b exactly when it mattered; deriving it means adding an
+`outbound: yes` row to the doc extends this rail automatically, and the parity test already holds
+the constant equal to the doc.
+
+⚠ **A CRASH was found and fixed in the same work, and it is worth keeping.** The first cut used
+`re.sub(..., r"[^/\s]+", ...)`, where `\s` in a **replacement** is a template escape: the guard
+raised `bad escape \s` and exited **1 at import**. That is NOT the documented fail-open behaviour —
+fail-open covers a malformed payload at runtime, not a module that will not load. The test harness
+caught it only because it asserts the hook's exit code rather than just its decision; a suite
+checking decisions alone would have read the crash as fourteen ordinary failures.
+
+- [x] 3a.1 Extend `OUTWARD` / `PUBLISH` in
       `vault-template/99-Operations/scripts/outbound-publish-guard-script.md` so a REST write to an
       outbound-marked endpoint (2.5) raises the same ask the subcommand form raises today.
       Minimum coverage: `POST /repos/{slug}/releases`, `PATCH|DELETE /repos/{slug}/releases/{id}`,
       and the release **asset upload** host, which is `uploads.github.com`, not the API host.
-- [ ] 3a.2 **B9 red→green** — a test that `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` is
+- [x] 3a.2 **B9 red→green** — a test that `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` is
       **NOT** asked before the change and **is** asked after. ⚠ *"A B9 that is green on both sides
       proves nothing"* — observe the red first, per the battery.
-- [ ] 3a.3 **B8 — by MUTATION, not by before/after.** Operator decision 2026-09-19, replacing the
+- [x] 3a.3 **B8 — by MUTATION, not by before/after.** Operator decision 2026-09-19, replacing the
       weaker "green→green" wording this item shipped with. A test that only ever sees the
       post-change world cannot show the original clause survived the rewrite, and widening a regex
       is exactly how an alternation gets lost — so *"it was green, it is still green"* asserts
@@ -217,7 +233,7 @@ emissions. It loosens nothing — the collection path after the slug must still 
       on a throwaway copy in `tmp_path`; the note, the rendered hooks and the live rail are untouched.
       ⚠ Land it **in the same commit as 3a.1** — a mutation test written after the widening has the
       same provenance problem as any other after-the-fact test.
-- [ ] 3a.4 **Check what the HARD DENY does to the REST form — it TIGHTENS, and that needs a decision.**
+- [x] 3a.4 **Check what the HARD DENY does to the REST form — it TIGHTENS, and that needs a decision.**
       Read 2026-09-19, `_targets_vault()` in order: the literal `VAULT` path in the command → true;
       an explicit **`-R owner/repo` → false** ("names a GitHub repo, not the local vault working
       tree"); then `git -C` / a leading `cd`; otherwise **fall back to the reported `cwd`**.
@@ -227,7 +243,7 @@ emissions. It loosens nothing — the collection path after the slug must still 
       where `gh release create -R other/repo` today only **asks**. *Done when:* both shapes are
       pinned by tests and the asymmetry is either accepted deliberately or closed by teaching
       `_targets_vault()` to read the inline slug.
-- [ ] 3a.5 Keep the banner's teaching intact — it is read at the moment of approval, and the command
+- [x] 3a.5 Keep the banner's teaching intact — it is read at the moment of approval, and the command
       it prints must be the command that runs.
 
 ## 4. Convert the seven, each with its measured trap

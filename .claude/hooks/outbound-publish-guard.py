@@ -42,11 +42,44 @@ OUTBOUND_ENDPOINTS = {
     ("DELETE", "/repos/{slug}/releases/{id}"),
 }
 
+def _rest_publish_pattern():
+    """Build the REST half of the rail FROM `OUTBOUND_ENDPOINTS`, so the constant is load-bearing.
+
+    Hand-writing a second copy here would be the class-9 defect the endpoint block exists to
+    prevent: the list would drift from the doc exactly when it mattered. Derived instead, so adding
+    an `outbound: yes` row to docs §2b extends this rail automatically.
+
+    A form matches only when BOTH hold — a write method appears, and the path is an outbound
+    endpoint. Reads of the same collection publish nothing and must not raise the banner: a prompt
+    that fires on everything teaches the operator to approve it without reading.
+    """
+    alts = []
+    for method, tmpl in sorted(OUTBOUND_ENDPOINTS):
+        path = re.escape(tmpl.lstrip("/"))
+        # {slug} is owner/repo; one segment where a placeholder stands in (see the invocation guard).
+        path = path.replace(re.escape("{slug}"), r"[^/\s]+(?:/[^/\s]+)?")
+        # A lambda, not a replacement string: `\s` in a replacement is a template escape and
+        # `re.sub` raises `bad escape \s`. Measured 2026-09-19 -- the guard crashed at import with
+        # exit 1, which is NOT its documented fail-open behaviour (that covers a malformed payload
+        # at runtime, not a module that will not load).
+        path = re.sub(r"\\\{[a-z]+\\\}", lambda _: r"[^/\s]+", path)
+        alts.append(
+            r"\bgh\s+api\b"
+            rf"(?=[^\n]*(?:-X|--method)[=\s]*{method}\b)"
+            rf"(?=[^\n]*/?{path})"
+        )
+    # Release ASSETS do not go to the API host. A rail watching only api.github.com misses them,
+    # and this shape also covers a plain `curl` upload, which no `gh` pattern would see.
+    alts.append(r"\buploads\.github\.com\b")
+    return "|" + "|".join(alts)
+
+
 OUTWARD = re.compile(
     r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b"  # `git push`, incl. `git -C <path> push` / `-c k=v`
     r"|\bgit\s+remote\s+(add|set-url)\b"
     r"|\bgh\s+repo\s+create\b"
-    r"|\bgh\s+release\s+(create|edit|upload)\b",
+    r"|\bgh\s+release\s+(create|edit|upload)\b"
+    + _rest_publish_pattern(),
     re.IGNORECASE,
 )
 
@@ -60,7 +93,8 @@ PUBLISH = re.compile(
     r"|\bpython\b[^\n]*-m\s+twine\s+upload"
     r"|\bdocker\s+push\b"
     r"|\bcargo\s+publish\b"
-    r"|\bgem\s+push\b",
+    r"|\bgem\s+push\b"
+    + _rest_publish_pattern(),
     re.IGNORECASE,
 )
 
