@@ -173,8 +173,25 @@ note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
 - [ ] 3a.2 **B9 red→green** — a test that `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` is
       **NOT** asked before the change and **is** asked after. ⚠ *"A B9 that is green on both sides
       proves nothing"* — observe the red first, per the battery.
-- [ ] 3a.3 **B8 green→green** — `gh release create …` still raises the ask. The regression half is
-      not optional: widening a matcher is exactly how the original clause gets lost.
+- [ ] 3a.3 **B8 — by MUTATION, not by before/after.** Operator decision 2026-09-19, replacing the
+      weaker "green→green" wording this item shipped with. A test that only ever sees the
+      post-change world cannot show the original clause survived the rewrite, and widening a regex
+      is exactly how an alternation gets lost — so *"it was green, it is still green"* asserts
+      history, not discrimination.
+      **Method** (the extract-and-run pattern `test_gh_form_conformance.py` already uses):
+      1. extract the implementation block from `outbound-publish-guard-script.md`;
+      2. remove **only** the `\bgh\s+release\s+(create|edit|upload)\b` alternation, and **assert the
+         replacement count is exactly 1** — a clause that was renamed or reflowed means the mutant is
+         unmutated, and the test silently reverts to theatre;
+      3. write the mutant to `tmp_path` and run both payloads through it as a subprocess;
+      4. assert the mutant **no longer asks** on `gh release create …` — this is the demonstration
+         that the B8 assertion can fail, and therefore that its green carries information;
+      5. assert the mutant **still asks** on the REST form — proving the two clauses are
+         **independently** covered and neither leans on the other.
+      ⚠ **Nothing is deleted from the shipped guard at any point.** The mutation lives in the test,
+      on a throwaway copy in `tmp_path`; the note, the rendered hooks and the live rail are untouched.
+      ⚠ Land it **in the same commit as 3a.1** — a mutation test written after the widening has the
+      same provenance problem as any other after-the-fact test.
 - [ ] 3a.4 **Check what the HARD DENY does to the REST form — it TIGHTENS, and that needs a decision.**
       Read 2026-09-19, `_targets_vault()` in order: the literal `VAULT` path in the command → true;
       an explicit **`-R owner/repo` → false** ("names a GitHub repo, not the local vault working
