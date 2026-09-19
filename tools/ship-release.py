@@ -339,9 +339,32 @@ def main(argv):
         notes_file.write_text(notes + "\n")
         print(f"notes [changelog]: release notes written to {notes_file}")
         title = ns.title or version
-        repo_arg = f"-R {emit_slug} " if emit_slug else ""
-        _emit_next(f'gh release create {version} {repo_arg}--verify-tag --latest '
-                   f'-t "{title}" --notes-file {notes_file}')
+        # §4.4: `gh release create` became `POST /repos/{slug}/releases`. Three flags have no REST
+        # equivalent and each is replaced deliberately:
+        #
+        #   --verify-tag  ->  an explicit `GET .../git/ref/tags/{tag}` CHAINED with `&&`. Without
+        #                     it the POST is not inert on a typo'd version: `target_commitish`
+        #                     defaults to the default branch and GitHub CREATES the tag there.
+        #                     Measured in the vault UAT round-trip
+        #                     (`30-Sites/estate-gap-reconciliation/uat-release-roundtrip.sh`),
+        #                     whose response carried `target_commitish: main` — which is why that
+        #                     round-trip used an EXISTING tag rather than trusting a guard.
+        #   --latest      ->  `-f make_latest=true`. ⚠ REQUEST-ONLY: not echoed in the response,
+        #                     so it cannot be confirmed from the POST result. The parity tally
+        #                     below is what observes it, on the re-run.
+        #   --notes-file  ->  `-F body=@FILE`, so notes carrying quotes or fences reach the API
+        #                     intact instead of passing through the shell.
+        #
+        # The slug stopped being optional: `gh release create` could fall back to the caller's cwd,
+        # a REST path cannot, and emitting a command with a hole in it is what this driver exists
+        # to prevent.
+        if not emit_slug:
+            _die_blocked("cannot emit the release command: no owner/repo resolves from origin, "
+                         "and a REST path has no working-directory fallback")
+        _emit_next(f'gh api repos/{emit_slug}/git/ref/tags/{version} > /dev/null && '
+                   f'gh api -X POST repos/{emit_slug}/releases '
+                   f'-f tag_name={version} -f name="{title}" '
+                   f'-f make_latest=true -F body=@{notes_file}')
 
     problems = []
     if release["isDraft"]:

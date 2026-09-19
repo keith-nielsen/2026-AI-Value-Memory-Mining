@@ -281,9 +281,9 @@ still answered them would let a reversion to the subcommand form pass green.
       (`/actions/runs` **and** `/actions/workflows?per_page=100`); a single `/actions/runs?head_sha=`
       call drops workflow names. *Done when:* the fields used downstream are enumerated and shown
       present in the replacement's response.
-- [ ] 4.3 `pr-flow.py:1919` — emitted `gh pr create` → `gh api -X POST repos/{slug}/pulls`
+- [x] 4.3 `pr-flow.py:1919` — emitted `gh pr create` → `gh api -X POST repos/{slug}/pulls`
       with `-f title=` `-f head=` `-f base=` `-F body=@<file>`.
-- [ ] 4.4 `ship-release.py:343` — emitted `gh release create` → `gh api -X POST repos/{slug}/releases`.
+- [x] 4.4 `ship-release.py:343` — emitted `gh release create` → `gh api -X POST repos/{slug}/releases`.
       ⚠ **BLOCKED ON 3a.1 — do not land this conversion before the outbound guard covers the REST
       form.** Measured 2026-09-19: the subcommand raises the INV-14 ask, the REST equivalent passes in
       silence (§0.7). Landing 4.4 first leaves the publish path ungated for the length of that gap.
@@ -310,7 +310,7 @@ still answered them would let a reversion to the subcommand form pass green.
 
 ## 5. Consequences, recorded rather than discovered later
 
-- [ ] 5.1 `tests/test_emitted_command_shape.py` — its `-R <slug>` assertion dies with 4.3/4.4 since
+- [x] 5.1 `tests/test_emitted_command_shape.py` — its `-R <slug>` assertion dies with 4.3/4.4 since
       `gh api` carries the slug inline. Change the premise **in the same commit**, and widen its
       scope: it reads only `ship-release.py`'s `_emit_next(…)` today and never sees `pr-flow.py`'s
       `emit(…)` sites, which is the second reason `gh pr create` stood unnoticed.

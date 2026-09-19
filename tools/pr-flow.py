@@ -1916,8 +1916,12 @@ def drive(args, root, route, plan=False):
         if not args.title:
             return refuse(route, "pr", "--title was not supplied",
                           "refusing to emit a command containing a placeholder", plan)
-        cmd = (f'cd {root} && gh pr create --base {base} --head {branch} '
-               f'--title "{args.title}" --body-file {args.body_file}')
+        # §4.3: `gh pr create` became the REST call. `-F body=@FILE` reads the body from the file
+        # rather than the command line, so a body carrying quotes, backticks or a ```scope fence
+        # cannot be mangled by the shell on the way in.
+        cmd = (f'cd {root} && gh api -X POST repos/{slug}/pulls '
+               f'-f title="{args.title}" -f head={branch} -f base={base} '
+               f'-F body=@{args.body_file}')
         return emit(route, "pr", cmd, OPERATOR, OPERATOR, CONSENT_ACT, WHY_OPERATOR_RUNS_GH,
                     approve=f"opens a PR from {branch} onto {base}; body {args.body_file} carries "
                             "a scope block [verified].",

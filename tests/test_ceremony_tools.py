@@ -217,10 +217,17 @@ def test_ship_full_ceremony_walk(ceremony):
     assert r.returncode == EXIT_NEEDS_INPUT
     assert f"layer [remote-tag]: v0.1.31 at {target[:12]}" in r.stdout
     next_cmd = [ln for ln in r.stdout.splitlines() if ln.startswith("NEXT: ")][-1][6:]
-    # `-R <slug>` for the same reason as `-C` above: the emitted command names its subject rather
-    # than inheriting it from wherever the caller happens to be standing.
-    assert next_cmd.startswith(f"gh release create v0.1.31 -R {ceremony.slug} --verify-tag --latest")
-    assert "--notes-file" in next_cmd
+    # The emitted command names its subject rather than inheriting it from wherever the caller
+    # happens to be standing — the REST path carries the slug INLINE, which is the §4.3/§4.4
+    # spelling of the same property `-C` gives git.
+    assert next_cmd.startswith(
+        f"gh api repos/{ceremony.slug}/git/ref/tags/v0.1.31 > /dev/null && "
+        f"gh api -X POST repos/{ceremony.slug}/releases")
+    # `--verify-tag` has no REST equivalent, so the tag read above IS the precondition: without it
+    # a typo'd version creates the tag at the default branch rather than failing.
+    assert "-f tag_name=v0.1.31" in next_cmd
+    assert "-f make_latest=true" in next_cmd
+    assert "-F body=@" in next_cmd
 
     # The caller creates the release; the stub now knows it.
     # Fixtures are REST-shaped, because that is what the read layer actually receives.

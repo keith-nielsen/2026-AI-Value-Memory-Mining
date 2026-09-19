@@ -937,7 +937,7 @@ def test_body_file_lacking_a_scope_block_is_refused_before_any_command(work, mon
     o = capsys.readouterr().out
     assert code == EXIT_REFUSED
     assert "no fenced" in o
-    assert "gh pr create" not in o
+    assert "repos/o/r/pulls" not in o   # no PR-creating command is emitted at all
 
 
 def test_missing_title_refuses_rather_than_emitting_a_placeholder(work, monkeypatch, capsys):
@@ -1811,7 +1811,8 @@ NO_RUNS = {"check_runs": []}
 
 # id, prs-for-branch, check payload, full-PR override, children, expected exit, expected marker
 LIFECYCLE_STATES = [
-    ("S7  pushed, no pull request",        [],            NO_RUNS, None, (), EXIT_NEEDS_INPUT, "gh pr create"),
+    ("S7  pushed, no pull request",        [],            NO_RUNS, None, (), EXIT_NEEDS_INPUT,
+     "gh api -X POST repos/o/r/pulls"),
     ("S8  body lacks the scope block",     ["body-less"], NO_RUNS, None, (), EXIT_NEEDS_INPUT, "gh api -X PATCH"),
     ("S9  no check runs registered",       ["open"],      NO_RUNS, None, (), EXIT_NEEDS_INPUT, "NOT READY"),
     ("S10 checks still pending",           ["open"],      PENDING, None, (), EXIT_NEEDS_INPUT, "NOT READY"),
