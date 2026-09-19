@@ -328,13 +328,13 @@ still answered them would let a reversion to the subcommand form pass green.
       lowercased) instead of `UNAVAILABLE (GraphQL-only)`. ⚠ `mergeable_state` is thinly documented:
       **pin the observed values in a test**. `mergeable` is computed asynchronously, so `null` on a
       cold read is a real state — `--ready mergeable` already polls it.
-- [ ] 5.3 Document surfaces, same change: `docs/version-control-legal-moves.md` (rows *Open a PR*,
+- [x] 5.3 Document surfaces, same change: `docs/version-control-legal-moves.md` (rows *Open a PR*,
       *Create a Release*, plus the §2 block), `AGENTS.md`, `CONTRIBUTING.md`,
       `docs/USING-THIS-TEMPLATE.md`, and the vault's `vmm-repo-github-card.md` with `CARD-VERSION`
       bumped — nothing detects that card drifting.
-- [ ] 5.4 Update the vault ledger `gh-form-findings-ledger.md`: FIX rows absent, KEEP rows present
+- [x] 5.4 Update the vault ledger `gh-form-findings-ledger.md`: FIX rows absent, KEEP rows present
       and still denied.
-- [ ] 5.5 Import into ADR-0045's rationale the strongest argument found in the survey, which the ADR
+- [x] 5.5 Import into ADR-0045's rationale the strongest argument found in the survey, which the ADR
       does not currently make: **hooks run outside the model as separate processes, so prompt
       injection cannot talk its way past them.**
 - [ ] 5.6 **The outbound guard is now in this change's blast radius** (§3a). Its note, its rendered

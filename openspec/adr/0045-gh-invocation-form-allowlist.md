@@ -121,6 +121,24 @@ A crashed interpreter, a malformed payload, or a fresh clone whose hooks are unr
 to *permit* under the hook alone. Five lines of enumeration cover the general control's own outage.
 This redundancy is recorded so a later simplification does not remove it as duplication.
 
+### Why a hook, rather than guidance the agent is asked to follow (added 2026-09-20)
+
+**Hooks run outside the model, as separate processes.** They receive the command the tool is about
+to execute and answer independently of what the model has been told, persuaded of, or has talked
+itself into. Prompt injection — in a fetched page, an issue body, a dependency's README — can argue
+a model out of a rule it was given; it cannot argue its way past a process that never reads the
+conversation.
+
+This is the strongest argument for the design, and this ADR did not originally make it. Imported
+from the prior-art survey in the vault Site `harness-permission-control-deep-dive`
+(`shim-approach-prior-art-survey`), which found it stated consistently by teams that had built
+command-layer controls of their own.
+
+⚠ It bounds the claim as well as supporting it. The guard binds **the command the agent types**; a
+tool calling `gh` inside a subprocess is invisible to it, and so is the Actions runner. Those are
+not residual gaps to be closed later — they are the edge of what a hook can bind, which is why the
+shipped-form detector exists on the other side of that edge.
+
 ## Consequence
 
 - New GitHub subcommands are refused by default rather than permitted by omission.

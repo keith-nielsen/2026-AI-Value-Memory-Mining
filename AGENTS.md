@@ -172,7 +172,8 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   radius. The `scope-review` CI job (self-contained, stdlib-only) extracts it **fail-closed** and
   fails the check on any undeclared surface. If the check fires: shrink the diff or amend the
   declaration deliberately — never work around the gate; it is the process. Note
-  `gh pr create --body-file` bypasses the PR template, so include the block yourself.
+  the emitted `gh api -X POST …/pulls -F body=@FILE` bypasses the PR template, so include the
+  block yourself.
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
   from it, and **never even *propose*** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
@@ -191,7 +192,8 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   the block and stops** (extends INV-14's "never even propose").
 - **Every version tag ships with a GitHub Release — walk the ship with `tools/ship-release.py
   vX.Y.Z`.** A tag ≠ a Release. The driver proves the merge-ancestor + CHANGELOG guards, cuts and
-  verifies the local tag, then emits each outward command (`git push`, `gh release create`) for you
+  verifies the local tag, then emits each outward command (`git push`, and a tag read chained to
+  `gh api -X POST …/releases`) for you
   to run through the INV-14 ASK — it never runs them itself — and re-verifies per layer on each
   re-run until the tag↔Release parity tally is clean (see CONTRIBUTING → "Shipping a version").
   Do not hand-compose the ceremony; the driver's refusals encode the F10 record.

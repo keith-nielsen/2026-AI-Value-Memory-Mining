@@ -62,6 +62,8 @@ cooperating agent**, not an anti-evasion control.
 Re-measure: read `OUTWARD` / `PUBLISH` in `.claude/hooks/outbound-publish-guard.py`.
 
 **ASK** on `git push`, `git remote add|set-url`, `gh repo create`, `gh release create|edit|upload`,
+a REST write to an **outbound** endpoint (`POST …/releases`, `DELETE …/releases/{id}` — derived
+from §2b, so the rail follows the block), anything touching `uploads.github.com`,
 `npm|yarn|pnpm publish`, `twine upload`, `docker push`, `cargo publish`, `gem push`.
 **HARD DENY** when the effective target resolves to a deployed vault — including via `cd … &&`,
 `git -C <path>`, or `gh … -R <owner/repo>`.
@@ -107,8 +109,8 @@ Re-measure the emitted forms: `grep -rhoE '"git -C \{root\}[^"]*"' tools/pr-flow
 | Push a tag | `git -C <root> push origin refs/tags/vX.Y.Z` | agent | **operator** (INV-14 ask) |
 | Retarget a PR | `gh api -X PATCH /repos/<slug>/pulls/N -f base=<ref>` + re-read | agent | operator |
 | Merge a PR | `gh api -X PUT /repos/<slug>/pulls/N/merge -f merge_method=merge -f sha=<sha>` | **operator** | operator |
-| Open a PR | `gh pr create --base … --head … --title … --body-file …` | **operator** | operator |
-| Create a Release | `gh release create vX.Y.Z --verify-tag --latest -t … --notes-file …` | **operator** | operator |
+| Open a PR | `gh api -X POST /repos/<slug>/pulls -f title= -f head= -f base= -F body=@FILE` | **operator** | operator |
+| Create a Release | `gh api .../git/ref/tags/vX.Y.Z && gh api -X POST /repos/<slug>/releases -f tag_name= -f make_latest=true -F body=@FILE` | **operator** | operator |
 | Local branch ops | `git -C <root> switch <b>` · `git -C <root> branch -D <b>` | agent | agent |
 
 **Why the `gh` mutations stay with the operator:** `gh` needs the OS keyring **and** no write token
