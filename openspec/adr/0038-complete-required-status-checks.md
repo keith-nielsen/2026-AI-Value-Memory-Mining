@@ -83,7 +83,29 @@ record, not a guarantee of continuing state — precisely what `github-state-rec
 GitHub ruleset parameters can also change **without bumping `updated_at`**, so any future check must
 compare content, never timestamps.
 
-## Application (operator — the agent cannot authenticate to perform this)
+## Application (operator — by AUTHORITY, not by capability)
+
+> **Amended 2026-09-19 (`prefer-rest-over-graphql-forms`).** This heading previously read *"the agent
+> cannot authenticate to perform this"*. That ground was **measured false on 2026-08-26** (`0b07ddc`):
+> a session rooted in `$FRAMEWORK_ROOT` carries no `sandbox` block, reaches the keyring, and `gh`
+> authenticates. Whether that token carries repo-administration rights is **unmeasured** — and the
+> restriction must not depend on the answer, because a boundary resting on *"it would fail anyway"*
+> evaporates the moment the environment shifts, with no event anyone can observe.
+>
+> The restriction is therefore **authority**, which is session-independent: ruleset writes are the
+> operator's, and `PUT` / `PATCH` / `DELETE` on `/repos/{slug}/rulesets/{id}` are listed as
+> **deliberately excluded** from the sanctioned write set in
+> `docs/version-control-legal-moves.md` §2b, where the full reasoning lives. The agent's channel
+> refuses them; the operator's terminal runs no hook and is unaffected, so the procedure below is
+> unchanged. ⚠ **The agent must not compose or hand over one of these commands either** — a refusal
+> gates the channel, not the output. Point at the verified recipe below instead.
+>
+> ⚠ **Known gap, deliberately left open.** This keeps the write off one channel; it does **not**
+> observe the live rulesets, which is what the Residual note above says is owed. A ruleset edited in
+> the web UI, drifted, or rewritten by a token outside this estate is still undetected —
+> **`github-state-reconcile`'s job**. When that capability is built, revisit whether a reconciler
+> needs a sanctioned write path to repair what it finds. That is the one plausible reason these rows
+> would ever be admitted, and it would be its own change with its own Gate 4.
 
 A ruleset `PUT` **replaces the entire `rules` array**, so a hand-written payload silently drops
 `pull_request`, `deletion` or `non_fast_forward`. The applied method was: fetch the live ruleset,

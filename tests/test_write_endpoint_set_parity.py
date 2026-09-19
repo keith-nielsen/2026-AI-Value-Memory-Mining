@@ -32,6 +32,7 @@ INVOCATION_NOTE = NOTES / "gh-invocation-guard-script.md"
 OUTBOUND_NOTE = NOTES / "outbound-publish-guard-script.md"
 
 FIELDS = ("method", "endpoint", "runs", "authority", "precondition", "outbound")
+EXCLUDED_FIELDS = ("method", "endpoint", "reason")
 WRITE_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 
 
@@ -61,6 +62,32 @@ def parse_doc_block(text):
             f"row {lineno}: outbound must be yes or no, got {row['outbound']!r}")
         rows.append(row)
     assert rows, "the ```gh-write-endpoints block is empty"
+    return rows
+
+
+def parse_excluded_block(text):
+    """-> list of row dicts from the ```gh-write-endpoints-excluded fence.
+
+    Absence from the sanctioned set is ALREADY a refusal — this block exists so that an endpoint
+    left out by decision is distinguishable from one left out by oversight. Parsed, not merely
+    written, so the two sets can be held disjoint mechanically.
+    """
+    m = re.search(r"^```gh-write-endpoints-excluded[ \t]*\r?\n(.*?)^```", text, re.S | re.M)
+    if not m:
+        raise AssertionError("docs/version-control-legal-moves.md carries no "
+                             "```gh-write-endpoints-excluded block — a deliberate exclusion and an "
+                             "oversight are then indistinguishable")
+    rows = []
+    for lineno, line in enumerate(m.group(1).splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        assert len(parts) == len(EXCLUDED_FIELDS), (
+            f"excluded row {lineno} has {len(parts)} fields, expected {EXCLUDED_FIELDS}: {line!r}")
+        row = dict(zip(EXCLUDED_FIELDS, parts))
+        assert row["reason"], f"excluded row {lineno} carries no reason — then it is an oversight"
+        rows.append(row)
+    assert rows, "the ```gh-write-endpoints-excluded block is empty"
     return rows
 
 
@@ -132,6 +159,49 @@ def test_every_outbound_row_is_also_in_the_full_set(doc_rows):
     full = {(r["method"], r["endpoint"]) for r in doc_rows}
     outbound = {(r["method"], r["endpoint"]) for r in doc_rows if r["outbound"] == "yes"}
     assert outbound <= full
+
+
+def test_excluded_endpoints_are_not_in_the_sanctioned_set(doc_rows):
+    """The two blocks are disjoint, and the guards hold neither excluded row.
+
+    This is the assertion that makes the exclusion a control rather than a paragraph: admitting a
+    ruleset write later fails here until its row is removed from the excluded block, which is where
+    the reasoning for keeping it out is written down. The decision cannot be reversed by accident.
+    """
+    sanctioned = {(r["method"], r["endpoint"]) for r in doc_rows}
+    excluded = {(r["method"], r["endpoint"])
+                for r in parse_excluded_block(DOC.read_text(encoding="utf-8"))}
+
+    overlap = sanctioned & excluded
+    assert not overlap, (
+        f"these endpoints are both sanctioned and excluded: {sorted(overlap)}. "
+        f"One of the two blocks is wrong, and the guards will follow the sanctioned one.")
+
+    for note, const in ((INVOCATION_NOTE, "SANCTIONED_WRITES"),
+                        (OUTBOUND_NOTE, "OUTBOUND_ENDPOINTS")):
+        leaked = note_constant(note, const) & excluded
+        assert not leaked, (
+            f"{note.name} carries {sorted(leaked)}, which the doc excludes by decision — "
+            f"a guard must never be wider than the set it imports")
+
+
+def test_the_ruleset_control_plane_is_excluded(doc_rows):
+    """Named specifically, because this one is the reason the excluded block exists.
+
+    GitHub rulesets are the only server-side control in the stack (ADR-0034) and a ruleset PUT
+    replaces the entire rules array (ADR-0038). A test that only checked 'the blocks are disjoint'
+    would still pass if someone deleted the ruleset rows from BOTH blocks and added them to the
+    sanctioned set in one edit; this one names what must stay out.
+    """
+    excluded = {(r["method"], r["endpoint"])
+                for r in parse_excluded_block(DOC.read_text(encoding="utf-8"))}
+    for method in ("PUT", "PATCH", "DELETE"):
+        assert (method, "/repos/{slug}/rulesets/{id}") in excluded, (
+            f"{method} on a ruleset is no longer listed as excluded. If that is deliberate it is a "
+            f"Tier-0 widening: the agent channel would be able to rewrite the control that binds "
+            f"the operator and the admin. It belongs in a change with its own Gate 4, never here.")
+    sanctioned = {r["endpoint"] for r in doc_rows}
+    assert "/repos/{slug}/rulesets/{id}" not in sanctioned
 
 
 def test_a_divergent_copy_is_detected(tmp_path):

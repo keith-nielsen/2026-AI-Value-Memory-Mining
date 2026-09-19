@@ -155,6 +155,57 @@ What the preconditions mean, and why each is not decoration:
 ⚠ **`runs: ci`** names the Actions runner, where **no hook runs at all**. Those two rows are governed
 only by the detector, and nothing at runtime will refuse them.
 
+#### Deliberately excluded — decided, with the reasoning attached
+
+Absence from the set above is already a refusal: every write is refused by default rather than
+permitted by omission. These endpoints are listed anyway, because an endpoint left out **by decision**
+and one left out **by oversight** are indistinguishable from the set alone — and the next reader who
+needs one of these will otherwise re-derive the argument from scratch, or quietly add the row.
+
+```gh-write-endpoints-excluded
+PUT    | /repos/{slug}/rulesets/{id}  | control-plane-write
+PATCH  | /repos/{slug}/rulesets/{id}  | control-plane-write
+DELETE | /repos/{slug}/rulesets/{id}  | control-plane-write
+```
+
+**`control-plane-write` — why these stay out (decided 2026-09-19):**
+
+1. **They edit the control plane, not content.** Every sanctioned row acts on a pull request, a
+   release, a label or an issue. These act on §1.4's rulesets — `19666243` (main: PR required, 16
+   required checks, no deletion, no non-fast-forward) and `19666225` (`v*` tags frozen).
+2. **A ruleset `PUT` replaces the entire `rules` array**, so a hand-written payload silently drops
+   `pull_request`, `deletion` or `non_fast_forward` (ADR-0038, Application). The damage needs no
+   malice and announces nothing.
+3. **The ruleset cannot protect itself.** `bypass_actors` is empty and `current_user_can_bypass` is
+   `never`, so nobody can *evade* it — but an admin token can *rewrite* it. Its integrity is
+   procedural, and this exclusion is the procedure.
+4. **Layer ordering.** ADR-0034 establishes rulesets as *"the only control in the stack that runs
+   server-side"*, binding agent, operator and admin identically. Sanctioning them here would let the
+   agent-channel allowlist authorize edits to the layer that backstops every other layer — the
+   weakest-bound channel gaining a documented path to dismantle the strongest control.
+5. **Excluding them costs nothing that exists.** This allowlist binds the **agent's typed channel**;
+   the operator runs `next.sh` in their own terminal, where no hook runs. ADR-0038 already scopes the
+   command to the operator and carries the verified recipe (fetch the live ruleset → mutate only the
+   contexts list → send it back → re-read to confirm). Two ruleset writes exist in the estate's whole
+   record: the 2026-07-24 provisioning and the ADR-0038 completion.
+6. **Reads are unaffected, and reads are what the estate is actually short of.** `GET` is
+   unconstrained; measured 2026-09-19, anonymous `GET …/rulesets` returns **200**. Nothing here
+   blocks the observation capability ADR-0038 says is owed.
+
+⚠ **The ground is AUTHORITY, not capability.** ADR-0038's *"the agent cannot authenticate to perform
+this"* was measured false on 2026-08-26 (`0b07ddc`): a session rooted in `$FRAMEWORK_ROOT` reaches the
+keyring and `gh` authenticates. Whether that token carries repo-administration rights is **unmeasured**
+— and the exclusion must not depend on the answer. A boundary resting on "it would fail anyway"
+evaporates the moment the environment shifts, silently and with no event to observe.
+
+⚠ **This is a known gap, not a closed question.** Nothing observes the live rulesets, and GitHub can
+change ruleset parameters **without bumping `updated_at`**, so any future check must compare content,
+never timestamps (ADR-0038, Residual). The exclusion keeps the write off the agent's channel; it does
+**not** detect a ruleset that drifted, was edited in the web UI, or was rewritten by a token outside
+this estate. **That detection is `github-state-reconcile`'s to build** — and when it exists, revisit
+whether a reconciler needs a sanctioned write path to repair what it finds, which is the one plausible
+reason these rows would ever be admitted.
+
 ---
 
 ## 2a. LOCAL commands that can destroy work without touching the network

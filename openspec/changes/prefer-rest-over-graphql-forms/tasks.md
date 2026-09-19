@@ -114,18 +114,37 @@ note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
       and **each** guard's list are the same set — the full set for the invocation guard, the outbound
       subset for the outbound guard. **This test is what makes 2.2 an import rather than a
       restatement** — restating a rule with no equality test is the class-9 defect.
-- [ ] 2.4 The initial set, to be confirmed against the doc rather than from this list:
+- [x] 2.4 The initial set, to be confirmed against the doc rather than from this list:
       `POST /repos/{slug}/pulls` · `PATCH /repos/{slug}/pulls/{n}` ·
       `PUT /repos/{slug}/pulls/{n}/merge` (precondition `sha`) · `POST /repos/{slug}/releases`
       (precondition: tag read) · `POST /repos/{slug}/labels` · `POST /repos/{slug}/issues` ·
       `DELETE /repos/{slug}/releases/{id}` (the UAT revert path).
-      ⚠ **`PUT /repos/{slug}/rulesets/{id}` is an open question, not an omission.**
-      `openspec/adr/0038-complete-required-status-checks.md:93` documents that exact write as an
-      operator instruction. It is **outside the detector's scan scope** (which is `tools/`,
-      `.claude/hooks/`, `.github/scripts/`, `.github/workflows/`, and the `vault-template/…/scripts/`
-      python fences — never `docs/` or ADR prose), so 3.4 will stay silent about it while 3.1 refuses
-      it at runtime. *Decide explicitly:* admit it to the set, or amend the ADR line — leaving it is
-      how a documented instruction becomes false.
+      ⚠ **`PUT /repos/{slug}/rulesets/{id}` — DECIDED 2026-09-19: EXCLUDED, not admitted.**
+      Operator decision, taken on a written comparison rather than a default. `PUT`, `PATCH` and
+      `DELETE` on that endpoint are now listed in a ` ```gh-write-endpoints-excluded ` block in
+      `docs/version-control-legal-moves.md` §2b carrying six numbered grounds, and
+      `openspec/adr/0038-…` is amended to rest on **authority rather than capability**.
+      The short form: the endpoint edits the **control plane**, not content; a `PUT` replaces the
+      entire `rules` array, so a hand-written payload silently drops `pull_request` / `deletion` /
+      `non_fast_forward`; `bypass_actors` is empty so nobody can *evade* the ruleset, but an admin
+      token can *rewrite* it, which makes its integrity procedural; admitting it would let the
+      agent-channel allowlist authorize edits to the only server-side layer (ADR-0034), which
+      backstops every other layer; and excluding it costs nothing that exists — the guard binds the
+      agent's typed channel, the operator's terminal runs no hook, ADR-0038 carries a verified
+      recipe, and there have been **two** ruleset writes in the estate's entire record.
+      ⚠ The old ground *"the agent cannot authenticate"* was measured FALSE on 2026-08-26 (`0b07ddc`).
+      A boundary resting on assumed incapacity is not a boundary.
+      ⚠ **This does not close the gap it sits next to.** Nothing observes the live rulesets, and
+      GitHub can change ruleset parameters **without bumping `updated_at`** (ADR-0038, Residual), so a
+      web-UI edit or an out-of-estate token is still undetected. That is **`github-state-reconcile`'s**
+      to build, and it is the one plausible reason these rows would ever be admitted — as its own
+      change, with its own Gate 4.
+      ⚠ The detector cannot help here either: its scan scope is `tools/`, `.claude/hooks/`,
+      `.github/scripts/`, `.github/workflows/` and the `vault-template/…/scripts/` python fences —
+      **never `docs/` or ADR prose**. The exclusion is held by
+      `tests/test_write_endpoint_set_parity.py` instead, which fails if a ruleset row is admitted to
+      the sanctioned set or leaks into either guard. **Observed failing 2026-09-19** on a deliberate
+      widening: 3 failed, 4 passed, naming the ruleset row.
 - [x] 2.5 **Each row carries whether the endpoint is OUTWARD** — i.e. whether reaching it must raise
       the INV-14 ask. This is the field §0.7 exists to protect, and it is what makes the block
       readable by **two** guards rather than one.
@@ -138,6 +157,8 @@ note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
       the existing permitted forms still pass after it.
 - [ ] 3.3 Keep the refusal teaching: the message names the sanctioned endpoint set, the way the
       current message carries the REST mapping. *"Refusals teach"* (ADR-0045 §Consequence).
+      ⚠ For an endpoint in the **excluded** block (2.4), the message must say it is excluded **by
+      decision** and point at §2b — a bare "not permitted" invites the next reader to add the row.
 - [ ] 3.4 Extend `tests/test_gh_form_conformance.py` to fail on a shipped write to an unsanctioned
       endpoint. ⚠ This matters **more** than 3.1: it covers emitted commands and the Actions runner,
       where no hook runs.
