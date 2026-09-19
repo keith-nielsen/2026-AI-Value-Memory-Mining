@@ -154,6 +154,22 @@ def test_outbound_guard_carries_the_outbound_subset(doc_rows):
         f"  in the guard, not marked outbound in the doc: {sorted(carried - documented)}")
 
 
+def test_invocation_guard_carries_the_excluded_set_verbatim():
+    """The guard names the exclusions so its refusal can teach — and that copy is held equal too.
+
+    The guard needs this set only for its MESSAGE: absence from SANCTIONED_WRITES already refuses.
+    But a message that names a decision is itself a claim about the record, and a claim that drifts
+    from the record is worse than a bare refusal.
+    """
+    documented = {(r["method"], r["endpoint"])
+                  for r in parse_excluded_block(DOC.read_text(encoding="utf-8"))}
+    carried = note_constant(INVOCATION_NOTE, "EXCLUDED_WRITES")
+    assert carried == documented, (
+        "the invocation guard and the doc disagree about what is excluded by decision.\n"
+        f"  excluded in the doc, not the guard: {sorted(documented - carried)}\n"
+        f"  excluded in the guard, not the doc: {sorted(carried - documented)}")
+
+
 def test_every_outbound_row_is_also_in_the_full_set(doc_rows):
     """The subset relation itself, stated so a future edit cannot quietly break it."""
     full = {(r["method"], r["endpoint"]) for r in doc_rows}

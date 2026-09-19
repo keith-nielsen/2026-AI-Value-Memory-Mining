@@ -9,6 +9,7 @@ Fails OPEN by construction: any parse failure exits 0 with no output. That is wh
 `permissions.deny` entries are retained alongside this hook rather than replaced by it.
 """
 import json
+import re
 import shlex
 import sys
 
@@ -31,6 +32,18 @@ REST_HINT = (
 # (INV-6) and renders into roots that have no docs/ directory -- it cannot read that file at runtime.
 # Edit the doc block, then this constant, never one alone.
 #
+# Flags that consume the NEXT token as their value. Needed so a flag's value is never mistaken for
+# a positional -- see non_flag_tokens() for the hole this closes.
+VALUE_FLAGS = {
+    "-X", "--method", "-f", "--field", "-F", "--raw-field", "-H", "--header",
+    "-q", "--jq", "-t", "--template", "--input", "--hostname", "-p", "--preview",
+    "--cache", "-R", "--repo",
+}
+
+# `GET` is unconstrained; everything else must name a sanctioned endpoint. HEAD and OPTIONS are
+# reads by definition and are treated the same way.
+READ_METHODS = {"GET", "HEAD", "OPTIONS"}
+
 # {slug} spans two path segments (owner/repo); {n} and {id} are numeric.
 SANCTIONED_WRITES = {
     ("POST", "/repos/{slug}/pulls"),
@@ -40,6 +53,16 @@ SANCTIONED_WRITES = {
     ("DELETE", "/repos/{slug}/releases/{id}"),
     ("POST", "/repos/{slug}/labels"),
     ("POST", "/repos/{slug}/issues"),
+}
+
+# Excluded BY DECISION, not by oversight -- so the refusal can say which. Absence alone is already a
+# refusal; this set exists only so the message teaches. Source of truth: the
+# ```gh-write-endpoints-excluded block in docs/version-control-legal-moves.md §2b, held equal by
+# tests/test_write_endpoint_set_parity.py.
+EXCLUDED_WRITES = {
+    ("PUT", "/repos/{slug}/rulesets/{id}"),
+    ("PATCH", "/repos/{slug}/rulesets/{id}"),
+    ("DELETE", "/repos/{slug}/rulesets/{id}"),
 }
 
 
@@ -71,6 +94,76 @@ def is_env_assignment(token):
         all(c.isalnum() or c == "_" for c in name)
 
 
+def non_flag_tokens(tokens):
+    """-> the tokens that are genuinely positional: flags removed, AND their values with them.
+
+    MEASURED DEFECT this replaces, 2026-09-19. The old rule was "every token not starting with
+    `-`", so the VALUE of a flag occupied a positional slot. `gh api graphql` was refused while
+    `gh api -X POST graphql` DEFERRED -- and a GraphQL mutation is always a POST, so the only shape
+    capable of the silent no-op this guard exists to stop was the shape that got through. Layer 1's
+    `Bash(gh api graphql:*)` prefix rule does not cover it either.
+    """
+    out, skip = [], False
+    for tok in tokens:
+        if skip:
+            skip = False
+            continue
+        if tok.startswith("-"):
+            # `--flag=value` and `-Xvalue` carry their value; `--flag value` consumes the next token.
+            if "=" not in tok and tok in VALUE_FLAGS:
+                skip = True
+            continue
+        out.append(tok)
+    return out
+
+
+def api_call(tokens):
+    """-> (METHOD, endpoint or None) for a `gh api` invocation. Default method is GET."""
+    method, endpoint, skip = "GET", None, False
+    for i, tok in enumerate(tokens):
+        if skip:
+            skip = False
+            continue
+        if tok.startswith("-"):
+            if tok.startswith("--method="):
+                method = tok.split("=", 1)[1]
+            elif tok.startswith("-X") and len(tok) > 2:
+                method = tok[2:]
+            elif tok in ("-X", "--method"):
+                method = tokens[i + 1] if i + 1 < len(tokens) else ""
+                skip = True
+            elif "=" not in tok and tok in VALUE_FLAGS:
+                skip = True
+            continue
+        if tok == "api":
+            continue
+        if endpoint is None:
+            endpoint = tok
+    return method.upper(), endpoint
+
+
+def matches_any(endpoint, templates, method):
+    """True iff `endpoint` matches a template in `templates` carrying the same method."""
+    path = endpoint.split("?", 1)[0].split("#", 1)[0]
+    if "://" in path:  # a full URL is the same call spelled longer
+        path = "/" + path.split("://", 1)[1].split("/", 1)[-1] if "/" in path.split("://", 1)[1] \
+            else "/"
+    path = "/" + path.strip("/")
+    for tmpl_method, tmpl in templates:
+        if tmpl_method != method:
+            continue
+        # {slug} is owner/repo -- TWO segments in a real command, but ONE where a placeholder stands
+        # in. The shipping detector flattens an f-string's interpolations to a single token, so a
+        # guard demanding two segments would refuse the estate's own emitted commands. Accepting one
+        # loosens nothing: the collection path after the slug must still match exactly.
+        pattern = re.escape(tmpl)
+        pattern = pattern.replace(re.escape("{slug}"), r"[^/]+(?:/[^/]+)?")
+        pattern = re.sub(r"\\\{[a-z]+\\\}", r"[^/]+", pattern)
+        if re.fullmatch(pattern, path):
+            return True
+    return False
+
+
 def verdict(segment):
     """-> reason string to deny with, or None to stand aside."""
     args = list(segment)
@@ -84,10 +177,37 @@ def verdict(segment):
         return None
 
     rest = args[1:]
-    positional = [a for a in rest if not a.startswith("-")]
+    positional = non_flag_tokens(rest)
     sub = positional[0] if positional else ""
 
     if sub == "api":
+        method, endpoint = api_call(rest)
+        if method not in READ_METHODS:
+            if endpoint is None:
+                return (
+                    "a `gh api` write was refused: no endpoint path could be read from the "
+                    "command, so the sanctioned-endpoint rule cannot be applied. " + REST_HINT
+                )
+            if matches_any(endpoint, EXCLUDED_WRITES, method):
+                return (
+                    f"`gh api -X {method} {endpoint}` is refused: this endpoint is **excluded by "
+                    f"decision**, not by oversight. GitHub rulesets are the only server-side "
+                    f"control in this estate (ADR-0034) and a ruleset write replaces the entire "
+                    f"rules array, so it can silently drop `pull_request`, `deletion` or "
+                    f"`non_fast_forward` (ADR-0038). Ruleset changes are the operator's, run from "
+                    f"their own terminal. The reasoning is in "
+                    f"docs/version-control-legal-moves.md §2b; reopening it is a change with its "
+                    f"own Gate 4, never an edit made in passing."
+                )
+            if not matches_any(endpoint, SANCTIONED_WRITES, method):
+                return (
+                    f"`gh api -X {method} {endpoint}` is refused: `GET` is unconstrained, but a "
+                    f"write method reaches only the sanctioned endpoint set, because `gh api` is a "
+                    f"WIDER permission than the subcommands it replaces. Sanctioned writes: "
+                    + " · ".join(f"{m} {p}" for m, p in sorted(SANCTIONED_WRITES))
+                    + ". The set's source of truth is the ```gh-write-endpoints block in "
+                    "docs/version-control-legal-moves.md §2b."
+                )
         # `gh api` is permitted EXCEPT the one form this estate has measured unsuitable: graphql.
         # The reason states only what is invariant. A hook is deterministic and offline (INV-6), so
         # it can never measure the session's credential -- any message asserting one would be a

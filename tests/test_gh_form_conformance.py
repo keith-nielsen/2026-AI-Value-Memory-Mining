@@ -114,13 +114,32 @@ def _python_sites(path):
     return _sites_from_tree(ast.parse(path.read_text(errors="replace")))
 
 
+def _fstring_fragments(tree):
+    """Constant pieces INSIDE an f-string. A fragment is not a command.
+
+    MEASURED 2026-09-19, when the method split landed: walking a sink argument yields both the
+    flattened f-string AND each constant piece of it, so
+    `f"cd {root} && gh api -X PATCH /repos/{slug}/pulls/{number} …"` was submitted twice — once
+    whole, and once as the bare fragment `" && gh api -X PATCH /repos/"`, whose endpoint reads as
+    `/repos/`. While `gh api` was a blanket permit both passed and the duplication was invisible;
+    the moment writes were evaluated BY ENDPOINT, three conforming emissions were reported as
+    violations.
+
+    The flattened form is still submitted, so this uncovers nothing — it removes a second,
+    malformed copy of a command already being checked. Same principle the sink rule already
+    states: a string that MENTIONS a command is not a command.
+    """
+    return {id(v) for n in ast.walk(tree) if isinstance(n, ast.JoinedStr)
+            for v in n.values if isinstance(v, ast.Constant)}
+
+
 def _sites_from_tree(tree):
     """One implementation, shared by `.py` files and by the notes' python fences.
 
     Two enumerators over the same language would drift, and the one used less often would drift
     first — which is the failure mode this whole module exists to catch.
     """
-    skip = _docstrings(tree)
+    skip = _docstrings(tree) | _fstring_fragments(tree)
     for n in ast.walk(tree):
         # (a) executed: a list/tuple literal whose first element is "gh"
         if isinstance(n, (ast.List, ast.Tuple)) and n.elts:
@@ -276,3 +295,66 @@ def test_coverage_does_not_depend_on_registration(guard, tmp_path):
     assert "deny" in verdicts, (
         "the substituted form was not refused — the detector has inherited the guard's "
         "blind spot instead of designing it out")
+
+
+def test_an_fstring_emission_is_still_caught_whole(guard, tmp_path):
+    """Skipping f-string FRAGMENTS must not skip the f-string.
+
+    Written when `_fstring_fragments` was added, because "this removes only a duplicate" is a claim
+    about coverage and claims about coverage are what this module exists to replace with evidence.
+    A non-conforming emission built as an f-string — the exact shape of every driver emission — must
+    still be enumerated and still be refused.
+    """
+    fixture = tmp_path / "emits_fstring.py"
+    fixture.write_text(
+        "def build(root, slug, n):\n"
+        "    cmd = f'cd {root} && gh pr edit {n} --base main --repo {slug}'\n"
+        "    return cmd\n", encoding="utf-8")
+
+    found = [t for _, t in _python_sites(fixture)]
+    assert found, "an f-string emission was not enumerated at all"
+    assert any("gh pr edit" in t for t in found), (
+        f"the flattened f-string is missing — only fragments were kept: {found}")
+    verdicts = [decide(guard, c)[0] for t in found for c in _unwrap(t) if GH_WORD.search(c)]
+    assert "deny" in verdicts, "a refused form built as an f-string was not caught"
+
+
+def test_a_conforming_fstring_emission_is_not_reported(guard, tmp_path):
+    """The other direction: a sanctioned write built as an f-string must NOT be a finding.
+
+    This is the false positive that appeared the moment writes were judged by endpoint — three of
+    the driver's own conforming emissions were reported because a fragment ending at `/repos/`
+    was submitted as if it were a command.
+    """
+    fixture = tmp_path / "emits_conforming.py"
+    fixture.write_text(
+        "def build(root, slug, n, sha):\n"
+        "    cmd = f'cd {root} && gh api -X PUT /repos/{slug}/pulls/{n}/merge -f sha={sha}'\n"
+        "    return cmd\n", encoding="utf-8")
+
+    refused = [(t, decide(guard, c)[1])
+               for _, t in _python_sites(fixture)
+               for c in _unwrap(t) if GH_WORD.search(c) and decide(guard, c)[0] == "deny"]
+    assert not refused, f"a conforming emission was reported as a violation: {refused}"
+
+
+@pytest.mark.parametrize("emitted,why", [
+    ("f'gh api -X DELETE /repos/{slug}'", "a repository delete"),
+    ("f'gh api -X PUT /repos/{slug}/rulesets/{rid} --input p.json'", "the excluded control plane"),
+    ("f'gh api -X POST /repos/{slug}/actions/runners/registration-token'", "an unsanctioned write"),
+])
+def test_a_shipped_write_to_an_unsanctioned_endpoint_is_a_finding(guard, tmp_path, emitted, why):
+    """§3.4 — and it matters MORE than the guard's own refusal.
+
+    The guard binds the agent's typed channel. This binds what the repository SHIPS: emitted
+    commands a human pastes, and workflow steps that run on the Actions runner where no hook exists
+    at all. A write to an unsanctioned endpoint must be a finding wherever it is shipped, not only
+    where a hook happens to be listening.
+    """
+    fixture = tmp_path / "ships_a_write.py"
+    fixture.write_text(f"def build(slug, rid):\n    cmd = {emitted}\n    return cmd\n",
+                       encoding="utf-8")
+    verdicts = [decide(guard, c)[0]
+                for _, t in _python_sites(fixture)
+                for c in _unwrap(t) if GH_WORD.search(c)]
+    assert "deny" in verdicts, f"{why} was shipped without being reported: {emitted}"

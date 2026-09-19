@@ -151,15 +151,40 @@ note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
 
 ## 3. The method split in the guard
 
-- [ ] 3.1 Extend `verdict()` so `gh api` is evaluated by method: no `-X`, or `-X GET`, is permitted
+**BUILT AND TESTED 2026-09-19 — red observed first, 10 failures.** Tests written before the split:
+5 unsanctioned-write cases, 4 graphql-behind-a-method-flag cases, 3 excluded-endpoint cases, plus 14
+permitted forms asserted to survive. Then green, 43 passed. Full suite **466 passed, 1 failed** — the
+§1 detector, still red on exactly the seven sites.
+
+⚠ **A HOLE WAS MEASURED IN THE SHIPPED GUARD while writing 3.2, and is now closed.** `positional`
+was built as *"every token not starting with `-`"*, so a flag's VALUE occupied a positional slot:
+`gh api graphql` was refused, **`gh api -X POST graphql` DEFERRED**. A GraphQL mutation is always a
+POST, so the one shape capable of the silent no-op the rule exists to stop was the shape that got
+through — and Layer 1's `Bash(gh api graphql:*)` prefix rule does not cover it either. Closed by
+`non_flag_tokens()`, which drops a flag's value with the flag. ⚠ Only the **space-separated** forms
+were holes; `-XPOST` and `--method=POST` were already refused. Measured, not assumed.
+
+⚠ **The detector needed a fix in the same change, and it is not cosmetic.** Walking a sink argument
+yielded the flattened f-string **and** each constant piece of it, so the driver's own conforming
+emissions were submitted twice — once whole, once as the fragment `" && gh api -X PATCH /repos/"`,
+whose endpoint reads as `/repos/`. Invisible while `gh api` was a blanket permit; the moment writes
+were judged by endpoint it reported **three conforming emissions as violations** (pr-flow.py:1953,
+1972, 2088). `_fstring_fragments()` skips the pieces; the whole is still submitted, and two new
+tests assert both directions rather than asserting it in a comment.
+
+⚠ **`{slug}` matches one OR two segments by design.** The detector flattens an f-string's
+interpolations to a single token, so a guard demanding `owner/repo` would refuse the estate's own
+emissions. It loosens nothing — the collection path after the slug must still match exactly.
+
+- [x] 3.1 Extend `verdict()` so `gh api` is evaluated by method: no `-X`, or `-X GET`, is permitted
       unchanged; a write method is permitted only against an endpoint in the set from §2.
-- [ ] 3.2 Red first — a test that `gh api -X DELETE repos/o/r` is refused **before** the change, and
+- [x] 3.2 Red first — a test that `gh api -X DELETE repos/o/r` is refused **before** the change, and
       the existing permitted forms still pass after it.
-- [ ] 3.3 Keep the refusal teaching: the message names the sanctioned endpoint set, the way the
+- [x] 3.3 Keep the refusal teaching: the message names the sanctioned endpoint set, the way the
       current message carries the REST mapping. *"Refusals teach"* (ADR-0045 §Consequence).
       ⚠ For an endpoint in the **excluded** block (2.4), the message must say it is excluded **by
       decision** and point at §2b — a bare "not permitted" invites the next reader to add the row.
-- [ ] 3.4 Extend `tests/test_gh_form_conformance.py` to fail on a shipped write to an unsanctioned
+- [x] 3.4 Extend `tests/test_gh_form_conformance.py` to fail on a shipped write to an unsanctioned
       endpoint. ⚠ This matters **more** than 3.1: it covers emitted commands and the Actions runner,
       where no hook runs.
 
