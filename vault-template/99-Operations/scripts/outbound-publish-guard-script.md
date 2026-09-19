@@ -78,6 +78,23 @@ import time
 
 VAULT = (os.environ.get("VAULT_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or "").rstrip("/")
 
+# Endpoints whose REST form PUBLISHES, and must therefore raise this guard's ask.
+#
+# Publishing is a property of the endpoint, not of the command's spelling. The matchers below key on
+# subcommand tokens, and that is exactly how the REST form escaped: measured 2026-09-19,
+# `gh release create …` raised the full banner while
+# `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` passed in SILENCE. A release published by
+# REST leaves the machine just as irreversibly as one published by subcommand.
+#
+# IMPORTED, NOT AUTHORED HERE. Source of truth: the rows marked `outbound: yes` in the
+# ```gh-write-endpoints block of docs/version-control-legal-moves.md §2b, held equal by
+# tests/test_write_endpoint_set_parity.py. This guard is stdlib-only and offline (INV-6) and renders
+# into roots with no docs/, so it cannot read that file at runtime.
+OUTBOUND_ENDPOINTS = {
+    ("POST", "/repos/{slug}/releases"),
+    ("DELETE", "/repos/{slug}/releases/{id}"),
+}
+
 OUTWARD = re.compile(
     r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b"  # `git push`, incl. `git -C <path> push` / `-c k=v`
     r"|\bgit\s+remote\s+(add|set-url)\b"

@@ -89,12 +89,20 @@ including this one's.
 
 ## 2. Single source of truth for the write-side endpoint set
 
-- [ ] 2.1 Add a machine-readable fenced block to `docs/version-control-legal-moves.md` §2, listing
+**BUILT AND TESTED 2026-09-19 — red observed first.** With the block written and neither guard
+carrying a constant, `tests/test_write_endpoint_set_parity.py` failed on exactly the two equality
+checks (*"carries no `SANCTIONED_WRITES` constant"*, *"carries no `OUTBOUND_ENDPOINTS` constant"*)
+while its three structural checks passed; after 2.2 it went **5 passed**. Full suite **432 passed, 1
+failed** — the failure being the §1 detector, still red by design. ⚠ Rendering the notes was **not**
+optional: `test_each_repo_hook_is_byte_identical_to_its_note` (F29) compares each repo hook to its
+note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
+
+- [x] 2.1 Add a machine-readable fenced block to `docs/version-control-legal-moves.md` §2, listing
       each sanctioned write: method · endpoint template · runs · authority · precondition. Use a
       fenced typed block, consistent with the estate's existing ```scope and ```constitutional-impact
       convention — one file that both a human and a tool read. Fields: **method · endpoint template ·
       runs · authority · precondition · outbound** (2.5).
-- [ ] 2.2 Carry the same set inside `vault-template/99-Operations/scripts/gh-invocation-guard-script.md`,
+- [x] 2.2 Carry the same set inside `vault-template/99-Operations/scripts/gh-invocation-guard-script.md`,
       and the **outbound subset** (the rows marked outbound in 2.5) inside
       `vault-template/99-Operations/scripts/outbound-publish-guard-script.md`.
       ⚠ **Both guards must stay self-contained and stdlib-only** (INV-6, and they render into roots
@@ -102,7 +110,7 @@ including this one's.
       ⚠ **The notes are the source of truth, not the hooks.** Verified 2026-09-19: each note's
       ` ```python ` block is **byte-identical** to its rendered `.claude/hooks/*.py` copy. Edit the
       note; render and mirror deploy it (§8.9).
-- [ ] 2.3 **Equality test**, observed failing first on a deliberately divergent table: the doc's block
+- [x] 2.3 **Equality test**, observed failing first on a deliberately divergent table: the doc's block
       and **each** guard's list are the same set — the full set for the invocation guard, the outbound
       subset for the outbound guard. **This test is what makes 2.2 an import rather than a
       restatement** — restating a rule with no equality test is the class-9 defect.
@@ -118,7 +126,7 @@ including this one's.
       python fences — never `docs/` or ADR prose), so 3.4 will stay silent about it while 3.1 refuses
       it at runtime. *Decide explicitly:* admit it to the set, or amend the ADR line — leaving it is
       how a documented instruction becomes false.
-- [ ] 2.5 **Each row carries whether the endpoint is OUTWARD** — i.e. whether reaching it must raise
+- [x] 2.5 **Each row carries whether the endpoint is OUTWARD** — i.e. whether reaching it must raise
       the INV-14 ask. This is the field §0.7 exists to protect, and it is what makes the block
       readable by **two** guards rather than one.
 

@@ -21,6 +21,27 @@ REST_HINT = (
     "`gh api repos/{owner}/{repo}/pulls`. Permitted forms: `gh api <REST path>`, `gh auth status`."
 )
 
+# The sanctioned WRITE set. `gh api` is a wider permission than the subcommands it replaces --
+# `gh api -X DELETE /repos/{owner}/{repo}` is permitted by form alone -- so GET is unconstrained
+# and every write method reaches only these endpoints.
+#
+# IMPORTED, NOT AUTHORED HERE. The source of truth is the ```gh-write-endpoints block in
+# docs/version-control-legal-moves.md §2b; tests/test_write_endpoint_set_parity.py fails if this
+# copy drifts from it. The copy exists because this guard is stdlib-only, offline and deterministic
+# (INV-6) and renders into roots that have no docs/ directory -- it cannot read that file at runtime.
+# Edit the doc block, then this constant, never one alone.
+#
+# {slug} spans two path segments (owner/repo); {n} and {id} are numeric.
+SANCTIONED_WRITES = {
+    ("POST", "/repos/{slug}/pulls"),
+    ("PATCH", "/repos/{slug}/pulls/{n}"),
+    ("PUT", "/repos/{slug}/pulls/{n}/merge"),
+    ("POST", "/repos/{slug}/releases"),
+    ("DELETE", "/repos/{slug}/releases/{id}"),
+    ("POST", "/repos/{slug}/labels"),
+    ("POST", "/repos/{slug}/issues"),
+}
+
 
 def segments(command):
     """Split a command line into segments on shell separators, quote-aware.

@@ -119,6 +119,42 @@ started in** (the `sandbox` block lives in per-root settings), so probe it; neve
 **`sha=` on the merge is a server-side precondition**, not decoration: if the head moved, GitHub
 answers 409 and refuses rather than merging something unreviewed.
 
+### 2b. The sanctioned write set — machine-readable, and the source of truth
+
+`gh api` is a **wider** permission than the subcommands it replaces: `gh api -X DELETE /repos/o/r`
+is permitted by form alone. `GET` is therefore unconstrained, and every **write** method reaches only
+the endpoints enumerated here. This block is the one copy; the guards carry it because they must run
+in roots that have no `docs/` (INV-6, stdlib-only, no runtime file reads), and an equality test fails
+CI if any copy drifts. **Edit this block, never a guard's list alone.**
+
+Fields are `method | endpoint | runs | authority | precondition | outbound`. `outbound: yes` means
+reaching it publishes, so the INV-14 guard must raise its ask — a property of the *endpoint*, not of
+the command's spelling, which is how the subcommand-shaped matcher missed the REST release form.
+
+```gh-write-endpoints
+POST   | /repos/{slug}/pulls             | operator | operator | none            | no
+PATCH  | /repos/{slug}/pulls/{n}         | agent    | operator | re-read-base    | no
+PUT    | /repos/{slug}/pulls/{n}/merge   | operator | operator | sha             | no
+POST   | /repos/{slug}/releases          | operator | operator | tag-exists      | yes
+DELETE | /repos/{slug}/releases/{id}     | operator | operator | none            | yes
+POST   | /repos/{slug}/labels            | ci       | ci       | label-absent    | no
+POST   | /repos/{slug}/issues            | ci       | ci       | issue-absent    | no
+```
+
+What the preconditions mean, and why each is not decoration:
+
+- **`sha`** — the merge carries the head it was reviewed at; a moved head gets a 409, not a merge.
+- **`tag-exists`** — `GET /repos/{slug}/git/ref/tags/{tag}` **before** the POST. This replaces
+  `--verify-tag`, which has no REST equivalent. Without it, `target_commitish` defaults to a branch
+  and the API **creates** the tag at that head — measured, so the precondition is the only thing
+  standing between a typo'd version and a tag pointing at whatever `main` happened to be.
+- **`re-read-base`** — the retarget is read back, because the GraphQL-era form silently no-opped.
+- **`label-absent` / `issue-absent`** — a read decides whether the write happens at all, replacing a
+  `2>/dev/null || true` that made an auth failure look identical to "already exists".
+
+⚠ **`runs: ci`** names the Actions runner, where **no hook runs at all**. Those two rows are governed
+only by the detector, and nothing at runtime will refuse them.
+
 ---
 
 ## 2a. LOCAL commands that can destroy work without touching the network
