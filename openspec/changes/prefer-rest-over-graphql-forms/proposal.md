@@ -1,134 +1,144 @@
-# Prefer REST over GraphQL-routed forms, and detect the difference automatically
+# Prefer REST over GraphQL-routed forms, and constrain the channel that replaces them
 
 ## Why
 
 The lifecycle driver emits `gh pr create` at its pull-request step while the estate's own
 invocation-form allowlist (ADR-0045) refuses that exact form. The same driver uses `gh api` with an
-explicit REST path at three other steps, each with a written rationale for avoiding the subcommand.
-**The rule existed, was applied three times, and was missed once** — and nothing compared the
-emissions against the guard, so the gap persisted rather than being caught on the next run.
+explicit REST path at three other steps, each with a written rationale. **The rule existed, was
+applied three times, and was missed once** — and nothing compared the emissions against the guard, so
+the gap persisted rather than being caught on the next run.
 
-That is the shape of the whole problem: not a missing rule, but a rule with no instrument behind it.
+That is the shape of the problem: not a missing rule, but a rule with no instrument behind it.
 
-**Measured 2026-09-18 rather than swept for.** An AST enumeration over 15 Python files in `tools/`,
-`.claude/hooks/` and `.github/scripts/` (0 parse failures), plus a full read of both tracked `.sh`
-files, all 40 `.yml`/`.yaml` files and all 15 literate meta-script notes, found **nine live `gh`
-invocation sites — two conforming, seven not**:
+### What the 2026-09-18/19 investigation established
 
-| Site | Form | Kind |
-|---|---|---|
-| `tools/gh_read.py:112` | `gh api <path>` | executed — conforms |
-| `tools/pr-flow.py:1420` | `gh auth status` | executed — conforms |
-| `tools/pr-state.py:83` | `gh pr view --json` | executed |
-| `tools/pr-state.py:168` | `gh run list --commit` | executed |
-| `tools/pr-flow.py:1919` | `gh pr create` | **emitted to the operator** |
-| `tools/ship-release.py:343` | `gh release create` | **emitted to the operator** |
-| `.github/workflows/openspec-canary.yml:49,51,55` | `gh label create` · `gh issue list` · `gh issue create` | executed in CI |
+**Nine live `gh` invocation sites, measured by AST over 15 Python files (0 parse failures) plus a
+full read of both `.sh` files, all 40 `.yml` files and all 15 literate notes. Two conform, seven do
+not.** The detector built in this change names exactly those seven.
 
-**Which subcommands route through GraphQL is documented nowhere authoritative.** The `gh` manual
-describes how a caller *chooses* an API; it never states which built-in commands choose for you. Any
-claim that an audit has found them all is unfounded by construction — which is why previous attempts
-kept surfacing another one.
+**Channel is not form.** Measured under `GH_DEBUG=api` on `gh 2.45.0`: `gh pr view`, `gh pr list` and
+`gh issue list` reach `POST /graphql`; **`gh run list` is REST already**. A non-conforming *form* and
+a GraphQL *channel* are different findings and only the second fails silently. Scoping this work by
+"which commands use GraphQL" would have left `gh run list` unaddressed and the canary miscounted.
 
-It is, however, measurable. Per `gh help environment`, *"Set to `api` to additionally log details of
-HTTP traffic."* Measured on `gh version 2.45.0 (2025-07-18 Ubuntu 2.45.0-1ubuntu0.3)`:
+**Which subcommands route through GraphQL is documented nowhere authoritative**, and the measurement
+does not carry: it describes one binary on one date, and the canary runs on an Actions runner with a
+different, newer `gh`. **Where the channel depends on a binary we do not control, the form is the
+only thing we can pin.** That is the argument for an allowlist over an audit — an audit expires.
 
-| Form | Endpoint actually hit |
-|---|---|
-| `gh pr list` · `gh issue list` · `gh pr view` | `POST /graphql` |
-| `gh run list` | `GET /repos/{slug}/actions/runs` **and** `/actions/workflows` |
+### What the prior-art survey changed — the reframing
 
-Two things that measurement settles, both of which would have been got wrong by reasoning:
+Three public implementations of command-layer enforcement were surveyed
+(`navikt/cplt`, `stSoftwareAU/VibeCoder` #1371, `honnibal.dev`). The consensus is unanimous, and two
+of them say it about their own shipped code: **a PATH shim or argv guard is a soft barrier against
+accident, not a boundary against intent.** cplt: *"This is Layer 3, a soft barrier … For a hard
+boundary, lean on the kernel sandbox and server-side branch protection."* Every one of them moved
+**down a layer** to fix it — scoped credentials, egress control, kernel sandboxing, server-side
+protection.
 
-- **`gh run list` is REST already.** A non-conforming *form* and a GraphQL *channel* are different
-  findings, and only the second can fail silently. That site is owed conversion for conformance, not
-  for risk.
-- **The measurement cannot be carried forward.** It describes one binary on one date. The canary's
-  three calls run on a GitHub Actions runner shipping a *different, newer* `gh`, so their channel is
-  unmeasured and unknowable from here. **Where the channel depends on a binary you do not control,
-  the form is the only thing you can pin.**
+**This estate already operates at that layer, more completely than any of them:** no write token is
+exported, so `gh` measures `UNAUTHENTICATED`; egress is a single filtering proxy; INV-4/5 are
+OS-enforced read-only mounts, measured PROTECTED every session.
+
+⚠ **Therefore the `gh`-form guard is a CORRECTNESS control, not a security boundary** — which
+ADR-0045's corrected Context already states: GraphQL is refused *"for non-determinism, not for
+authentication"*, and the authentication-based ground was **measured false**. Two proposals were
+raised and **rejected** on this basis: a thirty-three-entry `permissions.deny` expansion, and a `gh`
+PATH shim. Both are enforcement machinery for a boundary the credential layer already holds.
+
+### The consequence that this change must answer
+
+**`gh api` is a *wider* permission than the seven subcommands it replaces.**
+`gh api -X DELETE /repos/{owner}/{repo}` is permitted by form. Executed calls are harmless here — the
+agent holds no credential — but **emitted** commands are pasted by the operator **with a real
+credential**. Converting to `gh api` without constraining its content moves the risk to the one path
+where consequence is highest.
+
+Unlike the `gh` subcommand space, which grows with every release, **the write-side endpoint set is
+finite, small, and already enumerated** in `docs/version-control-legal-moves.md`. So the answer is
+not another blocklist: it is to make that existing table the thing the controls read.
 
 ## What Changes
 
-1. **The detector, built first and red first.** A test that enumerates every `gh` invocation in the
-   tree by mechanism — AST for Python, `run:` blocks for workflows, code fences for the literate
-   notes — and submits each form to `gh-invocation-guard.py`, **imported rather than restated**.
-   Restating a gate's rule instead of importing it is the estate's class-9 defect and is what this
-   change exists to stop repeating. Its first run must name exactly the non-conforming sites; that
-   list, not a human sweep, becomes the conversion scope.
-2. **Convert the seven.** `pr-state.py` ×2, the two emitted forms, the canary's three.
-3. **`pr-state.py` REST-first read** — already built on this branch: `gh_read.pull_request` is tried
-   first and `graphql` now means *"the GraphQL-only fields were actually read"* rather than "the
-   channel was GraphQL".
-4. **`mergeStateStatus` is populated from REST `mergeable_state`** instead of reported as
-   `UNAVAILABLE (GraphQL-only)`. It is the same enum lowercased.
-5. **Document surfaces, in this same change** — `docs/version-control-legal-moves.md` rows *Open a
-   PR* and *Create a Release*, `AGENTS.md`, `CONTRIBUTING.md`, `docs/USING-THIS-TEMPLATE.md`, and the
-   vault's `vmm-repo-github-card.md` (`CARD-VERSION` bumped). A converted driver with a stale table
-   is two controls disagreeing, which is the defect being fixed, relocated.
-6. **`tests/test_emitted_command_shape.py` changes premise.** It asserts `-R <slug>` on emitted `gh`
-   commands; `gh api` takes the slug inline in the path, so that assertion dies with item 2 and must
-   change in the same commit or fail looking like a regression. Its scope also widens: today it reads
-   only `ship-release.py`'s `_emit_next(…)` sites and never sees `pr-flow.py`'s `emit(…)` sites,
-   which is the second reason `gh pr create` stood unnoticed.
+1. **The detector** (`tests/test_gh_form_conformance.py`) — built and observed red first, naming
+   exactly seven sites. Enumerates by mechanism (AST, workflow `run:` blocks, note fences), runs the
+   shipped guard as the oracle, and **designs out two of the guard's blind spots**: it unwraps command
+   substitution, and treats unlexable input as a finding rather than a skip.
+2. **Convert the seven** to `gh api`, each with its measured trap.
+3. **Split the `gh api` permission by METHOD.** `GET` stays unconstrained — reads are the safe
+   majority and enumerating them is the ocean again. **Writes (`-X POST|PATCH|PUT|DELETE`) are
+   restricted to an enumerated endpoint set**, about seven entries for the estate's entire lifecycle.
+4. **One source of truth for that set, carried in the guard note and pinned to the doc by a test.**
+   The guard must stay self-contained — it renders into roots that have no `docs/` — so it carries the
+   list, and a CI test asserts the table in `version-control-legal-moves.md` and the guard's list are
+   the same. Drift fails the build. Restating a rule without an equality test is the class-9 defect.
+5. **`pr-state.py` REST-first read** — already built on this branch — plus populating
+   `mergeStateStatus` from REST `mergeable_state` instead of reporting it unavailable.
+6. **Server-side preconditions on emitted mutations.** `sha=` on merge already; an explicit
+   `GET .../git/ref/tags/{tag}` before `POST .../releases`, replacing `--verify-tag`. A precondition
+   enforced at GitHub is the only control that survives being pasted into a shell we do not control.
+7. **Document surfaces in the same change**, because a converted driver with a stale table is two
+   controls disagreeing — the defect being fixed, relocated.
 
 ## Impact
 
-- **The operator's pasted command changes shape.** `next.sh` will carry
-  `gh api -X POST repos/{slug}/pulls …` instead of `gh pr create …`. Same step, same authority, same
-  one invariant command to run.
-- **Three conversion traps, recorded so they are not rediscovered.** `/issues` returns pull requests
-  as well — every PR is an issue — so the canary's dedupe needs `select(.pull_request == null)` or it
-  silently stops opening issues it should open. `gh api` returns one page unless `--paginate`, where
-  the subcommands paged silently. And `gh run list` issues **two** requests, so a single
-  `/actions/runs?head_sha=` call drops workflow names if any caller uses them — **determine that
-  before converting**.
-- **`gh label create` currently ends `2>/dev/null || true`**, so an auth failure is indistinguishable
-  from "the label already exists". The REST replacement separates absent (404, create it) from broken
-  (fail the step). This change therefore closes a live instance of the estate's catalogued
-  `|| true` vacuity defect.
-- **No new capability is granted.** Every replacement is the same operation through a different
-  endpoint, by the same actor, under the same authority.
+- **The operator's pasted command changes shape** — `gh api -X POST repos/{slug}/pulls …` in
+  `next.sh` instead of `gh pr create …`. Same step, same authority, same one invariant command.
+- **A new refusal exists.** Both the guard and the detector can now refuse a write to an
+  unsanctioned endpoint. If the enumeration is wrong in the strict direction, it blocks work that was
+  fine.
+- **Three measured conversion traps**, recorded so they are not rediscovered: `/issues` returns pull
+  requests (the canary's dedupe needs `select(.pull_request == null)` or it silently stops opening
+  issues); `gh api` returns one page without `--paginate`; and `gh run list` issues **two** requests,
+  so collapsing it to one drops workflow names unless no caller uses them.
+- **A live defect is closed incidentally**: the canary's `gh label create … 2>/dev/null || true`
+  makes an auth failure indistinguishable from "already exists" — the estate's catalogued `|| true`
+  vacuity defect, in CI.
+- **No new capability is granted.** Every replacement is the same operation, by the same actor, under
+  the same authority, through a documented endpoint.
+- **Estate consistency:** the guard is a literate note under `vault-template/`, so the change reaches
+  the framework repo, the vault template and the deployed vault by render + mirror, with
+  `template-parity` proving the deploy-down. ⚠ **The vault has no CI**, so vault-side conformance
+  rests on the deployed hook and parity, never on the detector — stated so it is not assumed.
 
 ## Constitutional impact
 
 Archiving syncs this delta into `openspec/specs/access-control/spec.md`, whose frontmatter carries
-`protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`. Checked against each rather than
-asserted:
+`protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]`. Checked against each:
 
-- **INV-14** (outbound rail) — **unchanged in reach, strengthened in form.** The same operations
-  cross the same rail with the same authority; `gh` mutations remain the operator's, the INV-14 ask
-  still fires on `git push`. No endpoint is added that was not already reachable.
-- **INV-6** (deterministic scripts: no network, no LLM) — untouched. The detector is **offline and
-  static**: it reads files and submits strings to a guard. It makes no network call, which is also
-  why it can run in CI.
-- **INV-7** (no secrets) — untouched; no credential handling changes.
-- **INV-4 / INV-5** (write scope) — untouched; no new write target.
-- **INV-8** (Crucible independence) — not engaged.
-- **CONST-02** — engaged only in that the allowlist becomes enforceable rather than aspirational.
+- **INV-14** — **narrowed, never widened.** The same operations cross the same rail with the same
+  authority; `gh` mutations remain the operator's. The method split makes the outbound surface
+  *smaller* than `gh api` alone allows today.
+- **INV-6** — untouched. The detector is offline and static; the guard remains stdlib-only with no
+  network call, which is why both can run in CI.
+- **INV-7** — untouched; no credential handling changes.
+- **INV-4 / INV-5** — untouched; no new write target.
+- **INV-8** — not engaged.
+- **CONST-02** — engaged only in that an existing allowlist becomes mechanically enforced rather than
+  attention-enforced.
 
 ```constitutional-impact
 touches: openspec/specs/access-control/spec.md
 protects: [CONST-02, INV-4, INV-5, INV-6, INV-7, INV-8, INV-14]
 overrides: none
-basis: ADDED requirements plus conversion of seven call sites to the already-permitted gh api form; no capability granted, no rail relaxed, no actor changed — the change makes an existing Accepted allowlist (ADR-0045) mechanically enforced rather than attention-enforced
+basis: ADDED requirements, conversion of seven sites to the already-permitted gh api form, and a METHOD-based narrowing of that form so writes reach only documented endpoints; no capability granted, no rail relaxed, the outbound surface strictly smaller than today
 ```
 
-**No new ADR is owed, and this is the load-bearing reading.** ADR-0045 is already Accepted with the
-allowlist *"`gh api` and `gh auth status` permitted … every other form refused"*. The `gh pr create`
-row in `version-control-legal-moves.md` is a **carve-out with no ADR behind it** — it survives on the
-fact that a PreToolUse hook cannot reach the operator's terminal, not on any recorded decision that
-the GraphQL channel is safe when a human types it. This change closes a conformance gap against a
-decision already taken. ⚠ **This reading lowers the Gate 4 bar and should therefore be checked by the
-operator against ADR-0045 §Decision before it is relied upon.**
+**No new ADR appears owed.** ADR-0045 is already Accepted with the allowlist *"`gh api` and
+`gh auth status` permitted … every other form refused"*; the `gh pr create` row in
+`version-control-legal-moves.md` is a carve-out with no ADR behind it. ⚠ **This reading lowers the
+Gate 4 bar and should be checked by the operator against ADR-0045 §Decision before it is relied
+upon.** If the method split is judged a *new* decision rather than an enforcement of an existing one,
+it needs its own ADR and this proposal should be split.
 
 ## Verification
 
-- **The detector is observed to fail first**, naming the non-conforming sites, before any conversion.
-  A detector written after the fixes proves nothing.
-- **Each converted site keeps a behavioural test**, not merely a form check — in particular the
+- **The detector was observed to fail first** — red, naming exactly seven sites, before any
+  conversion. Recorded verbatim in `tasks.md` §1.
+- **Each converted site keeps a behavioural test**, not merely a form check; in particular the
   canary's dedupe count must be shown to exclude pull requests.
-- **Channel evidence is dated and version-pinned** (`gh 2.45.0`), recorded in
-  `gh-form-findings-ledger.md`, and explicitly not carried forward to the CI runner's binary.
-- **Full suite green**; baseline on this branch measured 2026-09-18 at **424 passed** after rebase
-  onto `a22c2ea`, with the REST-first `pr-state.py` refactor already applied.
+- **The doc/guard equality test must be observed failing** on a deliberately divergent table.
+- **Channel evidence is dated and version-pinned** (`gh 2.45.0`) in the vault's
+  `gh-form-findings-ledger.md`, and explicitly not carried forward to the Actions runner's binary.
+- **Full suite green.** Baseline on this branch measured 2026-09-18 at **424 passed** after rebase
+  onto `a22c2ea`.
