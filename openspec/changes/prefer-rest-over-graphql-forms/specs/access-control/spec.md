@@ -21,11 +21,13 @@ emitted command cannot tell that it is refused without running the guard, and a 
 attention has already failed in this estate.
 
 #### Scenario: An emitted command is checked against the guard that would receive it
+
 - **WHEN** a driver's emitted command forms are enumerated
 - **THEN** each is submitted to the invocation-form guard, and any form the guard refuses fails the
   check, naming the emitting site and the guard's own replacement text
 
 #### Scenario: A newly added emission is covered without being registered
+
 - **WHEN** a new emitted form is added to a driver
 - **THEN** it is checked by the same enumeration, so coverage does not depend on the author
   remembering to add it to a list
@@ -48,16 +50,19 @@ such a channel SHALL NOT be inferred from the outcome of an unrelated read**, be
 change elsewhere then removes a layer that had nothing to do with it.
 
 #### Scenario: The observable channel is tried first
+
 - **WHEN** a tool reads a pull request's state and both REST and GraphQL can answer
 - **THEN** REST is attempted first, GraphQL is used only if REST fails, and the report names which
   channel answered
 
 #### Scenario: A uniquely-answerable layer is retained, not removed
+
 - **WHEN** a channel is the only one that can distinguish an outcome another channel flattens
 - **THEN** that channel is retained for that question, and where it is unavailable the tool reports
   the layer as unavailable rather than substituting an answer that cannot express the distinction
 
 #### Scenario: Layer availability is determined independently
+
 - **WHEN** one read's channel preference changes
 - **THEN** the availability of an unrelated layer is unaffected, because each layer's availability is
   determined from the tool it needs rather than from another read's outcome

@@ -64,11 +64,10 @@ violations), and a WHOLE-LINE shell comment is prose (the comment explaining wha
 direction too, so neither became a way to hide a real command.
 
 
-
 **BUILT AND OBSERVED RED — `tests/test_gh_form_conformance.py`, 2026-09-18.** 4 checks, 1 failing by
 design, 32 files scanned, 0 parse failures. It named **exactly the seven predicted sites**:
 
-```
+```text
 tools/pr-flow.py:1919                       gh pr create      (emitted)
 tools/pr-state.py:112                       gh pr view        (executed)
 tools/pr-state.py:181                       gh run list       (executed)
@@ -109,7 +108,7 @@ note, so the deploy targets moved in the same commit, the way `6fe549d` did it.
 
 - [x] 2.1 Add a machine-readable fenced block to `docs/version-control-legal-moves.md` §2, listing
       each sanctioned write: method · endpoint template · runs · authority · precondition. Use a
-      fenced typed block, consistent with the estate's existing ```scope and ```constitutional-impact
+      fenced typed block, consistent with the estate's existing `scope` and `constitutional-impact`
       convention — one file that both a human and a tool read. Fields: **method · endpoint template ·
       runs · authority · precondition · outbound** (2.5).
 - [x] 2.2 Carry the same set inside `vault-template/99-Operations/scripts/gh-invocation-guard-script.md`,
@@ -345,12 +344,31 @@ still answered them would let a reversion to the subcommand form pass green.
 
 ## 6. Regression
 
-- [ ] 6.1 Full suite. Baseline **424 passed** on this branch, rebased onto `a22c2ea`, 2026-09-18.
-- [ ] 6.2 `openspec validate --all --strict` — 7 items, 0 failed at last run.
-- [ ] 6.3 `node_modules/.bin/markdownlint` with the four `--ignore` paths `ci.yml` uses → 0 findings.
-- [ ] 6.4 `tools/preflight.py . --body-file <path>` → CLEAR. ⚠ `--body-file` is **not optional**:
+**ALL GREEN 2026-09-20.** Suite **490 passed, 0 failed** (baseline was 424 on this branch; the
+detector that was red by design is green because the call sites moved). `openspec validate --all
+--strict` 7 passed 0 failed. markdownlint **0 findings** — the 13 that pre-existed were in this
+change's own spec delta and tasks file, and the delta now matches the live spec's blank-line
+convention. `preflight.py . --body-file .git/pr-flow/prefer-rest-body.md` → **CLEAR**, 13/16 CI jobs
+reproduced, 0 unrunnable, 3 not reproduced by design.
+
+⚠ **6.5's matrix caught a defect in ITSELF, which is the point of it.** The first cut mutated
+`SANCTIONED_WRITES = {` into `SANCTIONED_WRITES = {} or {`, which evaluates to the ORIGINAL set — so
+one row passed while mutating nothing. It was only noticed because a neighbouring row failed loudly
+and forced a re-read. Mutations are now anchored at the USE SITE, and each asserts its anchor
+appears exactly once.
+
+⚠ **A second finding from the same matrix: the two controls OVERLAP for writes.** With the method
+split in place, `gh api -X POST graphql` is refused as an unsanctioned write even with the graphql
+clause deleted. A mutation row using a graphql WRITE would therefore have credited the wrong rule;
+only a graphql READ isolates the clause, and the row uses one.
+
+
+- [x] 6.1 Full suite. Baseline **424 passed** on this branch, rebased onto `a22c2ea`, 2026-09-18.
+- [x] 6.2 `openspec validate --all --strict` — 7 items, 0 failed at last run.
+- [x] 6.3 `node_modules/.bin/markdownlint` with the four `--ignore` paths `ci.yml` uses → 0 findings.
+- [x] 6.4 `tools/preflight.py . --body-file <path>` → CLEAR. ⚠ `--body-file` is **not optional**:
       without it the body step prints `SKIP`, and a SKIP reads exactly like a PASS.
-- [ ] 6.5 A mutation matrix behind the detector and the method split — an instrument that cannot be
+- [x] 6.5 A mutation matrix behind the detector and the method split — an instrument that cannot be
       shown to fail is not evidence, and this change's premise is that unexercised instruments rot.
 - [ ] 6.6 **B8 and B9 run as a pair**, per `rest-conversion-test-battery.md`: B8 green→green (no
       regression on the subcommand form), B9 red→green (the new REST coverage). Record the red

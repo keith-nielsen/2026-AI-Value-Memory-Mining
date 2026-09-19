@@ -305,3 +305,59 @@ def test_permitted_forms_still_pass(guard, cmd):
     """Tightening must not break the fleet: every form in real use is asserted to survive it."""
     decision, reason = decide(guard, cmd)
     assert decision == "defer", f"{cmd!r} was refused: {reason[:200]}"
+
+
+# --- §6.5 mutation matrix -----------------------------------------------------------------------
+#
+# An instrument that cannot be SHOWN to fail is not evidence. Each row below removes one load-
+# bearing piece of the guard from a COPY and requires the decision to change. A guard that still
+# refused after its rule was deleted would mean the tests above pass for some other reason — which
+# is exactly the vacuity this change was written to remove.
+#
+# ⚠ Nothing is deleted from the shipped guard: every mutant lives in `tmp_path`.
+
+MUTATIONS = [
+    pytest.param(
+        "matches_any(endpoint, SANCTIONED_WRITES, method)", "matches_any(endpoint, set(), method)",
+        "gh api -X POST repos/o/r/pulls -f title=t", "deny",
+        id="sanctioned set emptied -> a sanctioned write is refused"),
+    pytest.param(
+        "if method not in READ_METHODS:", "if False:",
+        "gh api -X DELETE repos/o/r", "defer",
+        id="method check removed -> a repository delete is permitted"),
+    pytest.param(
+        # A graphql READ, deliberately. MEASURED while writing this row: with the method split in
+        # place a graphql POST is refused as an UNSANCTIONED WRITE even with this clause deleted,
+        # so a write would have credited the wrong rule. The two controls overlap for writes; only
+        # a read isolates the graphql clause, which is what this row is for.
+        'positional[1] == "graphql"', "False",
+        "gh api graphql -f query=x", "defer",
+        id="graphql clause removed -> the graphql READ is permitted"),
+    pytest.param(
+        "matches_any(endpoint, EXCLUDED_WRITES, method)", "matches_any(endpoint, set(), method)",
+        "gh api -X PUT /repos/o/r/rulesets/19666243", "deny",
+        id="exclusion list emptied -> the ruleset write is STILL refused, by default"),
+]
+
+
+@pytest.mark.parametrize("find,replace,cmd,expected", MUTATIONS)
+def test_each_rule_can_be_shown_to_matter(tmp_path, find, replace, cmd, expected):
+    """Delete one rule from a copy; the decision must move to `expected`.
+
+    The last row is the interesting one: emptying EXCLUDED_WRITES does NOT permit the ruleset
+    write, because absence from the sanctioned set already refuses it. The exclusion list exists
+    to make the refusal TEACH, not to cause it — and a test that assumed otherwise would credit
+    the wrong mechanism.
+    """
+    source = re.search(r"^## Implementation\s*\n```python\n(.*?)^```",
+                       NOTE.read_text(encoding="utf-8"), re.S | re.M).group(1)
+    assert source.count(find) == 1, (
+        f"the mutation anchor {find!r} appears {source.count(find)} times — a mutation that "
+        f"matches nothing silently tests the UNMUTATED guard, which is worse than no test")
+
+    mutant = tmp_path / "mutant.py"
+    mutant.write_text(source.replace(find, replace), encoding="utf-8")
+    decision, _ = decide(mutant, cmd)
+    assert decision == expected, (
+        f"removing {find!r} left the decision on {cmd!r} unchanged — the rule is not what makes "
+        f"the suite above pass")
