@@ -45,17 +45,36 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # ensure the dedupe label exists (idempotent)
-          gh label create openspec-canary --color b60205 \
-            --description "Weekly OpenSpec @latest compatibility canary" 2>/dev/null || true
-          open=$(gh issue list --label openspec-canary --state open --json number --jq 'length')
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+
+          # Ensure the dedupe label exists. READ FIRST, create only on a miss. The old form was
+          # `gh label create … 2>/dev/null || true`, which made an auth failure indistinguishable
+          # from "already exists" (§4.5) — and a label that silently failed to be created breaks
+          # the dedupe below with nothing to say so.
+          if gh api "repos/${repo}/labels/openspec-canary" >/dev/null 2>&1; then
+            echo "label openspec-canary: present"
+          else
+            gh api -X POST "repos/${repo}/labels" \
+              -f name=openspec-canary \
+              -f color=b60205 \
+              -f description="Weekly OpenSpec @latest compatibility canary"
+            echo "label openspec-canary: created"
+          fi
+
+          # ⚠ /issues RETURNS PULL REQUESTS TOO. Without the `.pull_request == null` filter an open
+          # PR carrying the label would count as an existing issue, and the canary would silently
+          # stop opening the issues it exists to open (§4.6).
+          open=$(gh api "repos/${repo}/issues?labels=openspec-canary&state=open&per_page=100" \
+            --jq '[.[] | select(.pull_request == null)] | length')
           if [ "$open" = "0" ]; then
             run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             body="The weekly OpenSpec canary failed: 'openspec validate --all --strict' against @fission-ai/openspec@latest no longer passes. A newer OpenSpec release may be incompatible with the governance corpus. Investigate before bumping the pinned version in package.json. Run: ${run_url}"
-            gh issue create \
-              --label openspec-canary \
-              --title "OpenSpec @latest broke corpus validation" \
-              --body "$body"
+            # ⚠ `-f labels=…` sends a STRING and is rejected; the array form is `-f 'labels[]=…'`.
+            gh api -X POST "repos/${repo}/issues" \
+              -f title="OpenSpec @latest broke corpus validation" \
+              -f body="$body" \
+              -f 'labels[]=openspec-canary'
           else
             echo "An openspec-canary issue is already open; not duplicating."
           fi

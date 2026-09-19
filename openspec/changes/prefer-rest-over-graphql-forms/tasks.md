@@ -53,7 +53,17 @@
 **The reasoning for all three is in `30-Sites/harness-permission-control-deep-dive/` in the vault**,
 particularly `shim-approach-prior-art-survey`. Read it before reopening any of them.
 
-## 1. The detector — DONE, observed red
+## 1. The detector — DONE, observed red, NOW GREEN
+
+**GREEN 2026-09-20, when §4 landed and not before.** `tests/test_gh_form_conformance.py` 10 passed;
+full suite **486 passed, 0 failed**. The detector was never edited to pass: the conversions moved
+under it. Two refinements were made while converting, each measured and each in the conservative
+direction — f-string FRAGMENTS are not commands (three conforming emissions were being reported as
+violations), and a WHOLE-LINE shell comment is prose (the comment explaining what replaced
+`gh label create` was reported as shipping it). Both are pinned by tests asserting the opposite
+direction too, so neither became a way to hide a real command.
+
+
 
 **BUILT AND OBSERVED RED — `tests/test_gh_form_conformance.py`, 2026-09-18.** 4 checks, 1 failing by
 design, 32 files scanned, 0 parse failures. It named **exactly the seven predicted sites**:
@@ -299,13 +309,13 @@ still answered them would let a reversion to the subcommand form pass green.
       `target_commitish` came back as `main` — the field that would have created a tag had one not
       existed. **The first real release is the first true test of the write**, which argues for
       converting on a patch release with no other content.
-- [ ] 4.5 canary `:49` `gh label create` → `GET …/labels/openspec-canary`, and on 404 `POST …/labels`.
+- [x] 4.5 canary `:49` `gh label create` → `GET …/labels/openspec-canary`, and on 404 `POST …/labels`.
       ⚠ Removes a `2>/dev/null || true` that makes an auth failure indistinguishable from "already
       exists" — the estate's catalogued `|| true` vacuity defect, in CI.
-- [ ] 4.6 canary `:51` `gh issue list` → `GET …/issues?labels=…&state=open&per_page=100`
+- [x] 4.6 canary `:51` `gh issue list` → `GET …/issues?labels=…&state=open&per_page=100`
       ⚠ **with `--jq '[.[] | select(.pull_request == null)] | length'`.** `/issues` returns pull
       requests; without the filter the dedupe silently stops opening issues it should open.
-- [ ] 4.7 canary `:55` `gh issue create` → `POST …/issues` with `-f 'labels[]=openspec-canary'`
+- [x] 4.7 canary `:55` `gh issue create` → `POST …/issues` with `-f 'labels[]=openspec-canary'`
       (`-f labels=` sends a string and is rejected).
 
 ## 5. Consequences, recorded rather than discovered later

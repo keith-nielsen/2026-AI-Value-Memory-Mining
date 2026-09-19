@@ -202,6 +202,16 @@ def collect():
             joined.append((start, buf + s))
             buf, start = "", None
         for i, text in joined:
+            # A WHOLE-LINE shell comment is prose, not a command — the same rule the python scan
+            # already applies to docstrings and to strings that merely mention a form. Measured
+            # 2026-09-19: converting the canary, the comment explaining what `gh label create` was
+            # replaced BY was reported as shipping `gh label create`, which would have forced the
+            # explanation out of the file to make the detector green.
+            # Deliberately conservative — only a line whose FIRST non-space character is `#` is
+            # skipped. A trailing comment after a real command is still scanned, because that line
+            # does carry a command.
+            if text.lstrip().startswith("#"):
+                continue
             if GH_WORD.search(text):
                 sites.append((f, i, text))
 
@@ -358,3 +368,25 @@ def test_a_shipped_write_to_an_unsanctioned_endpoint_is_a_finding(guard, tmp_pat
                 for _, t in _python_sites(fixture)
                 for c in _unwrap(t) if GH_WORD.search(c)]
     assert "deny" in verdicts, f"{why} was shipped without being reported: {emitted}"
+
+
+def test_a_workflow_comment_is_prose_but_a_trailing_comment_still_scans(tmp_path):
+    """The whole-line-comment skip must not become a way to hide a real command.
+
+    Written when the skip was added: a detector that ignored any line containing `#` could be
+    satisfied by appending a comment to a refused command, which would be worse than no detector.
+    The line normalisation here mirrors the workflow scanner's own — it strips each line before
+    matching, which `GH_WORD` depends on since the pattern anchors at the start of the text.
+    """
+    sample = (
+        "          # gh label create prose-only --color b60205\n"
+        "          gh issue list --state open  # a trailing comment does not make this prose\n"
+    )
+    raw = sample.splitlines()
+    kept = [ln.strip() for ln in raw if not ln.lstrip().startswith("#")]
+    dropped = [ln.strip() for ln in raw if ln.lstrip().startswith("#")]
+
+    assert any("gh label create" in ln for ln in dropped), "fixture lost its comment line"
+    assert not any("gh label create" in ln for ln in kept), "a whole-line comment was scanned"
+    assert any(GH_WORD.search(ln) for ln in kept), (
+        "the command carrying a TRAILING comment was skipped — the exemption is too wide")
