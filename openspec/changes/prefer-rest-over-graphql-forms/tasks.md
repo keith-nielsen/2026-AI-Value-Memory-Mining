@@ -419,7 +419,8 @@ reversible. This change is a prerequisite for that one, not a substitute.
 ⚠ The `constitutional-diff-gate` is **report-only during burn-in and cannot fail the build**, so this
 sign-off is the operative control, not CI.
 
-- [ ] 7.1 Tier-0 touch surfaced with its consequence; **Approved** — <operator>, <ISO date>
+- [x] 7.1 Tier-0 touch surfaced with its consequence, including the item-37 auto-mode caveat above;
+      **Approved** — Keith Nielsen, 2026-09-20
 
 ## 8. Land it — the PR command sequence, step by step
 
