@@ -398,6 +398,24 @@ To be surfaced — **drafted by the agent; the sign-off is human-only and is NOT
 - **What breaks if this is wrong:** these are the controls other work is judged by. A defect here
   does not fail loudly — it produces a confident, well-formed, wrong answer.
 
+⚠ **The ASK coverage this change adds is a NO-OP in auto mode — sign with this in front of you.**
+Measured 2026-09-20 (adversarial probe, vault Site `harness-permission-control-deep-dive/
+adversarial-probe-plan-and-recovery`; dev-store hardening item 37): the outbound guard's **ASK**
+verdict silently proceeds in auto mode — it neither prompts nor blocks. §3a taught the rail to
+recognise a REST publish and return ASK; in auto mode that ASK does nothing. Three consequences.
+
+**(a)** §3a's REST-publish coverage **protects in interactive mode and is a no-op in auto mode**. It
+is still correct and is the necessary foundation for the fix — the guard cannot be converted to
+hard-stop a form it does not recognise, and §3a is what makes it recognisable.
+
+**(b)** The rail's **DENY** verdict is NOT affected — the vault HARD DENY held under every probe.
+Only ASK degrades.
+
+**(c)** **Approving this gate does NOT close the auto-mode outbound gap.** A follow-on change (its
+own Gate 4) re-buckets outbound by irreversibility — release publish, `v*` tag push, `remote add` /
+`repo create` become DENY-and-hand-to-operator; feature-branch push stays ASK because its ref is
+reversible. This change is a prerequisite for that one, not a substitute.
+
 ⚠ The `constitutional-diff-gate` is **report-only during burn-in and cannot fail the build**, so this
 sign-off is the operative control, not CI.
 
