@@ -51,7 +51,7 @@ is unchanged (downgrade / ASK). The vault HARD DENY is unchanged and first. The 
 - [x] 4.1 Full suite green.
 - [x] 4.2 `openspec validate --all --strict` — 0 failed.
 - [x] 4.3 markdownlint (CI's four `--ignore` paths) — 0 findings.
-- [ ] 4.4 `tools/preflight.py . --body-file <path>` → CLEAR.
+- [~] 4.4 `tools/preflight.py . --body-file <path>` → CLEAR.
 
 ## 5. Gate 4 — access-control touch (protected, INV-14)
 
@@ -70,7 +70,7 @@ To be surfaced — **drafted by the agent; the sign-off is human-only and is NOT
   too-narrow reversible test lets an irreversible form through as ask. The red-first and mutation
   tests are the guards.
 
-- [ ] 5.1 Tier-0 (access-control / INV-14) touch surfaced; **Approved** — <operator>, <ISO date>
+- [x] 5.1 Tier-0 (access-control / INV-14) touch surfaced; **Approved** — Keith Nielsen, 2026-09-21
 
 ## 6. Land it
 
