@@ -2174,3 +2174,37 @@ def test_scope_coverage_names_the_undeclared_path():
     mod, repo = _flow_module()
     _, findings = mod.scope_covers_diff(BODY_STALE, DIFF_TWO_FILES, str(repo))
     assert findings, "a refusal that names nothing cannot be acted on"
+
+
+# --- item 39: the operator handoff is emitted as a copy-whole relay block (F43) -----------------
+
+def test_operator_step_emits_a_copy_whole_relay_block(work, capsys):
+    """An operator-owned emission is a copy-whole block, so the caller RELAYS it verbatim rather
+    than reconstructing it (F43, >=4 relapses in one session). The command line within the block is
+    byte-identical to the invariant `bash <path>` form with its tag — the contract item 40 byte-checks.
+    """
+    route = pr_flow.Route()
+    rc = pr_flow.emit(route, "merge",
+                      "cd /x && gh api -X PUT /repos/o/r/pulls/1/merge -f sha=abc",
+                      pr_flow.OPERATOR, pr_flow.OPERATOR, pr_flow.CONSENT_ACT, "why",
+                      root=str(work), branch="feat/x")
+    out = capsys.readouterr().out
+    assert rc == EXIT_NEEDS_INPUT
+    path = str(pathlib.Path(work) / ".git" / "pr-flow" / "next.sh")
+    expected = f"bash {path}{pr_flow.plan_history_suffix('merge')}"
+    assert "START COPY" in out and "END COPY" in out, "no copy-whole relay block emitted"
+    assert "```bash" in out, "the relay block is not a paste-ready fenced block"
+    assert expected in out, f"block command is not the byte-identical invariant form: {expected!r}"
+    # The copyable lines are FLUSH-LEFT — an indented paste is mangled (operator-command-formatting).
+    assert "\nSTART COPY\n" in out
+    assert f"\n{expected}\n" in out
+
+
+def test_agent_step_emits_no_relay_block(work, capsys):
+    """An agent-owned step is run directly and writes no saved plan, so it emits no relay block."""
+    route = pr_flow.Route()
+    pr_flow.emit(route, "pushed", "git -C /x push origin feat/x",
+                 pr_flow.AGENT, pr_flow.OPERATOR, pr_flow.CONSENT_ACT, "why",
+                 root=str(work), branch="feat/x")
+    out = capsys.readouterr().out
+    assert "START COPY" not in out, "an agent-owned step must not emit a copy-whole relay block"
