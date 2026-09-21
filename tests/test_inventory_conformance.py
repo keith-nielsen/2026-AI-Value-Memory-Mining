@@ -321,11 +321,14 @@ def registration_report(settings_path, hooks_dir):
     import json
     data = json.loads(pathlib.Path(settings_path).read_text(encoding="utf-8"))
     registered = set()
-    for block in data.get("hooks", {}).get("PreToolUse", []):
-        for hook in block.get("hooks", []):
-            cmd = hook.get("command", "")
-            for token in re.findall(r"[\w.-]+\.py", cmd):
-                registered.add(token)
+    # Scan EVERY hook event type, not only PreToolUse — item 40 added the first Stop hook that
+    # registers a .py file, and a PreToolUse-only scan reported it as unregistered.
+    for blocks in data.get("hooks", {}).values():
+        for block in blocks:
+            for hook in block.get("hooks", []):
+                cmd = hook.get("command", "")
+                for token in re.findall(r"[\w.-]+\.py", cmd):
+                    registered.add(token)
     present = {p.name for p in pathlib.Path(hooks_dir).glob("*.py")}
     return sorted(present - registered), sorted(registered - present)
 

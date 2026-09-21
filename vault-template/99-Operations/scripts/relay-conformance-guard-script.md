@@ -1,0 +1,161 @@
+---
+type: meta-script
+deploy_target: .claude/hooks/relay-conformance-guard.py
+runtime: harness hook
+class: script
+created: 2026-09-21
+updated: 2026-09-21
+---
+## Rationale
+
+A `Stop` hook that byte-checks the operator handoff the agent RELAYED against what the driver
+EMITTED. Item 39 made the driver emit the handoff as a copy-whole block, so relaying it verbatim is
+the lazy path; this catches the case where the agent retypes it anyway and drifts (drops the
+`# … step:…` tag, swaps the absolute path for the `$FRAMEWORK_ROOT` form, reformats) — the F43
+recidivism. It is the reproducible-by-construction half of the fix: a rule applied by the agent's
+election has the reliability of memory (ADR-0034), so this enforces it at the one place the drift is
+visible — the agent's own final message.
+
+### Bounded against a loop, independently of the platform
+
+A `Stop` hook that blocks makes the agent continue; blocking on every fire could loop, and this
+Claude Code version's Stop contract documents no `stop_hook_active` field and no platform loop-guard.
+So the hook guards itself: it blocks **at most once per emitted step**, keyed on a hash of the
+sidecar (`.git/pr-flow/relay-block-marker`). A repeat mismatch on the same emission falls through to a
+passive stderr warning — never a second block. A new emitted step changes the sidecar and re-arms
+exactly one block. The worst case is a single wasted block-and-retry, never a loop.
+
+### Fail-open, always
+
+Every failure — no sidecar, no relay block in the message, malformed input, any exception — exits 0
+with no block. The hook can never trap the session. It is stdlib-only, offline, and deterministic
+(INV-6): it reads two small files and the message, and spawns nothing.
+
+### What it checks, precisely
+
+Only a `bash …/next.sh` line that appears INSIDE a `START COPY` … `END COPY` block — the relay
+convention. A line merely mentioned elsewhere (a status report quoting it) is not a relay and is not
+checked. This keeps the trigger tight enough to avoid false positives on prose about the command.
+
+## Implementation
+```python
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Stop hook — relay-conformance guard (item 40).
+
+Byte-checks the `bash …/next.sh` line the agent relayed (inside a START COPY/END COPY block) against
+the driver's canonical sidecar. Blocks a mismatch AT MOST ONCE per emission (a self-contained
+loop guard), and fails OPEN on everything else. Deterministic and offline (INV-6).
+"""
+import hashlib
+import json
+import os
+import re
+import sys
+
+# A `bash <path>/next.sh …` line. LEADING whitespace is captured on purpose: an indented paste is
+# mangled (operator-command-formatting), so an indented relay must read as drift, not be normalised
+# away. Trailing whitespace is dropped (invisible, not a paste hazard). The ```bash fence line does
+# not match — it starts with backticks, not `bash`.
+_RELAY = re.compile(r"^([ \t]*bash\s+\S*?/\.git/pr-flow/next\.sh\b[^\n]*?)[ \t]*$", re.MULTILINE)
+
+
+def _relay_in_message(msg):
+    """The relayed next.sh line inside a START COPY/END COPY block, or None.
+
+    The line is returned WITH any leading whitespace: a flush-left relay equals the sidecar; an
+    indented one does not, so the byte-check catches the indentation drift.
+    """
+    for block in re.findall(r"START COPY\s*(.*?)\s*END COPY", msg, re.DOTALL):
+        m = _RELAY.search(block)
+        if m:
+            return m.group(1)
+    return None
+
+
+def _repo_root_with_sidecar(cwd):
+    """Walk up from cwd to the dir whose .git/pr-flow/relay-line.txt exists; return (root, line)."""
+    p = cwd
+    for _ in range(8):
+        f = os.path.join(p, ".git", "pr-flow", "relay-line.txt")
+        try:
+            with open(f, encoding="utf-8") as fh:
+                return p, fh.read().strip()
+        except OSError:
+            nxt = os.path.dirname(p)
+            if nxt == p:
+                return None, None
+            p = nxt
+    return None, None
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)  # fail open
+
+    msg = data.get("last_assistant_message") or ""
+    cwd = (data.get("cwd") or "").rstrip("/")
+    if not isinstance(msg, str) or not cwd:
+        sys.exit(0)
+
+    relayed = _relay_in_message(msg)
+    if relayed is None:
+        sys.exit(0)  # no relay block in this message — nothing to check
+
+    root, canonical = _repo_root_with_sidecar(cwd)
+    if not canonical:
+        sys.exit(0)  # no sidecar — fail open
+
+    marker = os.path.join(root, ".git", "pr-flow", "relay-block-marker")
+    want = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    if relayed == canonical:
+        # Correct relay — clear any marker so a later drift on a new step re-arms.
+        try:
+            os.remove(marker)
+        except OSError:
+            pass
+        sys.exit(0)
+
+    # Mismatch. Block AT MOST ONCE per emission (keyed on the sidecar).
+    try:
+        with open(marker, encoding="utf-8") as fh:
+            already = fh.read().strip()
+    except OSError:
+        already = ""
+
+    if already == want:
+        # Already blocked this emission — do NOT block again (loop guard). Warn only.
+        sys.stderr.write(
+            "relay-conformance: the relayed next.sh line still does not match the driver's "
+            "emission, but this emission was already flagged once — not blocking again. "
+            f"Correct line: {canonical}\n")
+        sys.exit(0)
+
+    try:
+        with open(marker, "w", encoding="utf-8") as fh:
+            fh.write(want)
+    except OSError:
+        sys.exit(0)  # cannot record the block -> fail open rather than risk a loop
+
+    sys.stderr.write(
+        "relay-conformance: the next.sh line you relayed is not byte-identical to the one the "
+        "driver emitted — the F43 relay drift. Copy the driver's START COPY/END COPY block verbatim; "
+        "do not retype it, drop the tag, or swap the path form.\n"
+        f"  driver emitted: {canonical}\n"
+        f"  you relayed:    {relayed}\n")
+    sys.exit(2)  # block once
+
+
+main()
+```
+
+## Verification
+
+- `echo '{"last_assistant_message":"START COPY\n```bash\nbash /x/.git/pr-flow/next.sh   # a step:pr\n```\nEND COPY","cwd":"/x"}' | relay-conformance-guard.py` blocks (exit 2) when
+  `/x/.git/pr-flow/relay-line.txt` differs; exits 0 when it matches; exits 0 when the message has no
+  copy block or the sidecar is absent.
+- A second identical mismatch for the same sidecar exits 0 (the marker is set) — bounded to one block.
+- `tests/test_relay_conformance_guard.py` drives every path.
