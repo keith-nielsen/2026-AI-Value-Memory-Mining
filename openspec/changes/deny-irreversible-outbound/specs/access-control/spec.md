@@ -59,14 +59,14 @@ INV-1–13 are unchanged.
 - **THEN** it is permitted only after the operator deliberately adds that (private) remote to `PUSH_ALLOWLIST`; a
   tired or quick assent solicited by an agent does not satisfy this
 
-#### Scenario: A reversible branch push to a sibling repo is asked, not denied
+#### Scenario: A publish to a sibling repo from a vault-rooted session is asked, not denied
 
 - **WHEN** the agent runs a `git push` of a branch (not a tag) whose effective target is a non-vault
   sibling repository, from a session where `VAULT_ROOT` is set to the deployed vault
 - **THEN** the harness guard does NOT hard-deny it as vault-outward, and does NOT deny it as
   irreversible; it raises the ASK hard stop (which prompts in an interactive session)
 
-#### Scenario: A reversible branch push never defers silently in an interactive session
+#### Scenario: A plain git push never defers silently
 
 - **WHEN** the agent runs a `git push` (including `git -C <path> push`) of a branch whose effective
   target is not the deployed vault, in an interactive session
