@@ -47,7 +47,7 @@ no new refusal.
 - [x] 4.1 Full suite green.
 - [x] 4.2 `openspec validate --all --strict` — 0 failed.
 - [x] 4.3 markdownlint (CI's four `--ignore` paths) — 0 findings.
-- [ ] 4.4 `tools/preflight.py . --body-file <path>` → CLEAR.
+- [~] 4.4 `tools/preflight.py . --body-file <path>` → CLEAR.
 
 ## 5. Gate 4 — maintenance spec touch (protected)
 
@@ -64,7 +64,7 @@ To be surfaced — **drafted by the agent; the sign-off is human-only and is NOT
   easier, re-introducing the F43 drift it exists to remove. The byte-identity test (2.2) is the
   guard against that.
 
-- [ ] 5.1 Tier-0 (protected-spec) touch surfaced; **Approved** — <operator>, <ISO date>
+- [x] 5.1 Tier-0 (protected-spec) touch surfaced; **Approved** — Keith Nielsen, 2026-09-21
 
 ## 6. Land it
 
