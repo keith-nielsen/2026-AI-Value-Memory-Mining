@@ -603,6 +603,15 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     if runs == OPERATOR and root:
         path = write_saved_plan(root, step, command, approve, branch, assert_args)
         if path:
+            relay_line = f"bash {path}{plan_history_suffix(step)}"
+            # item 40: the canonical relay line, written to a sidecar so the relay-conformance Stop
+            # hook can byte-check what the agent relayed against what the driver emitted. A failed
+            # write must never break emission, so it is best-effort.
+            try:
+                (pathlib.Path(root) / ".git" / "pr-flow" / "relay-line.txt").write_text(
+                    relay_line + "\n", encoding="utf-8")
+            except OSError:
+                pass
             print("")
             print(f"  Saved plan: {path}")
             # The operator handoff is a COPY-WHOLE BLOCK, not a `To run it:` one-liner the caller
@@ -616,7 +625,7 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
             print("  Relay this block to the operator VERBATIM — copy it whole, do not reformat:")
             print("START COPY")
             print("```bash")
-            print(f"bash {path}{plan_history_suffix(step)}")
+            print(relay_line)
             print("```")
             print("END COPY")
             if assert_args:

@@ -216,7 +216,7 @@ Full walkthrough: [`docs/USING-THIS-TEMPLATE.md`](docs/USING-THIS-TEMPLATE.md)
 
 ---
 
-## Operational Scripts (15)
+## Operational Scripts (16)
 
 All scripts are stored as literate meta-script notes in
 `vault-template/99-Operations/scripts/` and deployed via `render` to the `deploy_target` each note
@@ -248,6 +248,7 @@ Nothing installs a schedule: `render` deploys code and marks it executable, and 
 | `pre-push` | `[script]` | git hook | Denies outbound push by default (INV-14); allowlisted remotes only |
 | `outbound-publish-guard.py` | `[script]` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands, ASK before public publishes |
 | `gh-invocation-guard.py` | `[script]` | harness hook | Claude Code `PreToolUse` guard (ADR-0045): `gh` invocation-form allowlist — `gh api` (REST) and `gh auth status` permitted, `gh api graphql` and every unlisted form refused |
+| `relay-conformance-guard.py` | `[script]` | harness hook | Claude Code `Stop` hook (item 40): byte-checks the relayed `next.sh` line against the driver's sidecar; blocks a mismatch at most once per emission, fails open |
 
 
 ---
