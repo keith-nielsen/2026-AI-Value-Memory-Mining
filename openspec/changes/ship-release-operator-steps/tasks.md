@@ -70,7 +70,7 @@ To be surfaced — **drafted by the agent; the sign-off is human-only:**
   (the suite is the guard) or a broken ship-release handoff (the ceremony test is the guard). No
   control weakens — the item-37 DENY is unchanged.
 
-- [ ] 6.1 Tier-0 (maintenance touch) surfaced; **Approved** — <operator>, <ISO date>
+- [x] 6.1 Tier-0 (maintenance touch) surfaced; **Approved** — Keith Nielsen, 2026-09-22
 
 ## 7. Land it
 
