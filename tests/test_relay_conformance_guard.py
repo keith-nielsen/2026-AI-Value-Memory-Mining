@@ -149,3 +149,14 @@ def test_driver_writes_the_sidecar_byte_identical_to_the_block(tmp_path):
     sidecar = (d / ".git" / "pr-flow" / "relay-line.txt").read_text().strip()
     expected = f"bash {d / '.git' / 'pr-flow' / 'next.sh'}{prf.plan_history_suffix('merge')}"
     assert sidecar == expected, f"sidecar {sidecar!r} != emitted line {expected!r}"
+
+
+def test_an_indented_relay_is_caught(guard, tmp_path):
+    """F43 historical-regression finding: an INDENTED paste is mangled, so it must read as drift.
+    The first cut required `bash` at column 0 and silently passed an indented relay."""
+    d = _repo(tmp_path, CANON)
+    canon = f"bash {d}/.git/pr-flow/next.sh   # body step:pr -> new PR"
+    (d / ".git" / "pr-flow" / "relay-line.txt").write_text(canon + "\n", encoding="utf-8")
+    indented = f"  {canon}"  # same command, indented — mangles the paste
+    code, _ = run(guard, _msg(indented), d)
+    assert code == 2, "an indented relay must be caught as drift"

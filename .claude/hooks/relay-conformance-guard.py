@@ -12,17 +12,23 @@ import os
 import re
 import sys
 
-# A `bash <path>/next.sh …` line. Captured only when it sits inside a START COPY/END COPY block.
-_RELAY = re.compile(r"^(bash\s+\S*?/\.git/pr-flow/next\.sh\b.*)$", re.MULTILINE)
+# A `bash <path>/next.sh …` line. LEADING whitespace is captured on purpose: an indented paste is
+# mangled (operator-command-formatting), so an indented relay must read as drift, not be normalised
+# away. Trailing whitespace is dropped (invisible, not a paste hazard). The ```bash fence line does
+# not match — it starts with backticks, not `bash`.
+_RELAY = re.compile(r"^([ \t]*bash\s+\S*?/\.git/pr-flow/next\.sh\b[^\n]*?)[ \t]*$", re.MULTILINE)
 
 
 def _relay_in_message(msg):
-    """The relayed next.sh line inside a START COPY/END COPY block, or None."""
-    # Isolate each copy block, then look for the bash line within it — a line elsewhere is not a relay.
+    """The relayed next.sh line inside a START COPY/END COPY block, or None.
+
+    The line is returned WITH any leading whitespace: a flush-left relay equals the sidecar; an
+    indented one does not, so the byte-check catches the indentation drift.
+    """
     for block in re.findall(r"START COPY\s*(.*?)\s*END COPY", msg, re.DOTALL):
         m = _RELAY.search(block)
         if m:
-            return m.group(1).strip()
+            return m.group(1)
     return None
 
 

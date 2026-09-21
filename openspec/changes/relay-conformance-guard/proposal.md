@@ -72,4 +72,10 @@ basis: ADD-only
   to exit 0 (no loop); a new emission re-arms one block.
 - Fail-open: missing sidecar, malformed JSON, and unreadable input each exit 0 with no block.
 - The driver writes `relay-line.txt` byte-identical to the copy-whole block's command.
+- **Historical regression** (operator-requested): the hook was run against the reconstructed
+  relay-drift instances from the record — the 2026-08-25 tag strip (F43), this session's dropped tag
+  and env-var/abspath swap, and an indented paste. It **found a real gap**: the first cut required
+  `bash` at column 0 and silently passed an INDENTED relay (itself an F43 drift mode). Fixed to
+  capture the leading whitespace and treat indentation as drift; all four modes now block, a correct
+  relay does not, and the case is pinned by `test_an_indented_relay_is_caught`.
 - Full suite, `openspec validate --all --strict`, and markdownlint all clean.
