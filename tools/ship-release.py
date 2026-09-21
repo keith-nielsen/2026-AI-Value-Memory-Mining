@@ -31,12 +31,14 @@ import argparse
 import json
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import gh_read  # noqa: E402  — the shared read layer; its sibling pr-flow.py already uses it
+import driver_handoff  # noqa: E402  — the shared operator-handoff machinery (item 41)
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -56,36 +58,57 @@ def _refuse(msg):
     raise SystemExit(EXIT_REFUSED)
 
 
-def _record_emission(cmd, step="release"):
-    """Record this emission for the outbound guard, through pr-flow.py's writer.
+def _ship_verify_lines(root, version, ns, step):
+    """The VERIFY tail for a ship-release saved plan: re-run the driver, which re-derives release
+    state from the world and confirms the tag/release actually landed (silent gh successes are not
+    trusted). The invocation is pinned at write time, carrying the same flags this run had, so the
+    re-run reaches the same version and target rather than guessing them."""
+    argv = [version or ""]
+    if ns is not None:
+        if ns.commit:
+            argv += ["--commit", ns.commit]
+        if ns.base and ns.base != "main":
+            argv += ["--base", ns.base]
+        if ns.title:
+            argv += ["--title", ns.title]
+    inv = " ".join(shlex.quote(a) for a in [sys.executable, f"{root}/tools/ship-release.py", *argv])
+    return [
+        "",
+        "# VERIFY — re-run the ship-release driver; it re-derives release state from the world and",
+        "# confirms the tag/release landed before advancing (silent gh successes are not trusted).",
+        f'echo "MUTATION {step}: command exited 0"',
+        inv,
+    ]
 
-    IMPORTED, never re-implemented: a second copy of the record format would be a fork with no
-    merge (the class-9 defect), and this driver and pr-flow.py must agree byte-for-byte on what
-    the guard compares against.
 
-    Without a record a release push simply falls through to the confirmation prompt — correct, but
-    it would leave this the one driver whose "run exactly this" is backed by nothing. Advisory
-    only: a record can downgrade a prompt, never cause a refusal. Never fatal.
+def _emit_next(cmd, version=None, ns=None, step="release"):
+    """Emit an IRREVERSIBLE outbound step as an OPERATOR handoff (item 41).
+
+    Item 37 hard-denies irreversible outbound (a tag push, a release create) on the agent's channel,
+    so these are operator-only. The raw command is shown for review on a NEXT line, and — exactly as
+    pr-flow.py does for its operator steps — a self-guarding next.sh plus the item-39 copy-whole
+    relay block are written through the shared handoff module. The agent relays that clean block
+    (byte-checked by the item-40 Stop hook) and the operator runs it, instead of the agent hitting a
+    mid-flow DENY on a bare command. The emission record still backs the "run exactly this" contract.
     """
-    try:
-        import importlib.util
-        here = pathlib.Path(__file__).resolve().parent
-        spec = importlib.util.spec_from_file_location("pr_flow_emit", str(here / "pr-flow.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        root = _run(["git", "rev-parse", "--show-toplevel"]).stdout.strip()
-        branch = _run(["git", "branch", "--show-current"], cwd=root or None).stdout.strip()
-        if root:
-            mod.write_emission_record(root, step, cmd, branch)
-    except Exception:
-        pass
-
-
-def _emit_next(cmd):
-    print("NEXT: run exactly this one command through the normal gated channel, then re-run")
-    print("NEXT: the driver — it verifies the mutation landed before advancing.")
+    print("NEXT: this step is OPERATOR-ONLY (irreversible outbound). Relay the copy-whole block")
+    print("NEXT: below; the operator runs it, then you re-run the driver, which verifies it landed.")
     print(f"NEXT: {cmd}")
-    _record_emission(cmd)
+    root = pathlib.Path(_run(["git", "rev-parse", "--show-toplevel"]).stdout.strip() or ".")
+    branch = _run(["git", "branch", "--show-current"], cwd=str(root)).stdout.strip()
+    driver_handoff.write_emission_record(str(root), step, cmd, branch)
+    path = None
+    if branch:
+        try:
+            path = driver_handoff.write_saved_plan(
+                str(root), step, cmd, approve=None, branch=branch,
+                assert_lines=None, verify_lines=_ship_verify_lines(root, version, ns, step))
+        except ValueError:
+            path = None
+    if path:
+        suffix = driver_handoff.plan_history_suffix(step, target=(version or "release"))
+        driver_handoff.emit_operator_handoff(str(root), step, path,
+                                             suffix=suffix, has_assertion=False)
     raise SystemExit(EXIT_NEEDS_INPUT)
 
 
@@ -332,7 +355,7 @@ def main(argv):
     emit_slug = gh_read.slug_from_remote(str(root))
 
     if remote is None:
-        _emit_next(f"git -C {root} push origin refs/tags/{version}")
+        _emit_next(f"git -C {root} push origin refs/tags/{version}", version, ns, step="tag")
 
     if release is None:
         notes_file = root / ".git" / f"ship-release-notes-{version}.md"
@@ -364,7 +387,8 @@ def main(argv):
         _emit_next(f'gh api repos/{emit_slug}/git/ref/tags/{version} > /dev/null && '
                    f'gh api -X POST repos/{emit_slug}/releases '
                    f'-f tag_name={version} -f name="{title}" '
-                   f'-f make_latest=true -F body=@{notes_file}')
+                   f'-f make_latest=true -F body=@{notes_file}',
+                   version, ns, step="release")
 
     problems = []
     if release["isDraft"]:
