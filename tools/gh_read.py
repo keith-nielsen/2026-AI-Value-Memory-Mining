@@ -160,6 +160,24 @@ def check_runs(slug, sha):
     return get(f"/repos/{slug}/commits/{sha}/check-runs?per_page=100")
 
 
+def workflow_runs(slug, sha):
+    """Workflow runs for one commit — the RUN-level layer, distinct from check-runs.
+
+    Replaces `gh run list --commit <sha> --json name,status,conclusion,event`. The plan
+    pre-registered a trap here: `gh run list` issues TWO requests (`/actions/runs` AND
+    `/actions/workflows?per_page=100`), so a single `/actions/runs?head_sha=` call was expected to
+    drop workflow names.
+
+    MEASURED 2026-09-19 against the live repository, and the trap does NOT apply: every field this
+    caller consumes — `name`, `status`, `conclusion`, `event` — is present on each element of
+    `workflow_runs`, with `name` populated (`"CI"`). The second request `gh` makes serves its own
+    workflow-to-name mapping, not a field this response lacks. Recorded because a pre-registered
+    trap that turns out not to exist is a finding too, and the next reader would otherwise
+    re-derive it from the same warning.
+    """
+    return get(f"/repos/{slug}/actions/runs?head_sha={sha}&per_page=100")
+
+
 def branches(slug):
     return get(f"/repos/{slug}/branches?per_page=100")
 

@@ -62,6 +62,8 @@ cooperating agent**, not an anti-evasion control.
 Re-measure: read `OUTWARD` / `PUBLISH` in `.claude/hooks/outbound-publish-guard.py`.
 
 **ASK** on `git push`, `git remote add|set-url`, `gh repo create`, `gh release create|edit|upload`,
+a REST write to an **outbound** endpoint (`POST …/releases`, `DELETE …/releases/{id}` — derived
+from §2b, so the rail follows the block), anything touching `uploads.github.com`,
 `npm|yarn|pnpm publish`, `twine upload`, `docker push`, `cargo publish`, `gem push`.
 **HARD DENY** when the effective target resolves to a deployed vault — including via `cd … &&`,
 `git -C <path>`, or `gh … -R <owner/repo>`.
@@ -107,8 +109,8 @@ Re-measure the emitted forms: `grep -rhoE '"git -C \{root\}[^"]*"' tools/pr-flow
 | Push a tag | `git -C <root> push origin refs/tags/vX.Y.Z` | agent | **operator** (INV-14 ask) |
 | Retarget a PR | `gh api -X PATCH /repos/<slug>/pulls/N -f base=<ref>` + re-read | agent | operator |
 | Merge a PR | `gh api -X PUT /repos/<slug>/pulls/N/merge -f merge_method=merge -f sha=<sha>` | **operator** | operator |
-| Open a PR | `gh pr create --base … --head … --title … --body-file …` | **operator** | operator |
-| Create a Release | `gh release create vX.Y.Z --verify-tag --latest -t … --notes-file …` | **operator** | operator |
+| Open a PR | `gh api -X POST /repos/<slug>/pulls -f title= -f head= -f base= -F body=@FILE` | **operator** | operator |
+| Create a Release | `gh api .../git/ref/tags/vX.Y.Z && gh api -X POST /repos/<slug>/releases -f tag_name= -f make_latest=true -F body=@FILE` | **operator** | operator |
 | Local branch ops | `git -C <root> switch <b>` · `git -C <root> branch -D <b>` | agent | agent |
 
 **Why the `gh` mutations stay with the operator:** `gh` needs the OS keyring **and** no write token
@@ -118,6 +120,93 @@ started in** (the `sandbox` block lives in per-root settings), so probe it; neve
 
 **`sha=` on the merge is a server-side precondition**, not decoration: if the head moved, GitHub
 answers 409 and refuses rather than merging something unreviewed.
+
+### 2b. The sanctioned write set — machine-readable, and the source of truth
+
+`gh api` is a **wider** permission than the subcommands it replaces: `gh api -X DELETE /repos/o/r`
+is permitted by form alone. `GET` is therefore unconstrained, and every **write** method reaches only
+the endpoints enumerated here. This block is the one copy; the guards carry it because they must run
+in roots that have no `docs/` (INV-6, stdlib-only, no runtime file reads), and an equality test fails
+CI if any copy drifts. **Edit this block, never a guard's list alone.**
+
+Fields are `method | endpoint | runs | authority | precondition | outbound`. `outbound: yes` means
+reaching it publishes, so the INV-14 guard must raise its ask — a property of the *endpoint*, not of
+the command's spelling, which is how the subcommand-shaped matcher missed the REST release form.
+
+```gh-write-endpoints
+POST   | /repos/{slug}/pulls             | operator | operator | none            | no
+PATCH  | /repos/{slug}/pulls/{n}         | agent    | operator | re-read-base    | no
+PUT    | /repos/{slug}/pulls/{n}/merge   | operator | operator | sha             | no
+POST   | /repos/{slug}/releases          | operator | operator | tag-exists      | yes
+DELETE | /repos/{slug}/releases/{id}     | operator | operator | none            | yes
+POST   | /repos/{slug}/labels            | ci       | ci       | label-absent    | no
+POST   | /repos/{slug}/issues            | ci       | ci       | issue-absent    | no
+```
+
+What the preconditions mean, and why each is not decoration:
+
+- **`sha`** — the merge carries the head it was reviewed at; a moved head gets a 409, not a merge.
+- **`tag-exists`** — `GET /repos/{slug}/git/ref/tags/{tag}` **before** the POST. This replaces
+  `--verify-tag`, which has no REST equivalent. Without it, `target_commitish` defaults to a branch
+  and the API **creates** the tag at that head — measured, so the precondition is the only thing
+  standing between a typo'd version and a tag pointing at whatever `main` happened to be.
+- **`re-read-base`** — the retarget is read back, because the GraphQL-era form silently no-opped.
+- **`label-absent` / `issue-absent`** — a read decides whether the write happens at all, replacing a
+  `2>/dev/null || true` that made an auth failure look identical to "already exists".
+
+⚠ **`runs: ci`** names the Actions runner, where **no hook runs at all**. Those two rows are governed
+only by the detector, and nothing at runtime will refuse them.
+
+#### Deliberately excluded — decided, with the reasoning attached
+
+Absence from the set above is already a refusal: every write is refused by default rather than
+permitted by omission. These endpoints are listed anyway, because an endpoint left out **by decision**
+and one left out **by oversight** are indistinguishable from the set alone — and the next reader who
+needs one of these will otherwise re-derive the argument from scratch, or quietly add the row.
+
+```gh-write-endpoints-excluded
+PUT    | /repos/{slug}/rulesets/{id}  | control-plane-write
+PATCH  | /repos/{slug}/rulesets/{id}  | control-plane-write
+DELETE | /repos/{slug}/rulesets/{id}  | control-plane-write
+```
+
+**`control-plane-write` — why these stay out (decided 2026-09-19):**
+
+1. **They edit the control plane, not content.** Every sanctioned row acts on a pull request, a
+   release, a label or an issue. These act on §1.4's rulesets — `19666243` (main: PR required, 16
+   required checks, no deletion, no non-fast-forward) and `19666225` (`v*` tags frozen).
+2. **A ruleset `PUT` replaces the entire `rules` array**, so a hand-written payload silently drops
+   `pull_request`, `deletion` or `non_fast_forward` (ADR-0038, Application). The damage needs no
+   malice and announces nothing.
+3. **The ruleset cannot protect itself.** `bypass_actors` is empty and `current_user_can_bypass` is
+   `never`, so nobody can *evade* it — but an admin token can *rewrite* it. Its integrity is
+   procedural, and this exclusion is the procedure.
+4. **Layer ordering.** ADR-0034 establishes rulesets as *"the only control in the stack that runs
+   server-side"*, binding agent, operator and admin identically. Sanctioning them here would let the
+   agent-channel allowlist authorize edits to the layer that backstops every other layer — the
+   weakest-bound channel gaining a documented path to dismantle the strongest control.
+5. **Excluding them costs nothing that exists.** This allowlist binds the **agent's typed channel**;
+   the operator runs `next.sh` in their own terminal, where no hook runs. ADR-0038 already scopes the
+   command to the operator and carries the verified recipe (fetch the live ruleset → mutate only the
+   contexts list → send it back → re-read to confirm). Two ruleset writes exist in the estate's whole
+   record: the 2026-07-24 provisioning and the ADR-0038 completion.
+6. **Reads are unaffected, and reads are what the estate is actually short of.** `GET` is
+   unconstrained; measured 2026-09-19, anonymous `GET …/rulesets` returns **200**. Nothing here
+   blocks the observation capability ADR-0038 says is owed.
+
+⚠ **The ground is AUTHORITY, not capability.** ADR-0038's *"the agent cannot authenticate to perform
+this"* was measured false on 2026-08-26 (`0b07ddc`): a session rooted in `$FRAMEWORK_ROOT` reaches the
+keyring and `gh` authenticates. Whether that token carries repo-administration rights is **unmeasured**
+— and the exclusion must not depend on the answer. A boundary resting on "it would fail anyway"
+evaporates the moment the environment shifts, silently and with no event to observe.
+
+⚠ **This is a known gap, not a closed question.** Nothing observes the live rulesets, and GitHub can
+change ruleset parameters **without bumping `updated_at`**, so any future check must compare content,
+never timestamps (ADR-0038, Residual). The exclusion keeps the write off the agent's channel; it does
+**not** detect a ruleset that drifted, was edited in the web UI, or was rewritten by a token outside
+this estate. **That detection is `github-state-reconcile`'s to build** — and when it exists, revisit
+whether a reconciler needs a sanctioned write path to repair what it finds, which is the one plausible
+reason these rows would ever be admitted.
 
 ---
 

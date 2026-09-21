@@ -271,7 +271,7 @@ newest tag. The ceremony is driven by the guarded state machine `tools/ship-rele
                                      # tags naming the true cause, cuts + verifies the local tag,
                                      # then EMITS the next single outward command and exits 2
 2. Run exactly the emitted command (git push origin refs/tags/vX.Y.Z, later
-   gh release create vX.Y.Z --verify-tag --latest …) through the normal gated channel
+   gh api …/git/ref/tags/vX.Y.Z && gh api -X POST …/releases …) through the normal gated channel
 3. Re-run tools/ship-release.py vX.Y.Z — it verifies the mutation actually landed
    (per layer: remote-tag, release-object) before emitting the next step
 4. Repeat until it prints the tag↔Release PARITY TALLY with its denominators and exits 0
@@ -279,7 +279,7 @@ newest tag. The ceremony is driven by the guarded state machine `tools/ship-rele
 ```
 
 The driver deliberately **never executes the outward commands itself** — `git push` and
-`gh release create` are ASK-gated by the INV-14 outbound guard, and the operator approves each
+a REST write to a publishing endpoint are ASK-gated by the INV-14 outbound guard, and the operator approves each
 deliberately after reviewing the overview summary + `proposal.md`. Because release creation and
 verification are steps the driver refuses to skip, a tag can never again accumulate without its
 Release (the drift that stranded the Releases page at v0.1.13 while tags ran to v0.1.22 — and the

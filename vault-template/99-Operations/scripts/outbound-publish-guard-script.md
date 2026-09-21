@@ -45,6 +45,21 @@ reported as a match, never as an authorisation.**
 
 The vault HARD DENY is evaluated first and is **not** downgradeable by any record.
 
+⚠ **The REST spelling is STRICTER than the subcommand it replaces, deliberately (2026-09-19).**
+`_targets_vault()` early-outs on an explicit `-R owner/repo` — that names a GitHub repo, not the
+local vault tree — and otherwise falls back to the reported cwd. `gh api` carries the slug **inline**
+and has no `-R`, so it never reaches that early-out. Measured:
+
+| command, from a vault cwd | decision |
+|---|---|
+| `gh api -X POST repos/other/repo/releases …` | **DENY** |
+| `gh release create v1 -R other/repo …` | ask |
+
+Accepted rather than closed. Closing it means teaching `_targets_vault` to parse an inline slug —
+more code inside a control, to move a DENY to an ASK, for a case with no demand: releases are the
+operator's and run from their own terminal, where no hook exists at all. The pair is pinned by
+`tests/test_outbound_rest_coverage.py` so it cannot drift silently in either direction.
+
 Separately, a deny caused by a redirect this guard could not resolve now explains itself: an
 unexpanded shell variable in `-C`, or a `cd` that is not leading, silently drops the redirect and
 falls back to the reported cwd. That produced a correct and completely opaque denial on 2026-08-16.
@@ -78,11 +93,61 @@ import time
 
 VAULT = (os.environ.get("VAULT_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or "").rstrip("/")
 
+# Endpoints whose REST form PUBLISHES, and must therefore raise this guard's ask.
+#
+# Publishing is a property of the endpoint, not of the command's spelling. The matchers below key on
+# subcommand tokens, and that is exactly how the REST form escaped: measured 2026-09-19,
+# `gh release create …` raised the full banner while
+# `gh api -X POST repos/o/r/releases -f tag_name=v1.2.3` passed in SILENCE. A release published by
+# REST leaves the machine just as irreversibly as one published by subcommand.
+#
+# IMPORTED, NOT AUTHORED HERE. Source of truth: the rows marked `outbound: yes` in the
+# ```gh-write-endpoints block of docs/version-control-legal-moves.md §2b, held equal by
+# tests/test_write_endpoint_set_parity.py. This guard is stdlib-only and offline (INV-6) and renders
+# into roots with no docs/, so it cannot read that file at runtime.
+OUTBOUND_ENDPOINTS = {
+    ("POST", "/repos/{slug}/releases"),
+    ("DELETE", "/repos/{slug}/releases/{id}"),
+}
+
+def _rest_publish_pattern():
+    """Build the REST half of the rail FROM `OUTBOUND_ENDPOINTS`, so the constant is load-bearing.
+
+    Hand-writing a second copy here would be the class-9 defect the endpoint block exists to
+    prevent: the list would drift from the doc exactly when it mattered. Derived instead, so adding
+    an `outbound: yes` row to docs §2b extends this rail automatically.
+
+    A form matches only when BOTH hold — a write method appears, and the path is an outbound
+    endpoint. Reads of the same collection publish nothing and must not raise the banner: a prompt
+    that fires on everything teaches the operator to approve it without reading.
+    """
+    alts = []
+    for method, tmpl in sorted(OUTBOUND_ENDPOINTS):
+        path = re.escape(tmpl.lstrip("/"))
+        # {slug} is owner/repo; one segment where a placeholder stands in (see the invocation guard).
+        path = path.replace(re.escape("{slug}"), r"[^/\s]+(?:/[^/\s]+)?")
+        # A lambda, not a replacement string: `\s` in a replacement is a template escape and
+        # `re.sub` raises `bad escape \s`. Measured 2026-09-19 -- the guard crashed at import with
+        # exit 1, which is NOT its documented fail-open behaviour (that covers a malformed payload
+        # at runtime, not a module that will not load).
+        path = re.sub(r"\\\{[a-z]+\\\}", lambda _: r"[^/\s]+", path)
+        alts.append(
+            r"\bgh\s+api\b"
+            rf"(?=[^\n]*(?:-X|--method)[=\s]*{method}\b)"
+            rf"(?=[^\n]*/?{path})"
+        )
+    # Release ASSETS do not go to the API host. A rail watching only api.github.com misses them,
+    # and this shape also covers a plain `curl` upload, which no `gh` pattern would see.
+    alts.append(r"\buploads\.github\.com\b")
+    return "|" + "|".join(alts)
+
+
 OUTWARD = re.compile(
     r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b"  # `git push`, incl. `git -C <path> push` / `-c k=v`
     r"|\bgit\s+remote\s+(add|set-url)\b"
     r"|\bgh\s+repo\s+create\b"
-    r"|\bgh\s+release\s+(create|edit|upload)\b",
+    r"|\bgh\s+release\s+(create|edit|upload)\b"
+    + _rest_publish_pattern(),
     re.IGNORECASE,
 )
 
@@ -96,7 +161,8 @@ PUBLISH = re.compile(
     r"|\bpython\b[^\n]*-m\s+twine\s+upload"
     r"|\bdocker\s+push\b"
     r"|\bcargo\s+publish\b"
-    r"|\bgem\s+push\b",
+    r"|\bgem\s+push\b"
+    + _rest_publish_pattern(),
     re.IGNORECASE,
 )
 

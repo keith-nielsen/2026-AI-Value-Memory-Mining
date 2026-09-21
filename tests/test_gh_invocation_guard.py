@@ -214,3 +214,150 @@ def test_g2_11_uncaught_evasions_are_recorded_not_claimed():
             f"the note must name '{limit}' among the evasions it does not catch; a control whose "
             "limits are undocumented gets trusted past them"
         )
+
+
+# --- the method split (change `prefer-rest-over-graphql-forms` §3) -------------------------------
+#
+# WRITTEN RED-FIRST, 2026-09-19. `gh api` was a blanket permit: every case in this block passed the
+# guard when these tests were written, including the two that matter most —
+#   * `gh api -X DELETE repos/o/r`, which deletes a repository and was permitted BY FORM; and
+#   * `gh api -X POST graphql`, which is the ONLY shape a GraphQL mutation ever takes.
+#
+# The second was a measured hole in the shipped guard, not a new requirement. `positional` was built
+# as "every token not starting with `-`", so the VALUE of `-X` occupied the slot the graphql check
+# read. `gh api graphql` was refused; `gh api -X POST graphql` deferred. The estate's four recorded
+# silent no-ops were all mutations, so the form actually capable of causing one was the form that
+# got through. Layer 1's `Bash(gh api graphql:*)` prefix rule does not cover it either.
+
+WRITE_REFUSALS = [
+    ("gh api -X DELETE repos/o/r", "a repository delete, permitted by form before the split"),
+    ("gh api -X DELETE /repos/o/r", "same, rooted path"),
+    ("gh api --method DELETE repos/o/r/hooks/12", "long-form flag, unsanctioned endpoint"),
+    ("gh api -X PATCH /repos/o/r/actions/permissions", "unsanctioned write"),
+    ("gh api -X POST /repos/o/r/actions/runners/registration-token", "unsanctioned write"),
+]
+
+
+@pytest.mark.parametrize("cmd,why", WRITE_REFUSALS)
+def test_a_write_to_an_unsanctioned_endpoint_is_refused(guard, cmd, why):
+    """The safety property: an endpoint absent from the sanctioned set is refused BY DEFAULT."""
+    decision, reason = decide(guard, cmd)
+    assert decision == "deny", f"{why}: {cmd!r} was permitted"
+    assert "endpoint" in reason.lower() or "sanctioned" in reason.lower(), (
+        f"the refusal must teach which rule refused it, got: {reason[:160]}")
+
+
+@pytest.mark.parametrize("cmd", [
+    "gh api -X POST graphql -f query=x",
+    "gh api --method POST graphql -f query=x",
+    "gh api --method=POST graphql -f query=x",
+    "gh api -XPOST graphql -f query=x",
+])
+def test_graphql_is_refused_even_when_a_method_flag_precedes_it(guard, cmd):
+    """MEASURED HOLE, 2026-09-19: all four of these DEFERRED before the split.
+
+    A GraphQL mutation is always a POST, so the refusal that existed covered the one graphql shape
+    least able to cause the silent no-op it was written for.
+    """
+    decision, reason = decide(guard, cmd)
+    assert decision == "deny", f"{cmd!r} reached GraphQL unrefused"
+    assert "graphql" in reason.lower(), f"refused for the wrong reason: {reason[:160]}"
+
+
+@pytest.mark.parametrize("cmd", [
+    "gh api -X PUT /repos/o/r/rulesets/19666243 --input p.json",
+    "gh api -X PATCH repos/o/r/rulesets/19666225",
+    "gh api -X DELETE /repos/o/r/rulesets/19666243",
+])
+def test_a_deliberately_excluded_endpoint_says_so(guard, cmd):
+    """An exclusion by DECISION must not read as an oversight.
+
+    A bare 'not permitted' invites the next reader to add the row; the ruleset control plane is out
+    by a recorded decision (docs §2b), and the refusal has to say which.
+    """
+    decision, reason = decide(guard, cmd)
+    assert decision == "deny", f"{cmd!r} was permitted against the control plane"
+    assert "excluded" in reason.lower() and "decision" in reason.lower(), (
+        f"the refusal must name the exclusion as deliberate, got: {reason[:200]}")
+
+
+@pytest.mark.parametrize("cmd", [
+    # reads: unconstrained, and the fleet depends on them
+    "gh api repos/o/r/pulls/51",
+    "gh api /repos/o/r/actions/runs?head_sha=abc",
+    "gh api -X GET repos/o/r/rulesets",
+    "gh api --method GET /repos/o/r/rulesets/19666243",
+    "gh auth status",
+    # sanctioned writes, in the shapes the driver actually emits
+    "gh api -X POST repos/o/r/pulls -f title=t -f head=h -f base=main -F body=@b.md",
+    "gh api -X PATCH /repos/o/r/pulls/51 -f base=main",
+    "gh api -X PUT /repos/o/r/pulls/51/merge -f merge_method=merge -f sha=abc",
+    "gh api -X POST repos/o/r/releases -f tag_name=v1.2.3",
+    "gh api -X DELETE /repos/o/r/releases/12345",
+    "gh api -X POST repos/o/r/labels -f name=openspec-canary",
+    "gh api -X POST repos/o/r/issues -f title=t -f 'labels[]=openspec-canary'",
+    # a placeholder slug: the shipping detector flattens an f-string's interpolations to one token,
+    # so the guard must accept a one-segment slug or it refuses the estate's own emissions
+    "gh api -X PATCH /repos/X/pulls/X -f base=X",
+    "gh api -X PUT /repos/X/pulls/X/merge -f sha=X",
+])
+def test_permitted_forms_still_pass(guard, cmd):
+    """Tightening must not break the fleet: every form in real use is asserted to survive it."""
+    decision, reason = decide(guard, cmd)
+    assert decision == "defer", f"{cmd!r} was refused: {reason[:200]}"
+
+
+# --- §6.5 mutation matrix -----------------------------------------------------------------------
+#
+# An instrument that cannot be SHOWN to fail is not evidence. Each row below removes one load-
+# bearing piece of the guard from a COPY and requires the decision to change. A guard that still
+# refused after its rule was deleted would mean the tests above pass for some other reason — which
+# is exactly the vacuity this change was written to remove.
+#
+# ⚠ Nothing is deleted from the shipped guard: every mutant lives in `tmp_path`.
+
+MUTATIONS = [
+    pytest.param(
+        "matches_any(endpoint, SANCTIONED_WRITES, method)", "matches_any(endpoint, set(), method)",
+        "gh api -X POST repos/o/r/pulls -f title=t", "deny",
+        id="sanctioned set emptied -> a sanctioned write is refused"),
+    pytest.param(
+        "if method not in READ_METHODS:", "if False:",
+        "gh api -X DELETE repos/o/r", "defer",
+        id="method check removed -> a repository delete is permitted"),
+    pytest.param(
+        # A graphql READ, deliberately. MEASURED while writing this row: with the method split in
+        # place a graphql POST is refused as an UNSANCTIONED WRITE even with this clause deleted,
+        # so a write would have credited the wrong rule. The two controls overlap for writes; only
+        # a read isolates the graphql clause, which is what this row is for.
+        'positional[1] == "graphql"', "False",
+        "gh api graphql -f query=x", "defer",
+        id="graphql clause removed -> the graphql READ is permitted"),
+    pytest.param(
+        "matches_any(endpoint, EXCLUDED_WRITES, method)", "matches_any(endpoint, set(), method)",
+        "gh api -X PUT /repos/o/r/rulesets/19666243", "deny",
+        id="exclusion list emptied -> the ruleset write is STILL refused, by default"),
+]
+
+
+@pytest.mark.parametrize("find,replace,cmd,expected", MUTATIONS)
+def test_each_rule_can_be_shown_to_matter(tmp_path, find, replace, cmd, expected):
+    """Delete one rule from a copy; the decision must move to `expected`.
+
+    The last row is the interesting one: emptying EXCLUDED_WRITES does NOT permit the ruleset
+    write, because absence from the sanctioned set already refuses it. The exclusion list exists
+    to make the refusal TEACH, not to cause it — and a test that assumed otherwise would credit
+    the wrong mechanism.
+    """
+    source = re.search(r"^## Implementation\s*\n```python\n(.*?)^```",
+                       NOTE.read_text(encoding="utf-8"), re.S | re.M).group(1)
+    assert source.count(find) == 1, (
+        f"the mutation anchor {find!r} appears {source.count(find)} times — a mutation that "
+        f"matches nothing silently tests the UNMUTATED guard, which is worse than no test")
+
+    mutant = tmp_path / "mutant.py"
+    mutant.write_text(source.replace(find, replace), encoding="utf-8")
+    decision, _ = decide(mutant, cmd)
+    assert decision == expected, (
+        f"removing {find!r} left the decision on {cmd!r} unchanged — the rule is not what makes "
+        f"the suite above pass")
