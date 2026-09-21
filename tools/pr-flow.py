@@ -605,7 +605,20 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
         if path:
             print("")
             print(f"  Saved plan: {path}")
-            print(f"  To run it:  bash {path}{plan_history_suffix(step)}")
+            # The operator handoff is a COPY-WHOLE BLOCK, not a `To run it:` one-liner the caller
+            # then retypes. F43: the caller reconstructs the line from the formatting rules and
+            # drops the tag / swaps the path form / reformats it — >=4 times in one session on a
+            # standing rule. Emitting the finished block makes copying it lazier than rebuilding it,
+            # so the caller's shortcutting pull produces correctness. The three copyable lines are
+            # FLUSH-LEFT because an indented paste is mangled (operator-command-formatting), and the
+            # command is byte-identical to the saved-plan invariant form — the contract item 40
+            # byte-checks a relayed line against.
+            print("  Relay this block to the operator VERBATIM — copy it whole, do not reformat:")
+            print("START COPY")
+            print("```bash")
+            print(f"bash {path}{plan_history_suffix(step)}")
+            print("```")
+            print("END COPY")
             if assert_args:
                 print("  It re-asserts the state you were shown and aborts WITHOUT mutating if "
                       "GitHub has moved; it expires in 24h.")
