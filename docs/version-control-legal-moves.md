@@ -61,11 +61,20 @@ cooperating agent**, not an anti-evasion control.
 
 Re-measure: read `OUTWARD` / `PUBLISH` in `.claude/hooks/outbound-publish-guard.py`.
 
-**ASK** on `git push`, `git remote add|set-url`, `gh repo create`, `gh release create|edit|upload`,
-a REST write to an **outbound** endpoint (`POST …/releases`, `DELETE …/releases/{id}` — derived
-from §2b, so the rail follows the block), anything touching `uploads.github.com`,
-`npm|yarn|pnpm publish`, `twine upload`, `docker push`, `cargo publish`, `gem push`.
-**HARD DENY** when the effective target resolves to a deployed vault — including via `cd … &&`,
+**ASK** on a **reversible branch push** (`git push <branch>`) whose target is not the vault — its ref
+can be force-pushed or deleted, so the ASK's auto-mode limitation is tolerable. ⚠ **The ASK does not
+hold in auto mode** — a `PreToolUse` ASK silently proceeds there (measured 2026-09-20); it is relied
+on only for the branch push, whose failure is reversible.
+
+**HARD DENY (operator-only, every mode)** on all other outbound — it is **irreversible** and DENY is
+not subject to the auto-mode silent-proceed: `git push … refs/tags/…` (a `v*` tag is frozen by the
+ruleset), `git remote add|set-url` (incl. the `git -C … remote add` form), `gh repo create`,
+`gh repo edit --visibility public`, `gh release create|edit|upload`, a REST write to a release
+endpoint (`POST …/releases`, `PATCH|DELETE …/releases/{id}` — derived from §2b), anything touching
+`uploads.github.com`, `npm|yarn|pnpm publish`, `twine upload`, `docker push`, `cargo publish`,
+`gem push`. The operator runs these in their own terminal (via the ceremony), where the hook does not
+fire.
+**HARD DENY** also when the effective target resolves to a deployed vault — including via `cd … &&`,
 `git -C <path>`, or `gh … -R <owner/repo>`.
 
 ### 1.4 Refused by GitHub itself (server-side rulesets, `enforcement: active`)

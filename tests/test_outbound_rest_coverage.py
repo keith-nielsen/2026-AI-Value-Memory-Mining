@@ -86,26 +86,29 @@ def decide(guard_path, cmd, *, cwd="/home/someone/repo", vault="/home/someone/Va
     "gh api -X DELETE /repos/o/r/releases/12345",
     "gh api -XDELETE repos/o/r/releases/12345",
 ])
-def test_b9_a_rest_publish_raises_the_outbound_ask(guard, cmd):
-    """RED before 3a.1: every one of these returned silence, exit 0."""
+def test_b9_a_rest_publish_is_a_hard_stop(guard, cmd):
+    """§3a made the guard RECOGNISE a REST publish (was silent); item 37 makes the verdict a hard
+    DENY, not an ASK — a release is irreversible and the ASK silently proceeds in auto mode."""
     decision, reason = decide(guard, cmd)
-    assert decision == "ask", f"{cmd!r} published without raising the INV-14 ask"
-    assert "OUTBOUND" in reason, f"asked, but not with the outbound banner: {reason[:160]}"
+    assert decision == "deny", f"{cmd!r} published without a hard stop"
+    assert "operator" in reason.lower(), f"the refusal must name the operator: {reason[:160]}"
 
 
-def test_an_asset_upload_host_is_outward(guard):
-    """Release assets do not go to the API host. A rail that watches only api.github.com misses them."""
+def test_an_asset_upload_host_is_denied(guard):
+    """Release assets go to uploads.github.com, not the API host — and an asset upload is
+    irreversible, so item 37 denies it (was: asked)."""
     decision, _ = decide(guard, "curl -X POST https://uploads.github.com/repos/o/r/releases/1/assets")
-    assert decision == "ask"
+    assert decision == "deny"
 
 
 # --- B8: the regression half, proved by MUTATION ------------------------------------------------
 
-def test_b8_the_subcommand_form_still_raises_the_ask(guard):
-    """Necessary but NOT sufficient on its own — see the mutation test below."""
+def test_b8_the_subcommand_form_is_a_hard_stop(guard):
+    """`gh release create` is a hard stop — now DENY under item 37 (was ASK). Necessary but not
+    sufficient on its own — see the mutation test below."""
     decision, reason = decide(guard, SUBCOMMAND_PUBLISH)
-    assert decision == "ask", "the original subcommand clause was lost in the rewrite"
-    assert "OUTBOUND" in reason
+    assert decision == "deny", "the release subcommand is no longer a hard stop"
+    assert "operator" in reason.lower()
 
 
 def test_b8_fails_against_a_guard_missing_the_release_clause(tmp_path):
@@ -131,14 +134,16 @@ def test_b8_fails_against_a_guard_missing_the_release_clause(tmp_path):
 
     decision, _ = decide(mutant, SUBCOMMAND_PUBLISH)
     assert decision == "defer", (
-        "the mutant still asked on the subcommand form, so the B8 assertion above would pass "
-        "even with the clause deleted — it is not testing what it claims to test")
+        "the mutant still stopped the subcommand form, so the B8 assertion above would pass even "
+        "with the clause deleted — it is not testing what it claims to test")
 
-    # ...and the REST clause must carry its own weight: the two are independently covered.
+    # ...and the REST clause must carry its own weight: the two are independently covered. Under
+    # item 37 the REST release is a DENY (irreversible), so it stays a hard stop when the
+    # subcommand clause is removed.
     decision, _ = decide(mutant, REST_PUBLISH)
-    assert decision == "ask", (
-        "with the subcommand clause removed the REST publish also stopped being asked — the two "
-        "clauses are not independent, so one rewrite can silently take out both")
+    assert decision == "deny", (
+        "with the subcommand clause removed the REST publish also stopped being a hard stop — the "
+        "two clauses are not independent, so one rewrite can silently take out both")
 
 
 # --- no new noise -------------------------------------------------------------------------------
@@ -188,15 +193,97 @@ def test_the_rest_form_is_denied_from_a_vault_cwd_even_for_another_repo(guard):
     assert "VAULT" in reason.upper()
 
 
-def test_the_subcommand_form_with_an_explicit_repo_still_only_asks(guard):
-    """The other half of the pinned pair — the `-R` early-out is unchanged by this work."""
+def test_the_subcommand_form_with_an_explicit_repo_is_denied(guard):
+    """Under item 37 a release is DENIED for irreversibility regardless of target — the old 3a.4
+    vault-asymmetry (this form ASKed via the -R early-out) is superseded: it is now a hard stop."""
     decision, _ = decide(guard, "gh release create v1 -R other/repo --notes x",
                          cwd=VAULT, vault=VAULT)
-    assert decision == "ask"
+    assert decision == "deny"
 
 
-def test_the_rest_form_asks_normally_outside_the_vault(guard):
-    """Away from a vault cwd the REST publish is an ordinary outbound ask, not a denial."""
+def test_the_rest_form_is_denied_outside_the_vault(guard):
+    """A REST release publish is denied for irreversibility even away from a vault cwd (item 37);
+    previously it was an ordinary outbound ask."""
     decision, _ = decide(guard, "gh api -X POST repos/other/repo/releases -f tag_name=v1",
                          cwd="/home/someone/repo", vault=VAULT)
+    assert decision == "deny"
+
+
+# --- item 37: irreversible outbound is DENY (operator-only), reversible branch push stays ASK -----
+#
+# WRITTEN RED-FIRST, 2026-09-21. Before the change every one of these is `ask`; the adversarial
+# probe measured that `ask` silently proceeds in auto mode, so an irreversible outbound (a release,
+# a v* tag, a remote, a repo) would silently proceed. These must become DENY (which holds in every
+# mode); a branch push (reversible ref) keeps its ASK.
+
+IRREVERSIBLE = [
+    "git -C /r push origin refs/tags/v0.1.55",
+    "gh repo create o/newrepo",
+    "git -C /r remote add backup https://example.invalid/x.git",
+    "gh api -X POST repos/o/r/releases -f tag_name=v1",
+    "gh api -X DELETE /repos/o/r/releases/123",
+    "curl -X POST https://uploads.github.com/repos/o/r/releases/1/assets",
+    "npm publish",
+]
+
+
+@pytest.mark.parametrize("cmd", IRREVERSIBLE)
+def test_irreversible_outbound_is_denied(guard, cmd):
+    decision, reason = decide(guard, cmd)
+    assert decision == "deny", f"{cmd!r} was not hard-denied"
+    assert "operator" in reason.lower(), f"the refusal must name the operator as who runs it: {reason[:160]}"
+
+
+def test_a_branch_push_stays_ask(guard):
+    """The one reversible outbound is unchanged — its ref is reversible, disclosure accepted."""
+    decision, _ = decide(guard, "git -C /r push origin feat/x")
     assert decision == "ask"
+    decision, _ = decide(guard, "git -C /r push -u origin feat/x")
+    assert decision == "ask"
+
+
+def test_vault_targeted_outbound_is_still_hard_denied(guard):
+    """Unchanged and evaluated first."""
+    decision, _ = decide(guard, "git -C /home/someone/Vault push origin main",
+                         cwd="/home/someone/Vault", vault="/home/someone/Vault")
+    assert decision == "deny"
+
+
+def _with_emission(tmp_path, cmd):
+    """A repo dir carrying a live driver emission record matching `cmd`."""
+    d = tmp_path / "repo"
+    (d / ".git" / "pr-flow").mkdir(parents=True)
+    (d / ".git" / "pr-flow" / "emitted.json").write_text(
+        json.dumps({"command": cmd, "step": "x", "branch": "", "expires": 9999999999}),
+        encoding="utf-8")
+    return d
+
+
+def test_irreversible_is_denied_even_when_it_matches_a_driver_emission(guard, tmp_path):
+    """The DENY precedes the downgrade: irreversible outbound is operator-only even if byte-matched."""
+    cmd = "gh api -X POST repos/o/r/releases -f tag_name=v1"
+    d = _with_emission(tmp_path, cmd)
+    decision, _ = decide(guard, cmd, cwd=str(d))
+    assert decision == "deny", "an irreversible command was allowed because it matched an emission"
+
+
+def test_a_branch_push_is_still_allowed_on_an_emission_match(guard, tmp_path):
+    """The reversible downgrade path is intact — a byte-exact branch-push emission still allows."""
+    cmd = f"git -C {tmp_path}/repo push origin feat/x"
+    d = _with_emission(tmp_path, cmd)
+    decision, reason = decide(guard, cmd, cwd=str(d))
+    assert decision == "allow", f"the branch-push downgrade broke: {decision} {reason[:120]}"
+
+
+def test_mutation_deleting_the_irreversible_branch_flips_a_tag_push_back_to_ask(tmp_path):
+    """Show the rule matters: without the irreversible-DENY branch, a tag push is merely asked."""
+    source = BLOCK.search(NOTE.read_text(encoding="utf-8")).group(1)
+    anchor = "is_reversible_outbound(cmd)"
+    assert source.count(anchor) >= 1, f"mutation anchor {anchor!r} not found — cannot mutate"
+    # Neutralise the guard's reversibility gate so the irreversible-DENY branch never fires.
+    mutant_src = source.replace("not is_reversible_outbound(cmd)", "False", 1)
+    assert mutant_src != source, "mutation changed nothing"
+    mutant = tmp_path / "mutant.py"
+    mutant.write_text(mutant_src, encoding="utf-8")
+    decision, _ = decide(mutant, "git -C /r push origin refs/tags/v0.1.55")
+    assert decision == "ask", "with the irreversible-DENY neutralised, a tag push should fall to ask"
