@@ -76,7 +76,7 @@ To be surfaced — **drafted by the agent; the sign-off is human-only:**
   through); a missed drift lets a wrong relay through (the operator still catches it, as today). The
   block-once and fail-open tests are the guards.
 
-- [ ] 7.1 Tier-0 (maintenance touch + new control surface) surfaced; **Approved** — <operator>, <ISO date>
+- [x] 7.1 Tier-0 (maintenance touch + new control surface) surfaced; **Approved** — Keith Nielsen, 2026-09-21
 
 ## 8. Land it
 

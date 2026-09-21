@@ -123,6 +123,7 @@ commit history rather than a second source.
 | `commit-gate-script.md` | `99-Operations/hooks/pre-commit` | git hook | Commit-gate: block non-conforming file names (INV-11) |
 | `outbound-publish-guard-script.md` | `.claude/hooks/outbound-publish-guard.py` | harness hook | Claude Code `PreToolUse` guard (INV-14, ADR-0018): hard-deny vault-outward commands; loud ASK before public publishes — now render/reconcile-governed (R8) |
 | `gh-invocation-guard-script.md` | `.claude/hooks/gh-invocation-guard.py` | harness hook | Claude Code `PreToolUse` guard (ADR-0045): `gh` invocation-form **allowlist** — `gh api` with a REST path and `gh auth status` permitted, `gh api graphql` excepted back into deny, every other form refused by default rather than permitted by omission. Emits `deny` or nothing, never `allow` |
+| `relay-conformance-guard-script.md` | `.claude/hooks/relay-conformance-guard.py` | harness hook | Claude Code `Stop` hook (item 40): byte-checks the `next.sh` line the agent relayed against the driver's `.git/pr-flow/relay-line.txt` sidecar; blocks a mismatch **at most once per emission** (a self-contained loop guard), fails open otherwise. Deterministic, offline (INV-6) |
 | `push-guard-script.md` | `99-Operations/hooks/pre-push` | git hook | Push-gate (INV-14): deny outbound push by default; permit a remote in `PUSH_ALLOWLIST` (full vault); for a remote in `PUBLIC_REMOTE_ALLOWLIST`, permit **only** paths matched by `99-Operations/schemas/publish-manifest.json` (`public_allow`), else refuse |
 
 No script declares a `cron` runtime or a `schedule:`. `render` deploys code and marks it executable;
@@ -2512,4 +2513,48 @@ written) emits no relay block.
 - **WHEN** the current step is one the driver assigns to the agent
 - **THEN** no copy-whole relay block is emitted, because the agent runs the command directly and no
   saved plan is written for it
+
+### Requirement: A Relayed Handoff Is Byte-Checked Against The Emission
+
+A `Stop` hook (`relay-conformance-guard`, rendered from its literate note) SHALL compare the operator
+handoff the agent relayed in its final message against the command the driver emitted, and SHALL
+block the turn from completing when they differ — so that a relay which drifts from the driver's
+copy-whole block (a dropped tag, a swapped path form, a reformat — the F43 recidivism) is corrected
+at the point it occurs rather than trusted to the agent's election.
+
+The driver SHALL write the canonical relay line to a sidecar (`.git/pr-flow/relay-line.txt`) whenever
+it writes a saved plan, byte-identical to the command inside the copy-whole block (see "The Operator
+Handoff Is Emitted As A Copy-Whole Block"). The hook SHALL read the agent's final message
+(`last_assistant_message`), extract a `bash …/next.sh` line appearing inside a `START COPY`/`END COPY`
+block, and byte-compare it to the sidecar.
+
+The hook SHALL be bounded against an infinite loop **independently of any platform safeguard**: it
+SHALL block **at most once per emitted step**, recording that it has done so keyed on the sidecar's
+content; a repeat mismatch on the same emission SHALL fall through to a passive warning, never a
+second block. The hook SHALL **fail open** — a missing sidecar, an absent relay block, a malformed
+input, or any error SHALL exit 0 with no block, so the hook can never trap the session. The hook is
+stdlib-only and offline (INV-6).
+
+#### Scenario: A drifted relay is blocked once
+
+- **WHEN** the agent's final message relays a `bash …/next.sh` line, inside a `START COPY`/`END COPY`
+  block, that is not byte-identical to the driver's sidecar
+- **THEN** the hook blocks the turn (exit 2) and names the correct line to copy
+- **THEN** a repeat mismatch on the SAME emission falls through to a warning without blocking again —
+  bounded to one block, so no loop is possible
+
+#### Scenario: A verbatim relay passes
+
+- **WHEN** the relayed `bash …/next.sh` line is byte-identical to the sidecar
+- **THEN** the hook does not block; the turn completes normally
+
+#### Scenario: A message with no relay block is ignored
+
+- **WHEN** the agent's final message contains no `bash …/next.sh` line inside a copy block
+- **THEN** the hook does not block, regardless of the sidecar's state
+
+#### Scenario: The hook fails open
+
+- **WHEN** the sidecar is absent, the input is malformed, or any error occurs
+- **THEN** the hook exits 0 with no block — it can never trap the session
 
