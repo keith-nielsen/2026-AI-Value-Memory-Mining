@@ -144,7 +144,7 @@ def _rest_publish_pattern():
 
 OUTWARD = re.compile(
     r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b"  # `git push`, incl. `git -C <path> push` / `-c k=v`
-    r"|\bgit\s+remote\s+(add|set-url)\b"
+    r"|\bgit\s+(?:-[Cc]\s+\S+\s+)*remote\s+(add|set-url)\b"  # incl. `git -C <path> remote add` (item 36)
     r"|\bgh\s+repo\s+create\b"
     r"|\bgh\s+release\s+(create|edit|upload)\b"
     + _rest_publish_pattern(),
@@ -170,6 +170,22 @@ PUBLISH = re.compile(
 _LEAD_CD = re.compile(r"^\s*cd\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)\s*(?:&&|;)")
 _GIT_C = re.compile(r"\bgit\s+-C\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
 _GH_R = re.compile(r"\bgh\s[^\n]*?\s-R(?:=|\s+)(?P<repo>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
+
+# A plain `git push` of a BRANCH — the one reversible outward form. Its ref can be force-pushed or
+# deleted, so it keeps the ASK; every other outward op (tag push, remote add, repo create, release,
+# package publish) is irreversible and is DENIED (item 37). A tag push (`refs/tags/` or `--tags`) is
+# excluded because a published `v*` tag is frozen by the ruleset.
+_GIT_PUSH = re.compile(r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b", re.IGNORECASE)
+_TAG_REF = re.compile(r"refs/tags/|(?<![\w-])--tags\b", re.IGNORECASE)
+
+
+def is_reversible_outbound(cmd: str) -> bool:
+    """True iff `cmd` is a branch push — the only outward form whose effect git can roll back."""
+    if not _GIT_PUSH.search(cmd):
+        return False
+    if _TAG_REF.search(cmd):
+        return False
+    return True
 
 
 def _unquote(s: str) -> str:
@@ -337,6 +353,34 @@ def main() -> None:
                     "",
                 ]
                 + _unresolved_redirect_hint(cmd)
+            ),
+        )
+        sys.exit(0)
+
+    # 1a) IRREVERSIBLE OUTBOUND is operator-only, in EVERY mode (item 37). DENY, not ASK: the ASK
+    #     silently PROCEEDS under auto mode (measured 2026-09-20), and git + the server-side ruleset
+    #     cannot roll back a published release, a frozen v* tag, an added remote, or a created repo.
+    #     The one reversible outward form is a branch push (its ref can be force-pushed or deleted);
+    #     everything else outward is denied here. Evaluated BEFORE the driver-emission downgrade, so a
+    #     byte-matched irreversible emission is STILL denied — the operator runs these in their own
+    #     terminal, via the ceremony, where this hook does not fire.
+    if (OUTWARD.search(cmd) or PUBLISH.search(cmd)) and not is_reversible_outbound(cmd):
+        emit(
+            "deny",
+            "\n".join(
+                [
+                    "",
+                    "  ⛔  IRREVERSIBLE OUTBOUND — OPERATOR-ONLY (INV-14)",
+                    "",
+                    "  This publishes or creates something git and the server-side ruleset cannot",
+                    "  roll back — a release, a v* tag, a remote, or a repository. It is refused on",
+                    "  the agent's channel in every mode: the outbound ASK silently proceeds under",
+                    "  auto mode, so an irreversible action must not rely on it. The OPERATOR runs",
+                    "  this in their own terminal, via the ceremony, where this hook does not fire.",
+                    "",
+                    f"  command: {cmd}",
+                    "",
+                ]
             ),
         )
         sys.exit(0)
