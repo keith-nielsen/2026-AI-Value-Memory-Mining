@@ -278,10 +278,10 @@ def test_a_branch_push_is_still_allowed_on_an_emission_match(guard, tmp_path):
 def test_mutation_deleting_the_irreversible_branch_flips_a_tag_push_back_to_ask(tmp_path):
     """Show the rule matters: without the irreversible-DENY branch, a tag push is merely asked."""
     source = BLOCK.search(NOTE.read_text(encoding="utf-8")).group(1)
-    anchor = "is_reversible_outbound(cmd)"
+    anchor = "is_reversible_outbound(scan)"  # item 33 renamed the call arg cmd -> scan (D1)
     assert source.count(anchor) >= 1, f"mutation anchor {anchor!r} not found — cannot mutate"
     # Neutralise the guard's reversibility gate so the irreversible-DENY branch never fires.
-    mutant_src = source.replace("not is_reversible_outbound(cmd)", "False", 1)
+    mutant_src = source.replace("not is_reversible_outbound(scan)", "False", 1)
     assert mutant_src != source, "mutation changed nothing"
     mutant = tmp_path / "mutant.py"
     mutant.write_text(mutant_src, encoding="utf-8")
