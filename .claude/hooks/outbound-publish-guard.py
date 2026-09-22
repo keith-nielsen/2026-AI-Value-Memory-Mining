@@ -99,7 +99,15 @@ PUBLISH = re.compile(
 )
 
 # Redirect forms that move a command's effective target off the reported cwd.
-_LEAD_CD = re.compile(r"^\s*cd\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)\s*(?:&&|;)")
+# D2 (item 33): the mandated bootstrap idiom is `source <config>; cd <path> && …`, so the `cd` is not
+# genuinely leading and was previously unseen — the target then fell back to cwd (the vault) and a
+# sibling-targeted command was mis-denied. An OPTIONAL leading `source <file>;` / `. <file>;` prefix is
+# now tolerated before the `cd`. This is a narrow, known-good prefix; it does not widen which `cd` is
+# trusted (still the first one — the pre-existing multi-`cd` residue is out of scope and backstopped by
+# the fail-closed pre-push hook).
+_LEAD_CD = re.compile(
+    r"^\s*(?:(?:source|\.)\s+\S+\s*(?:;|&&)\s*)?"
+    r"cd\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)\s*(?:&&|;)")
 _GIT_C = re.compile(r"\bgit\s+-C\s+(?P<path>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
 _GH_R = re.compile(r"\bgh\s[^\n]*?\s-R(?:=|\s+)(?P<repo>'[^']*'|\"[^\"]*\"|[^\s;&|]+)")
 
@@ -109,6 +117,26 @@ _GH_R = re.compile(r"\bgh\s[^\n]*?\s-R(?:=|\s+)(?P<repo>'[^']*'|\"[^\"]*\"|[^\s;
 # excluded because a published `v*` tag is frozen by the ruleset.
 _GIT_PUSH = re.compile(r"\bgit\s+(?:-[Cc]\s+\S+\s+)*push\b", re.IGNORECASE)
 _TAG_REF = re.compile(r"refs/tags/|(?<![\w-])--tags\b", re.IGNORECASE)
+
+# D1 (item 33): a quoted message/body argument is DATA, not executable text. A commit message or PR
+# body that merely NAMES an outward command ("converted the gh release create call") must not raise the
+# guard — measured 2026-08-27, a purely local `git commit` was hard-denied twice on its message. This
+# blanks the VALUE of `-m`/`--message`/`-F`/`--file` (and their `=` forms), keeping the flag, before
+# the OUTWARD/PUBLISH regexes run — so tokens inside a message can no longer trigger a match, while the
+# verb/endpoint of a REAL command (which lives in command position, not in a message) still does.
+# ⚠ HEREDOC bodies are deliberately NOT stripped: a heredoc can be piped to a shell and executed, so
+# blanking it could hide a real command. The guard keeps conservatively over-firing there (an ASK is
+# the safe failure direction). Applied ONLY to the match/resolution inputs; the driver-emission
+# exact-match and the displayed command keep the original text.
+_PROSE_ARG = re.compile(
+    r"(?<!\S)((?:-m|--message|-F|--file)(?:=|\s+))(?:'[^']*'|\"[^\"]*\"|\S+)",
+    re.IGNORECASE,
+)
+
+
+def _strip_arg_prose(cmd: str) -> str:
+    """Blank the VALUE of `-m`/`-F`-style message/body args so prose inside them cannot trigger a match."""
+    return _PROSE_ARG.sub(r"\1''", cmd)
 
 
 def is_reversible_outbound(cmd: str) -> bool:
@@ -193,7 +221,7 @@ def _emission(path: str) -> dict:
     return {}
 
 
-def _unresolved_redirect_hint(cmd: str) -> list:
+def _unresolved_redirect_hint(cmd: str, cwd: str) -> list:
     """Explain a deny caused by a redirect this guard could not resolve.
 
     The 2026-08-16 denial was CORRECT and completely opaque. The command carried
@@ -202,10 +230,20 @@ def _unresolved_redirect_hint(cmd: str) -> list:
     "you are pushing the vault" while believing they had targeted a sibling repository, and spent a
     day reasoning from that. A guard that reports only its verdict makes its reader derive the cause
     at the moment they have already shown they cannot.
+
+    D3 (item 33): the hint was INVERTED — it fired only when a redirect WAS recognised but named a
+    missing directory, and was silent in the COMMON case where no redirect was recognised at all (the
+    target fell back to cwd). That common case is exactly the one that needs explaining, so it is
+    named here too.
     """
     m = _GIT_C.search(cmd) or _LEAD_CD.match(cmd)
     if not m:
-        return []
+        return [
+            "  ⚠️  NO REDIRECT WAS RECOGNISED, so the target is the working directory (the vault).",
+            "     If you meant a sibling repository, name it explicitly — `git -C <path> …` — or put a",
+            "     GENUINELY LEADING `cd <path> &&` (optionally after `source <config>;`) in front.",
+            "",
+        ]
     raw = _unquote(m.group("path"))
     resolved = os.path.abspath(os.path.expanduser(raw)).rstrip("/")
     if os.path.isdir(resolved):
@@ -221,10 +259,35 @@ def _unresolved_redirect_hint(cmd: str) -> list:
     ]
 
 
+def _has_vault_marker(path: str) -> bool:
+    """True iff `path` sits at or under a deployed vault — a tree carrying `99-Operations/config.env`.
+
+    D4 (item 33): this identifies the protected vault WITHOUT the environment. A vault is DEFINED by
+    its marker, so a vault whose `$VAULT_ROOT` was dropped is still recognised, and a plain repository
+    (no marker) is correctly not a vault. Bounded walk, like `_emission`. Env-free — the only reason
+    this exists is so an unset environment cannot fail the guard OPEN.
+    """
+    if not path:
+        return False
+    p = path
+    for _ in range(8):
+        if os.path.isfile(os.path.join(p, "99-Operations", "config.env")):
+            return True
+        nxt = os.path.dirname(p)
+        if nxt == p:
+            return False
+        p = nxt
+    return False
+
+
 def _targets_vault(cmd: str, cwd: str) -> bool:
     """True iff the command's effective target resolves inside the protected vault."""
     if not VAULT:
-        return False
+        # D4: env dropped — do NOT fail open. Identify the vault by its marker at the effective target
+        # (env-free). Only reachable when neither $VAULT_ROOT nor $CLAUDE_PROJECT_DIR is set; the
+        # env-set path below is unchanged, so this cannot disturb any working case — it can only add
+        # protection where the guard previously did nothing.
+        return _has_vault_marker(_effective_path(cmd, cwd))
     # Conservative: an outward op naming the vault path as an operand is treated as vault-outward.
     if VAULT in cmd:
         return True
@@ -266,8 +329,13 @@ def main() -> None:
     cmd = (data.get("tool_input") or {}).get("command", "") or ""
     cwd = (data.get("cwd", "") or "").rstrip("/")
 
+    # D1: match and resolve against `scan` — the command with `-m`/`-F` message/body VALUES blanked —
+    # so prose inside a message cannot trigger a rail. `cmd` (the original) is kept for the
+    # driver-emission exact match and for every displayed "command:" line.
+    scan = _strip_arg_prose(cmd)
+
     # 1) HARD DENY: an outward op whose effective target is the deployed vault (INV-14).
-    if OUTWARD.search(cmd) and _targets_vault(cmd, cwd):
+    if OUTWARD.search(scan) and _targets_vault(scan, cwd):
         emit(
             "deny",
             "\n".join(
@@ -284,7 +352,7 @@ def main() -> None:
                     f"  command: {cmd}",
                     "",
                 ]
-                + _unresolved_redirect_hint(cmd)
+                + _unresolved_redirect_hint(scan, cwd)
             ),
         )
         sys.exit(0)
@@ -296,7 +364,7 @@ def main() -> None:
     #     everything else outward is denied here. Evaluated BEFORE the driver-emission downgrade, so a
     #     byte-matched irreversible emission is STILL denied — the operator runs these in their own
     #     terminal, via the ceremony, where this hook does not fire.
-    if (OUTWARD.search(cmd) or PUBLISH.search(cmd)) and not is_reversible_outbound(cmd):
+    if (OUTWARD.search(scan) or PUBLISH.search(scan)) and not is_reversible_outbound(scan):
         emit(
             "deny",
             "\n".join(
@@ -330,13 +398,13 @@ def main() -> None:
     #     — a mangled retype does not also produce a matching record — which is consistent with
     #     ADR-0018's posture: safe-by-default and a governed guarantee, not a physical
     #     impossibility; a tripwire for a cooperating agent.
-    if OUTWARD.search(cmd):
+    if OUTWARD.search(scan):
         # Two lookups on purpose. A MANGLED redirect is exactly the case this exists to catch, and a
         # mangled redirect is also the case where the effective path cannot be resolved — so the
         # repository the caller is standing in is consulted as well. Found by a test: the motivating
         # 2026-08-16 command resolves `-C "$R"` to nothing, so the effective-path lookup alone found
         # no record and the diff was never shown.
-        rec = _emission(_effective_path(cmd, cwd)) or _emission(cwd)
+        rec = _emission(_effective_path(scan, cwd)) or _emission(cwd)
         if rec:
             if rec.get("command") == cmd:
                 emit("allow", "matched the driver's emitted command for step "
@@ -364,7 +432,7 @@ def main() -> None:
             sys.exit(0)
 
     # 2) ASK (loud): any outward-replication / publish not vault-denied — a structural hard stop.
-    if OUTWARD.search(cmd) or PUBLISH.search(cmd):
+    if OUTWARD.search(scan) or PUBLISH.search(scan):
         emit(
             "ask",
             "\n".join(
