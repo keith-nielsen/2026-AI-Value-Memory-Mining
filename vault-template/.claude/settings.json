@@ -11,10 +11,19 @@
       "Bash(gh project:*)",
       "Bash(gh repo view:*)",
       "Bash(gh api graphql:*)"
+    ],
+    "allow": [
+      "WebFetch(domain:github.com)"
     ]
   },
   "sandbox": {
     "enabled": true,
+    "network": {
+      "allowedDomains": [
+        "api.github.com",
+        "github.com"
+      ]
+    },
     "filesystem": {
       "denyWrite": [
         "./40-Treasury",
