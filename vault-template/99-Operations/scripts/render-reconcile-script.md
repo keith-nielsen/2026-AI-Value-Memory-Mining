@@ -4,7 +4,7 @@ deploy_target: 99-Operations/bin/vault-render.py
 runtime: manual
 class: script
 created: 2026-06-14
-updated: 2026-07-06
+updated: 2026-09-22
 ---
 ## Rationale
 GitOps-style deploy/drift-detection for Layer-0 scripts (INV-3). `render` extracts
@@ -18,11 +18,17 @@ the run exits 1 — because the extractor would otherwise silently take the firs
 it — it carries an inline copy of the same root-resolution contract (`$VAULT_ROOT` if
 it marks a vault, else walk up from cwd to a `99-Operations/` config marker; ADR-0023).
 
+`reconcile` also DETECTS a deployed-but-unregistered git-hook set (item 35): the INV-11/INV-7 hooks
+render into `99-Operations/hooks/`, but git ignores that directory until `core.hooksPath` points at
+it — LOCAL config no tracked file or render run can set. It reports the gap (byte-perfect hooks that
+enforce nothing) and prints the operator fix; it never sets `core.hooksPath` itself (detect, never
+auto-fix). The framework repo deliberately does not run this gate locally — CI is its backstop.
+
 ## Implementation
 ```python
 #!/usr/bin/env python3
 """Render Layer-0 code blocks to host targets, or reconcile (detect drift)."""
-import errno, os, re, sys, pathlib, frontmatter
+import errno, os, re, subprocess, sys, pathlib, frontmatter
 
 
 # Bootstrap exception (ADR-0023): render deploys vault_lib itself, so it must not
@@ -90,5 +96,29 @@ for note in sorted((vault / "99-Operations" / "scripts").glob("*.md")):
             print(f"DRIFT: {target} differs from {note.name}"); drift += 1
         else:
             print(f"ok: {target}")
+
+# INV-11/INV-7 git hooks enforce NOTHING until core.hooksPath points at them. render deploys the hook
+# FILES into 99-Operations/hooks/, but git ignores that directory until it is registered, and
+# core.hooksPath is LOCAL git config that no tracked file or render run can set (item 35, D2). This
+# DETECTS the deployed-but-unregistered state — byte-perfect hooks that enforce nothing, reporting
+# clean — and never SETS it: registration is a documented operator deploy step (INV-3: reconcile
+# detects drift, never auto-fixes). It runs in both modes so a fresh `render` warns the moment the
+# hooks land unregistered; only `reconcile` counts it as drift (exit 1), matching render's contract.
+_hooks_rel = "99-Operations/hooks"
+_hooks_dir = vault / _hooks_rel
+if _hooks_dir.is_dir() and any(p.is_file() and p.name != ".gitkeep" for p in _hooks_dir.iterdir()):
+    try:
+        _hp = subprocess.run(["git", "-C", str(vault), "config", "core.hooksPath"],
+                             capture_output=True, text=True).stdout.strip()
+    except OSError:
+        _hp = ""
+    if _hp == _hooks_rel or (_hp and pathlib.Path(_hp) == _hooks_dir):
+        print(f"ok: git hooks registered (core.hooksPath = {_hp})")
+    else:
+        print(f"HOOKS-UNREGISTERED: git hooks are deployed to {_hooks_rel} but core.hooksPath is "
+              f"'{_hp or 'unset'}' — git ignores them, so the INV-11/INV-7 commit gate enforces "
+              f"nothing. Fix (operator): git -C {vault} config core.hooksPath {_hooks_rel}")
+        drift += 1
+
 sys.exit(1 if (bad or (mode == "reconcile" and drift)) else 0)
 ```

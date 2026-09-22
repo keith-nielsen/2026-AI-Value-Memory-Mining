@@ -134,3 +134,57 @@ def test_render_source_never_resolves_a_bare_relative_deploy_target(tmp_path):
         "deploy_target is resolved bare — it must be joined to the root the notes came from")
     assert "vault / _dt" in src or "vault /" in src, (
         "no join between the resolved vault root and the deploy target")
+
+
+# --- item 35: reconcile detects deployed-but-unregistered git hooks (D2) --------------------------
+
+def _init_git(root, hookspath=None):
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    if hookspath:
+        subprocess.run(["git", "-C", str(root), "config", "core.hooksPath", hookspath],
+                       check=True, capture_output=True)
+
+
+def _deploy_a_hook(root):
+    hooks = root / "99-Operations" / "hooks"
+    hooks.mkdir(parents=True, exist_ok=True)
+    (hooks / "pre-commit").write_text("#!/usr/bin/env bash\nexit 0\n")
+
+
+def test_reconcile_flags_unregistered_git_hooks(tmp_path):
+    """Item 35 D2: hooks deployed but core.hooksPath unset = byte-perfect hooks that enforce
+    nothing while reporting clean. reconcile must DETECT it (never auto-fix — INV-3) and print the
+    operator fix. Red against the pre-change reconcile, which never looked at core.hooksPath."""
+    v = tmp_path / "vault"
+    _build_vault(v, marker_in_note=False)
+    _deploy_a_hook(v)
+    _init_git(v)  # deliberately NO core.hooksPath
+    rc, out = _run_reconcile(tmp_path, vault_root=v, cwd=v)
+    assert "HOOKS-UNREGISTERED" in out, out
+    assert "core.hooksPath 99-Operations/hooks" in out, "must print the operator fix command"
+    assert rc == 1, f"unregistered hooks must fail reconcile (exit 1), got {rc}\n{out}"
+
+
+def test_reconcile_passes_when_hooks_are_registered(tmp_path):
+    """The positive case: with core.hooksPath set, reconcile reports the hooks as registered."""
+    v = tmp_path / "vault"
+    _build_vault(v, marker_in_note=False)
+    _deploy_a_hook(v)
+    _init_git(v, hookspath="99-Operations/hooks")
+    rc, out = _run_reconcile(tmp_path, vault_root=v, cwd=v)
+    assert "HOOKS-UNREGISTERED" not in out, out
+    assert "git hooks registered" in out, out
+    assert rc == 0, f"registered hooks + consistent tree should be exit 0, got {rc}\n{out}"
+
+
+def test_reconcile_ignores_a_hooks_dir_with_only_gitkeep(tmp_path):
+    """A template-shaped hooks dir (only .gitkeep, nothing deployed yet) is not a finding —
+    the check fires only when real hooks are present."""
+    v = tmp_path / "vault"
+    _build_vault(v, marker_in_note=False)
+    (v / "99-Operations" / "hooks").mkdir(parents=True, exist_ok=True)
+    (v / "99-Operations" / "hooks" / ".gitkeep").write_text("")
+    _init_git(v)
+    rc, out = _run_reconcile(tmp_path, vault_root=v, cwd=v)
+    assert "HOOKS-UNREGISTERED" not in out, out
+    assert rc == 0, out
