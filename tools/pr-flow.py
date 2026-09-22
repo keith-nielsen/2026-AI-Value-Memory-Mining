@@ -53,6 +53,7 @@ import uuid
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import gh_read  # noqa: E402
+import driver_handoff  # noqa: E402  — shared operator-handoff machinery (item 41)
 
 EXIT_OK = 0
 EXIT_REFUSED = 1
@@ -198,7 +199,7 @@ LAG_RETRY_MIN_BUDGET = 10  # below this many remaining reads, report once and st
 
 PROC_START = time.time()   # for the saved plan's verify tail, ~the moment the mutation finished
 LAG_LOG_NAME = "lag-observations.jsonl"
-PLAN_TTL_SECONDS = 24 * 60 * 60  # industry practice: approvals expire so stale plans cannot apply
+PLAN_TTL_SECONDS = driver_handoff.PLAN_TTL_SECONDS  # one source: the shared handoff module (item 41)
 
 # Why `gh` mutations stay with the operator. BOTH halves matter: if the reason reads as mere
 # inconvenience, the "fix" is to export a token — which would delete credential absence, the one
@@ -517,14 +518,7 @@ def plan_history_suffix(step, body_file=None, pr_number=None):
     the operator's own convention used and keeps two changes on the same topic distinguishable —
     `const-truth` and `const-diff-gate` were both constitution work and must not read alike.
     """
-    body_file = body_file or BODY_FILE
-    pr_number = pr_number or PR_NUMBER
-    mnemonic = ""
-    if body_file:
-        stem = pathlib.Path(body_file).stem
-        mnemonic = stem[5:] if stem.startswith("body-") else stem
-    target = f"PR #{pr_number}" if pr_number else "new PR"
-    return f"   # {mnemonic or 'change'} step:{step} -> {target}"
+    return driver_handoff.plan_history_suffix(step, body_file or BODY_FILE, pr_number or PR_NUMBER)
 
 
 def emit(route, step, command, runs, authority, consent, why, approve=None, plan=False, root=None,
@@ -603,39 +597,9 @@ def emit(route, step, command, runs, authority, consent, why, approve=None, plan
     if runs == OPERATOR and root:
         path = write_saved_plan(root, step, command, approve, branch, assert_args)
         if path:
-            relay_line = f"bash {path}{plan_history_suffix(step)}"
-            # item 40: the canonical relay line, written to a sidecar so the relay-conformance Stop
-            # hook can byte-check what the agent relayed against what the driver emitted. A failed
-            # write must never break emission, so it is best-effort.
-            try:
-                (pathlib.Path(root) / ".git" / "pr-flow" / "relay-line.txt").write_text(
-                    relay_line + "\n", encoding="utf-8")
-            except OSError:
-                pass
-            print("")
-            print(f"  Saved plan: {path}")
-            # The operator handoff is a COPY-WHOLE BLOCK, not a `To run it:` one-liner the caller
-            # then retypes. F43: the caller reconstructs the line from the formatting rules and
-            # drops the tag / swaps the path form / reformats it — >=4 times in one session on a
-            # standing rule. Emitting the finished block makes copying it lazier than rebuilding it,
-            # so the caller's shortcutting pull produces correctness. The three copyable lines are
-            # FLUSH-LEFT because an indented paste is mangled (operator-command-formatting), and the
-            # command is byte-identical to the saved-plan invariant form — the contract item 40
-            # byte-checks a relayed line against.
-            print("  Relay this block to the operator VERBATIM — copy it whole, do not reformat:")
-            print("START COPY")
-            print("```bash")
-            print(relay_line)
-            print("```")
-            print("END COPY")
-            if assert_args:
-                print("  It re-asserts the state you were shown and aborts WITHOUT mutating if "
-                      "GitHub has moved; it expires in 24h.")
-            else:
-                # Say only what the script does. Claiming an assertion this step cannot make is the
-                # same false-assurance defect the driver exists to prevent (class 9).
-                print("  It carries a 24h expiry. NO live-state assertion is possible at this step "
-                      "— there is no pull request yet to assert against.")
+            driver_handoff.emit_operator_handoff(
+                root, step, path,
+                suffix=plan_history_suffix(step), has_assertion=bool(assert_args))
     return EXIT_NEEDS_INPUT
 
 
@@ -959,12 +923,12 @@ def not_ready(route, step, what, probe, plan=False):
 
 def saved_plan_path(root):
     """The saved plan. One place names it, so writer and cleaner cannot drift apart."""
-    return pathlib.Path(root) / ".git" / "pr-flow" / "next.sh"
+    return driver_handoff.saved_plan_path(root)
 
 
 def emission_record_path(root):
     """The emission record the outbound guard reads. One place names it, as above."""
-    return pathlib.Path(root) / ".git" / "pr-flow" / "emitted.json"
+    return driver_handoff.emission_record_path(root)
 
 
 def write_emission_record(root, step, command, branch):
@@ -986,21 +950,7 @@ def write_emission_record(root, step, command, branch):
     `repo` is recorded so the record identifies its own subject: a repository is "governed" exactly
     when a driver has emitted for it, which keeps the guard free of any environment dependency.
     """
-    try:
-        (pathlib.Path(root) / ".git" / "pr-flow").mkdir(parents=True, exist_ok=True)
-        path = emission_record_path(root)
-        path.write_text(json.dumps({
-            "command": command,
-            "step": step,
-            "branch": branch or "",
-            "repo": str(root),
-            "expires": int(time.time()) + PLAN_TTL_SECONDS,
-        }, indent=2) + "\n", encoding="utf-8")
-        return path
-    except OSError:
-        # Never fatal. A driver that dies because it could not write an advisory record would
-        # trade a downgrade for an outage, and the guard fails safe to ASK without it.
-        return None
+    return driver_handoff.write_emission_record(root, step, command, branch)
 
 
 def _strip_opts_with_values(argv, opts):
@@ -1066,22 +1016,7 @@ def discard_saved_plan(root):
     every intervening AGENT-owned step (push, branch delete) while still holding the LAST operator
     mutation. Deleting it once the lifecycle completes is the other half of the branch guard.
     """
-    # The emission record is discarded with it, and for the same reason: a record that outlives its
-    # step is an authorisation left lying where a later, different command can match it.
-    try:
-        rec = emission_record_path(root)
-        if rec.exists():
-            rec.unlink()
-    except OSError:
-        pass
-    try:
-        p = saved_plan_path(root)
-        if p.exists():
-            p.unlink()
-            return p
-    except OSError:
-        pass
-    return None
+    return driver_handoff.discard_saved_plan(root)
 
 
 def write_saved_plan(root, step, command, approve, branch, assert_args=None):
@@ -1091,80 +1026,26 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
     The full text is printed for review; only a short invocation is typed. The file also carries
     the precondition assertion, which is what closes the TOCTOU window on an operator step.
 
-    It further records the BRANCH it was written for. The expiry and the precondition assertion both
-    guard against the STATE moving; neither guards against the caller standing at a different step
-    than the plan was written for. That is a distinct failure, and it is the one that fired.
+    pr-flow's thin adapter over `driver_handoff.write_saved_plan`: it builds the two pr-flow-specific
+    pieces — the `--assert-preconditions` line and the `--after-mutation` verification tail (pinned at
+    write time by `verify_invocation`) — and hands them to the shared skeleton, so the saved-plan
+    format both drivers emit has one source (item 41). The branch guard (a ValueError on an empty
+    branch) is raised by the shared writer and propagates through here unchanged.
     """
-    try:
-        d = pathlib.Path(root) / ".git" / "pr-flow"
-        d.mkdir(parents=True, exist_ok=True)
-        path = saved_plan_path(root)
-        expiry = int(time.time()) + PLAN_TTL_SECONDS
-        header = (
-            ["# Consent was given for the state asserted below. If GitHub has moved, this aborts",
-             "# WITHOUT mutating: approval does not transfer to a different state."]
-            if assert_args else
-            ["# NOTE: no live-state assertion is made here — this step has no pull request to",
-             "# assert against. The expiry and the branch guard below are the staleness guards."]
-        )
-        body = [
-            "#!/usr/bin/env bash",
-            f"# generated {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} by pr-flow.py"
-            f" — step '{step}'" + (f", branch '{branch}'" if branch else ""),
-            *header,
-            "set -euo pipefail",
-            f'if [ "$(date +%s)" -gt {expiry} ]; then',
-            '  echo "saved plan EXPIRED — re-run tools/pr-flow.py to derive a current one" >&2',
-            "  exit 1",
-            "fi",
-        ]
-        if not branch:
-            # Never write an UNGUARDED plan. A guard that is silently absent is worse than none:
-            # the file still reads as safe while the protection is gone. `branch` is positional-
-            # required above so a call site cannot omit it by accident; this catches an empty value.
-            raise ValueError("write_saved_plan requires the branch the plan is written for")
-        if branch:
-            # The step guard. Consent was given for ONE step of ONE branch's lifecycle; running this
-            # file from somewhere else is not that step, however unchanged GitHub's state may be.
-            body += [
-                f"_want={shlex.quote(branch)}",
-                f'_have="$(git -C {shlex.quote(str(root))} branch --show-current)"',
-                'if [ "$_have" != "$_want" ]; then',
-                '  echo "saved plan was written for branch \'$_want\' (step '
-                f"{step}) but you are on '$_have'.\" >&2",
-                '  echo "Re-run tools/pr-flow.py to derive a plan for where you actually are." >&2',
-                "  exit 1",
-                "fi",
-            ]
-        body.append(f"cd {root}")
-        if approve:
-            body.append(f"# authorizing: {approve}")
-        if assert_args:
-            # The assertion runs BEFORE the mutation and `set -e` aborts on its non-zero exit, so
-            # a state that moved between emission and execution never reaches the command.
-            body.append(f"python3 {root}/tools/pr-flow.py --assert-preconditions "
-                        + " ".join(assert_args))
-        body += [
-            # Capture the mutation's own response alongside showing it. When the read view lags,
-            # the platform's own "merged": true is what settles the operator's question — an
-            # inference from `set -e` is correct but far less convincing at the moment it matters.
-            '_ev="$(mktemp -t pr-flow-evidence.XXXXXX)"',
-            'trap \'rm -f "$_ev"\' EXIT',
-            "",
-            "# MUTATION — the step you authorized:",
-            f"{command} 2>&1 | tee \"$_ev\"",
-            "",
-            "# VERIFY — did it land? (invocation pinned at write time, see verify_invocation.)",
-            "# --after-mutation makes an unconfirmed read WAITING rather than REFUSED, and forbids",
-            "# this tail from emitting another mutation.",
-            f'echo "MUTATION {step}: command exited 0"',
-            verify_invocation(root, step),
-        ]
-        path.write_text("\n".join(body) + "\n")
-        path.chmod(0o755)
-        return path
-    except OSError:
-        return None
+    assert_lines = None
+    if assert_args:
+        assert_lines = [f"python3 {root}/tools/pr-flow.py --assert-preconditions "
+                        + " ".join(assert_args)]
+    verify_lines = [
+        "",
+        "# VERIFY — did it land? (invocation pinned at write time, see verify_invocation.)",
+        "# --after-mutation makes an unconfirmed read WAITING rather than REFUSED, and forbids",
+        "# this tail from emitting another mutation.",
+        f'echo "MUTATION {step}: command exited 0"',
+        verify_invocation(root, step),
+    ]
+    return driver_handoff.write_saved_plan(root, step, command, approve, branch,
+                                           assert_lines=assert_lines, verify_lines=verify_lines)
 
 
 # --- probes ---------------------------------------------------------------------------------------

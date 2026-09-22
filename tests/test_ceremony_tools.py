@@ -266,6 +266,46 @@ def test_ship_refuses_remote_tag_on_wrong_commit(ceremony):
     assert "wrong commit" in r.stdout
 
 
+def test_ship_emits_an_operator_handoff_for_the_irreversible_steps(ceremony):
+    """Item 41: the tag-push and release-create are OPERATOR-ONLY under item 37, so ship-release
+    hands them over the way pr-flow does — a saved next.sh plus the item-39 copy-whole relay block —
+    rather than a bare command the agent then hits a DENY on. This is red against the pre-item-41
+    driver, which wrote no next.sh and printed no START COPY block."""
+    # Step 1: the tag push. The raw command is still shown (operator may run it), AND a handoff exists.
+    r = ceremony.run_tool(SHIP, "v0.1.31")
+    assert r.returncode == EXIT_NEEDS_INPUT
+    assert "OPERATOR-ONLY" in r.stdout
+    assert "START COPY" in r.stdout and "END COPY" in r.stdout
+
+    plan = ceremony.work / ".git" / "pr-flow" / "next.sh"
+    assert plan.is_file(), "no saved next.sh was written for the operator step"
+    plan_text = plan.read_text()
+    assert "push origin refs/tags/v0.1.31" in plan_text, "the plan does not carry the tag push"
+    # its VERIFY tail re-runs SHIP-RELEASE (re-derives release state), never pr-flow.
+    tail = plan_text.split("# VERIFY")[1]
+    assert "ship-release.py" in tail and "v0.1.31" in tail
+    assert "pr-flow.py" not in tail, "a ship-release plan must re-invoke its own driver"
+
+    # the sidecar the relay-conformance Stop hook checks equals the relayed block line
+    sidecar = (ceremony.work / ".git" / "pr-flow" / "relay-line.txt").read_text().strip()
+    block = [ln for ln in r.stdout.splitlines() if ln.startswith("bash ")][-1]
+    assert sidecar == block, "the relay-line sidecar must match the copy-whole block byte-for-byte"
+
+    # the raw command is still on a NEXT line, so the operator (or the walk test) can run it verbatim
+    next_cmd = [ln for ln in r.stdout.splitlines() if ln.startswith("NEXT: ")][-1][6:]
+    assert next_cmd == f"git -C {ceremony.work} push origin refs/tags/v0.1.31"
+    subprocess.run(next_cmd.split(), cwd=str(ceremony.origin.parent), env=ceremony.env,
+                   check=True, capture_output=True)
+
+    # Step 2: the release create is handed over the same way, with the tag precondition intact.
+    r = ceremony.run_tool(SHIP, "v0.1.31")
+    assert r.returncode == EXIT_NEEDS_INPUT
+    assert "START COPY" in r.stdout
+    plan_text = (ceremony.work / ".git" / "pr-flow" / "next.sh").read_text()
+    assert "gh api -X POST repos/" in plan_text and "/releases" in plan_text
+    assert "git/ref/tags/v0.1.31 > /dev/null &&" in plan_text, "the tag precondition was dropped"
+
+
 def test_ship_parity_tally_flags_release_gap(ceremony):
     target = ceremony.head()
     for tag in ("v0.1.30", "v0.1.31"):
