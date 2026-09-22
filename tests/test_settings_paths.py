@@ -121,3 +121,37 @@ def test_at_least_one_settings_file_declares_a_script_path():
         "no settings file declares any script path; the resolution test above would pass "
         "vacuously"
     )
+
+
+# --- item 38: the seed template carries the GitHub read-hosts -------------------------------------
+
+TEMPLATE_SETTINGS = REPO / "vault-template" / ".claude" / "settings.json"
+
+
+def test_seed_template_carries_the_github_read_hosts():
+    """Item 38: a vault deployed from the template must not start one denied prompt away from losing
+    GitHub reads. `allowedDomains` is NOT mere prompt-suppression — a denied prompt becomes a
+    session-scoped deny, and one denied api.github.com prompt kills gh's anonymous reads for the rest
+    of the session (the capability probe, pr-flow --plan reads, gh_read's fallback). settings.json is
+    SEED (not lockstep), so template-parity cannot compare it; this asserts the seed default instead.
+    Prompting, not routing: localhost:3128 is the sole egress either way, no credential is involved,
+    and INV-14 (which keys on commands, not hosts) is untouched — this is not a relaxation.
+    """
+    d = json.loads(TEMPLATE_SETTINGS.read_text())
+    domains = d.get("sandbox", {}).get("network", {}).get("allowedDomains", [])
+    assert "api.github.com" in domains, "seed lacks api.github.com — gh_read/pr-flow reads at risk"
+    assert "github.com" in domains, "seed lacks github.com"
+    allow = d.get("permissions", {}).get("allow", [])
+    assert "WebFetch(domain:github.com)" in allow, "seed lacks WebFetch(domain:github.com)"
+
+
+def test_seed_template_does_not_seed_write_access_to_other_repos():
+    """Item 38, the deliberate allowWrite decision: a deployed VAULT has no business writing to the
+    framework repo or the development store, so the template seeds NO allowWrite — each instance
+    grants its own. (The dev machine's own vault carries those paths because it IS the dev machine;
+    that instance divergence is legitimate for a SEED value, which is why item 38 is a seeded default
+    plus a test, not a lockstep comparison.)
+    """
+    d = json.loads(TEMPLATE_SETTINGS.read_text())
+    allow_write = d.get("sandbox", {}).get("filesystem", {}).get("allowWrite", [])
+    assert allow_write == [], f"the template must not seed allowWrite, found: {allow_write}"
