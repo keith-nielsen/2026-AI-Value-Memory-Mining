@@ -12,6 +12,67 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.55] - 2026-09-22
+
+Covers the ten archived changes since v0.1.54 — a GitHub-platform hardening cluster
+(the outbound rail, the operator handoff, and the drivers), plus lockstep/prime reach and
+several control-correctness fixes. Dated in UTC; the archived-change directories carry the
+prior UTC day (2026-09-21), when each was applied.
+
+| PR | Change |
+| --- | --- |
+| #115 | Lockstep extended, and a repo-work prime for framework work from a vault-rooted session |
+| #117 | A markdown content-preservation check — proves a large formatting sweep moved only whitespace |
+| #118 | md-lint Phase A fix sweep — 0 findings |
+| #119 | Driver subject resolution: three local controls report on what they actually check |
+| #120 | render-root resolution: every operand resolved from one root |
+| #121 | Prefer REST over GraphQL/subcommand `gh` forms; the ruleset control plane excluded, with reasons |
+| #123 | The operator handoff is emitted as a copy-whole relay block (hardening item 39) |
+| #124 | INV-14 hard-DENIES irreversible outbound; only a branch push keeps the ASK (hardening item 37) |
+| #125 | A relay-conformance `Stop` hook byte-checks the relayed handoff (hardening item 40) |
+| #126 | One shared operator-handoff module; ship-release hands its irreversible steps over (hardening item 41) |
+
+### Added
+
+- **The `gh` write set is one sanctioned allowlist, evaluated by method, and REST-first**
+  (#121, ADR-0038/0045). Both guards import a single write-endpoint set; `gh api` is evaluated by
+  HTTP method with `gh api graphql` excepted back into deny; the outbound rail learned the REST
+  spelling of a publish. The **ruleset control plane** (branch-protection PUT/PATCH/DELETE) is
+  **explicitly excluded** from the write set with a machine-checked disjointness test and a recorded
+  justification — a restriction kept tight on the authority axis, not the capability axis.
+- **INV-14 hard-DENIES irreversible outbound on the agent's channel, in every permission mode**
+  (hardening item 37, #124). A version-tag push, `remote add`/`set-url`, repo create/make-public, and
+  a release publish/edit/upload (subcommand and REST) are operator-only; only a branch push keeps the
+  ASK (its ref is reversible; disclosure to a non-vault remote is the accepted residual). Closes the
+  measured auto-mode ASK silent-proceed gap for the irreversible half (determinism Site F31).
+- **The operator handoff is emitted as a copy-whole relay block** (hardening item 39, #123):
+  a delimited, paste-ready unit whose command is byte-identical to the saved-plan form, so relaying it
+  verbatim is the lazy path — aligning the efficiency incentive that drove the F43 relay recidivism.
+- **A relay-conformance `Stop` hook** byte-checks the `next.sh` line the agent relayed against the
+  driver's `relay-line.txt` sidecar and blocks a drift **at most once per emission** — bounded against
+  a loop independently of any platform safeguard, and fail-open on every error (hardening item 40, #125).
+- **A markdown content-preservation check** makes a corpus-wide formatting sweep reviewable by proving
+  only whitespace moved, not content (#117).
+- **Lockstep coverage extended, and a repo-work prime** so a vault-rooted session doing framework work
+  loads the repo's governance rather than none (#115).
+
+### Changed
+
+- **Both lifecycle drivers emit irreversible outbound as operator handoffs through one shared module**
+  (`tools/driver_handoff.py`, hardening item 41, #126). `ship-release.py` now hands its tag-push and
+  release-create over as clean operator steps — a saved `next.sh` plus the copy-whole relay block,
+  byte-checked by the item-40 hook — instead of a bare command the agent hits the item-37 DENY on.
+- **`gh` mutations moved to `gh api` + explicit REST paths** across the drivers and the workflow, and
+  `pr-state.py` dropped its GraphQL fallback entirely (#121).
+- **md-lint reached Phase A = 0 findings** across the corpus (#118).
+
+### Fixed
+
+- **Three local controls now report on what they actually check**, not a proxy for it — the shared
+  root cause behind a cluster of driver-subject defects (#119).
+- **`vault-render.py` resolves every operand from one root**, correcting a gate that had misdescribed
+  the relationship it enforced (#120).
+
 ## [0.1.54] - 2026-08-26
 
 Covers the two changes merged since v0.1.53:
