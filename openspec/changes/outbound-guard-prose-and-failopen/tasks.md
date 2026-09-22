@@ -61,7 +61,7 @@ guard denies/asks (narrows false-denies, closes a fail-open) but not the true-po
 - **Backstop context:** the belt sits over the env-free, fail-closed `pre-push` hook and vault
   remotelessness; item 35 now detects an unregistered pre-push hook. So even D4's residual is covered.
 
-- [ ] 5.1 Tier-0 (INV-14 control change) surfaced; **Approved** — <operator>, <ISO date>
+- [x] 5.1 Tier-0 (INV-14 control change) surfaced; **Approved** — Keith Nielsen, 2026-09-22
 
 ## 6. Land it
 
