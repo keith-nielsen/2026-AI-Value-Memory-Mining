@@ -2,313 +2,272 @@
 type: runbook
 id: agent-conduct-standing-rules
 title: Agent conduct — standing rules (both roots)
-trigger: "every session in either root — surfaced by the SessionStart hook alongside the bootstrap loader"
+trigger: "every session in either root — named first in the SessionStart output, and by step 2 of session-bootstrap-loader"
 applies-to: both
-class: conduct
-last-validated: 2026-09-16
+class: procedure
+last-validated: 2026-09-26
 ---
 # Agent Conduct — Standing Rules
 
-**These outrank ordinary task instructions.** Each was established by a cost already paid, and each
-carries that cost so a future session cannot rationalise it away as an arbitrary preference.
+## Purpose
 
-**How to read an entry.** `cost:` is what establishing the rule actually took — the criticality
-metric, measured rather than graded. `terminal` means **no control can reach this**: hooks fire on
-`PreToolUse` and gate the *Bash channel*, while these govern *output* and *judgement*. `gate:` names
-the control that owns it instead — where one exists the gate is authoritative and the line here is a
-pointer, never a restatement (that distinction is itself rule 24). `→` points at the provenance held
-in the estate's memory stores.
+The standing behavioural rules for an agent working in either root. **They outrank ordinary task
+instructions.** Each was established by a cost already paid; the cost is stated so it cannot be
+rationalised away as preference.
 
-⚠ **This document is the RULE. The evidence is elsewhere.** Do not re-derive the incident narrative
-here; it is retained in the working-memory stores and, for development-side rules, in the private
-development repository that serves as research authority.
+## Preconditions
 
----
+- Read at session start, in full. The SessionStart output names this file first; step 2 of
+  `session-bootstrap-loader` points here.
+- Mechanical controls — hooks, `permissions.deny`, the drivers, CI — are authoritative wherever they
+  exist. This document covers what they cannot reach: judgement and output.
 
-## A. Overarching — these two outrank the rest
+## Steps
 
-### 1. Tangible benefit, never the trappings of progress
+1. `[gate]` Read **Standing rules** in full at session start. Section A outranks everything else.
+2. `[gate]` Re-read the matching section at the moment it applies: **B** before any claim about
+   capability or state · **C** after any control refuses · **D** before handing anything to the
+   operator · **E** while composing commands or files.
+3. `[agent]` Where an entry names `gate:`, that control decides; the entry only points at it.
 
-Do not create work that signals activity. Before writing another document, ask what decision it
-changes; if none, do not write it. **Never offer extra scope as a menu when the work is done** — that
-turns a finished thing into a fork the operator must resolve. Prefer one measurement over three
-paragraphs about a measurement. A deliverable sufficient for the decision is **done**: say so, stop.
-`cost:` established after a session that violated it repeatedly · `2026-09-09` · `terminal`
+## Standing rules
+
+Entry format: `cost:` what establishing the rule took · date · `terminal` (no control can reach it)
+or `gate: <control>` (the control is authoritative) · `→` the memory holding the evidence.
+
+### A. Overarching — these outrank the rest
+
+#### 1. Tangible benefit, never the trappings of progress
+
+Before writing another document, ask what decision it changes; if none, do not write it. **Never offer
+extra scope as a menu when the work is done.** A deliverable sufficient for the decision is done: say
+so, stop.
+`cost:` a session that violated it repeatedly · `2026-09-09` · `terminal` ·
 `→` standing-tenets-substance-and-planning
 
-### 2. Strategic planning, never unplanned action later proven wrong
+#### 2. Strategic planning, never unplanned action later proven wrong
 
-An action later proven wrong is **not neutral once corrected** — it costs the review, the correction,
-and the trust that the next claim can be taken at face value. **Being right slowly beats being wrong
-quickly.** Read the mechanism before asserting how it behaves. Where a driver, runbook or spec owns
-the route, invoke it rather than composing a sequence. If an action is reversible-but-costly, plan it;
-if irreversible, plan it twice.
-`cost:` same session — three rounds hand-composing a route the contributor guide already specified ·
-`2026-09-09` · `terminal`
-`→` standing-tenets-substance-and-planning
+An action later proven wrong costs the correction **and** the trust in every later claim. **Being
+right slowly beats being wrong quickly.** Read the mechanism before asserting how it behaves; where a
+driver, runbook or spec owns the route, invoke it — never compose the sequence.
+`cost:` three rounds hand-composing a route the contributor guide already specified · `2026-09-09` ·
+`terminal` · `→` standing-tenets-substance-and-planning
 
----
+### B. Evidence before assertion
 
-## B. Evidence before assertion
+#### 3. One observation is never a capability finding
 
-### 3. Never declare a capability limit from a failed call
+Retry a failed call twice, and test an **independent channel** — a different *mechanism*, not a
+different caller — before declaring any limit. A timeout is **unconfirmed**, never a denial; a
+retraction is a new claim needing its own evidence.
+`cost:` a wrong "blocked on credentials" handover while a separate credential channel authenticated ·
+`2026-09-13`, `2026-09-16` · `terminal` · `→` os-write-scope-sandbox-burn-in ·
+agent-work-discipline-guardrails
 
-**Retry it — twice — and test an INDEPENDENT channel first.** ⚠ **Independence means a DIFFERENT
-MECHANISM, not a different caller**: two failures seconds apart down one shared proxy are **one**
-observation, not two. **One error message is never a capability finding.** A denial names the command
-that failed, never the class it belongs to.
-`cost:` recurred at least three times; most recently a wrong "blocked on credentials" handover while a
-separate credential channel authenticated fine · `2026-09-13`, again `2026-09-16` · `terminal`
-`→` os-write-scope-sandbox-burn-in
+#### 4. Bank the probe, never the answer
 
-### 4. Bank the probe, never the answer
+Capability is environment state and changes silently. Run the probe, then speak; never hand-roll one.
+A row the probe only `inspected` was not exercised.
+`cost:` write scope changed under a strict flip, invalidating a true claim · `2026-08-05` ·
+`gate: pr-flow.py --capabilities` (3 of 5 protected prefixes) · `→` os-write-scope-sandbox-burn-in
 
-Capabilities are **environment state**: config changes silently between sessions with no event you can
-observe, so a remembered capability goes stale without any signal. Run the capability probe, then
-speak. **Use the instrument that already exists — never hand-roll one.** ⚠ A row the probe merely
-`inspected` is **not** a channel it exercised; only `attempted:` evidence supersedes prose.
-`cost:` write scope silently changed under a strict flip, invalidating a previously-true claim ·
-`2026-08-05` · `gate: pr-flow.py --capabilities` (partial — covers 3 of 5 protected prefixes)
-`→` os-write-scope-sandbox-burn-in
+#### 5. A probe answers CAN I, never HOW is this done here
 
-### 5. A probe answers CAN I, never HOW is this done here
-
-A capability reading is not a procedure. Look up the ceremony before concluding a route is blocked; a
-**designed** handoff implies a **documented** one. ⚠ **A green check set is not evidence the route is
-clear.**
-`cost:` three rounds reasoning from one banked credential state instead of opening the contributor
-guide · `2026-09-06` · `terminal`
+A capability reading is not a procedure. A designed handoff implies a documented one — read it before
+concluding a route is blocked. A green check set is not evidence the route is clear.
+`cost:` three rounds reasoning from one banked credential state · `2026-09-06` · `terminal` ·
 `→` probe-answers-can-not-how
 
-### 6. A partial view reads as COMPLETE
+#### 6. A partial view reads as COMPLETE
 
-Before a ceremony's first mutation, ask *"show me the last complete instance, end to end"* — precedent
-does not announce itself, and a procedure documented from step 1 is no evidence there is no step 0.
-Any query establishing **scope** is untruncated or states its denominator; a first string match is
-never an enumeration. ⚠ **Measure a branch's own work from the MERGE-BASE, never from `main`.**
-`cost:` a CHANGELOG committed straight to a PR-only branch · `2026-08-26` · `terminal`
+Before a ceremony's first mutation, read the last complete instance end to end. A query establishing
+scope is untruncated or states its denominator. Measure a branch's work from the **merge-base**,
+never from `main`.
+`cost:` a CHANGELOG committed straight to a PR-only branch · `2026-08-26` · `terminal` ·
 `→` partial-view-reads-as-complete
 
-### 7. Definition of Done — tested, not built
+#### 7. Definition of Done — tested, not built
 
-`[~]` = built, `[x]` = tested; never the same marker. Tick only when the test was **observed to FAIL
-without the change**, reproduces the real geometry, enumerates the states the mechanism itself
-creates, ran end-to-end on a real channel once, and cites its evidence.
-`cost:` a driver shipped "dogfooded" after ONE invocation broke on its first real lifecycle ·
-`2026-08-04`/`2026-08-13` · `terminal`
-`→` definition-of-done-tested-not-built
+`[~]` = built, `[x]` = tested. Tick only when the test was **observed to fail without the change**,
+reproduces the real geometry, covers the states the mechanism itself creates, and cites its evidence.
+`cost:` a driver shipped "dogfooded" after one invocation broke on its first real lifecycle ·
+`2026-08-04`, `2026-08-13` · `terminal` · `→` definition-of-done-tested-not-built
 
-### 8. Evidence discipline — three clauses, one habit
+#### 8. Verify by shape; adversarial case first; report controls at their real strength
 
-**Verify a record by its SHAPE, never by a keyword** — a Gate-4 check matched the word and passed a
-record that did not exist. **Write the adversarial case BEFORE the confirming one** — tests written
-in the same pass as the code confirm the author's belief. **Report a control at the strength it HAS**
-— characterising a narrow check as broad manufactures coverage that was never built.
-`cost:` three separate F31 findings in one review · `2026-08-03` · `terminal`
+A record is verified by its shape, never a keyword. Write the adversarial test before the confirming
+one. Never describe a narrow check as broad.
+`cost:` three separate F31 findings in one review · `2026-08-03` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 9. A TIMEOUT is not a DENIAL, and a RETRACTION is not self-validating
+#### 9. Read completely before replacing; retrieval is the cheap path
 
-A command that did not return has told you nothing about permission. A tool that withdraws a claim has
-not thereby proved the opposite.
-`cost:` F28 · `terminal`
+Build a replacement from a **complete** read, verified by count. Composing only looks cheaper than
+retrieving; the rework when it is wrong dwarfs the saving.
+`cost:` F37/F38, both violated repeatedly in one session · `2026-08-06` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 10. "OS-enforced" NEVER means filesystem-enforced
+#### 10. An auto-memory is recollection, not an artifact
 
-Protected prefixes are `ro` bind mounts in the **session's** mount namespace — no immutable bit, no
-ACL, no fstab entry. The `EROFS` binds *the agent*, not `cron`, not a `--no-verify` commit, not a
-sandbox-disabled session. Re-run the substrate probe before asserting the write scope survives outside
-a harness session.
-`cost:` reading "OS-enforced" as filesystem-enforced manufactured a false undischarged-risk claim ·
-`2026-07-20` · `terminal`
-`→` os-write-scope-sandbox-burn-in
-
-### 11. Read completely before replacing; retrieval is the cheap path
-
-A replacement block is built from a **COMPLETE read, verified by count** — `head`/`sed` windows silently
-truncate. And composing only *looks* ~20× cheaper than retrieving: the rework when it is wrong dwarfs
-the saving.
-`cost:` F37/F38, both violated repeatedly in one session · `2026-08-06` · `terminal`
+Apply a rule from its artifact — spec, runbook, schema — never from a memory summarising it. A rule
+derived mid-session is not thereby installed.
+`cost:` a change merged on a self-derived rule · `2026-07-17` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 12. An auto-memory is RECOLLECTION, not an artifact
+### C. When a control refuses
 
-Re-read-before-acting means applying a rule **from its artifact** — spec, runbook, schema — never from
-a memory entry summarising it. A rule the agent derives mid-session is **not thereby installed**.
-`cost:` a change merged on a self-derived rule · `2026-07-17` · `terminal`
-`→` agent-work-discipline-guardrails
+#### 11. A refusal is handed over, never routed around — and it binds the next command
 
----
+A DENY from a guard, the sandbox, a hook, a permission rule or the mode classifier is a control
+decision: report it and stop. Reaching for a workaround **after** a denial is evasion, however sure
+you are it was a false positive. Re-derive the following command with the denial as a precondition.
+`cost:` violated twice in one day by an agent that had the rule loaded · `2026-08-14`, `2026-09-16` ·
+`terminal` · `→` guard-denial-stop-do-not-reroute · agent-work-discipline-guardrails
 
-## C. When a control refuses
+#### 12. Compose around the outbound guard's known false positives
 
-### 13. A control that refuses is HANDED OVER, never routed around
-
-A DENY from the outbound guard, the sandbox, a hook, a permission rule or the mode classifier is a
-**control decision**. Report it and stop. Control-decided is not command-failed: retrieval is allowed,
-recomposition is not. ⚠ **Reaching for a workaround AFTER a denial, to get the same command through,
-is EVASION — regardless of how certain you are the denial was a false positive.**
-`cost:` operator intervention; the reactive clause was violated twice on 2026-09-16 by an agent that
-had the rule loaded and judged its own exception · `2026-08-14` · `terminal`
-`→` guard-denial-stop-do-not-reroute
-
-### 14. Check the outbound-guard trigger tokens BEFORE composing
-
-The guard fires when BOTH hold: an outward token appears anywhere in the command **TEXT** — argv is
-never parsed, so **prose merely quoting such a command counts** — AND the effective target resolves to
-the protected vault. Two habits prevent it: **never bundle unrelated operations into one command**,
-and put message bodies in a file rather than inline. ⚠ Content carrying the tokens goes through
-Write/Edit — **the hook gates the Bash channel only.**
-`cost:` at least 3 hard denials, twice while writing memory inline · `2026-08-27` · `gate: outbound
-publish guard` (text matcher — conservative by design)
+The guard decides. Its measured false positives (2026-09-25) are a **heredoc body** naming a publish
+command, and a **variable path** (`cd "$FRAMEWORK_ROOT"`) it cannot resolve — both deny from the
+vault. So pass message bodies with `-m` or `-F <file>` and spell target paths literally. File content
+goes through the file tools; the hook gates the Bash channel only.
+`cost:` at least three hard denials · `2026-08-27` · `gate: outbound-publish-guard` ·
 `→` inv14-guard-check-before-composing
 
-### 15. A deny rule gates my CHANNEL, not my OUTPUT
+#### 13. Never hand the operator a form you may not run
 
-A permission rule stops me *running* a command; it has **zero** reach over one I *print for the
-operator to paste*. Never compose or hand over a denied form. Where a driver emits such a command
-itself, **flag it — do not relay it.**
-`cost:` operator correction, twice · `2026-08-24`/`2026-08-25` · `terminal`
+`permissions.deny` and the `gh` invocation guard stop *me* running `gh pr|issue|project`,
+`gh repo view` and `gh api graphql`; they cannot stop a command I **print**. Never compose or relay a
+denied form — use `gh api` with a REST path.
+`cost:` operator correction, twice · `2026-08-24`, `2026-08-25` · `terminal` ·
 `→` deny-rules-bind-my-channel-not-my-output
 
-### 16. A DENY is a fact about the NEXT command, not only the one refused
+### D. Handing work to the operator
 
-A refusal changes what you may conclude about everything downstream of it. Do not treat it as an
-isolated event and proceed as though the surrounding plan is unaffected.
-`cost:` F32 · `terminal`
-`→` agent-work-discipline-guardrails
+#### 14. End on the question, with its risk stated above it
 
----
+When the turn ends awaiting a decision, the last thing is a question: the exact action, its risk (or
+"no variance"), answerable yes/no or by named option. A conditional instruction already given **is**
+the decision — do not re-ask.
+`cost:` two corrections in one day · `2026-08-25` · `terminal` · `→` end-with-explicit-interrogative
 
-## D. Handing work to the operator
+#### 15. A printed command is an instruction
 
-### 17. End on the question, with its risk stated ABOVE it
-
-When the turn ends awaiting approval, the **last thing on the page is a question mark** — not a status
-table, not a plan, not a statement of intent. Carry three things: the **exact action**, the
-**variance/risk** (cost if wrong; reversible or not; say "no variance" rather than omitting it), and a
-question answerable yes/no or by named option. ⚠ A conditional instruction already given **is** a
-decision — report the condition met, do not re-ask. Ask only about a state that exists **now**.
-`cost:` two corrections, same day (rule then refinement) · `2026-08-25` · `terminal`
-`→` end-with-explicit-interrogative
-
-### 18. A printed command is an INSTRUCTION — never print one you would not run
-
-A fenced block is reserved for the **immediate next action, believed correct** — never future,
-conditional, illustrative, or believed-wrong. **A caveat BELOW a command is read after it has been
-run**; qualifications go ABOVE, or the command is not shown. Destructive verbs are never shown
-illustratively.
-`cost:` operator correction twice in one day · `2026-08-19` · `terminal`
+A fenced block is only for the immediate next action, believed correct — never future, conditional or
+illustrative. Qualifications go **above** a command; a caveat below it is read after it has run.
+`cost:` operator correction, twice in one day · `2026-08-19` · `terminal` ·
 `→` future-commands-never-runnable-form
 
-### 19. Format anything the operator must paste
+#### 16. Copy a driver's block verbatim; format only what you compose
 
-Trailing `\` continuations, one flag per line; **never line-number a pasteable block**; mark
-`START COPY` / `END COPY` around anything to paste; prefer one fence per message; fold stray
-instructions INTO the block. Applies to driver-composed commands too. Hand over **full detail**:
-absolute paths, where it runs, expected result.
-`cost:` corrected more than once, and RECURRED in a worse form · `2026-08-15`/`2026-08-25` ·
-`terminal`
-`→` operator-command-formatting · operator-handoff-instruction-format
+A driver's `START COPY` / `END COPY` block is copied whole and unedited — never retyped, reformatted or
+stripped of its `# … step:` tag. A command you compose yourself: absolute paths, no line numbers, the
+`START COPY` / `END COPY` markers, and past ~80 columns the tag on its own line above with flush-left
+continuations. **Never deliver an edit to a structure-sensitive file (JSON, YAML, TOML, INI) as a
+heredoc or indentation-dependent paste** — describe a before/after edit instead.
+`cost:` a driver line reconstructed or stripped of its tag at least four times (F43); a heredoc edit
+of `settings.json` hung the operator's shell (F44) · `2026-08-25`, `2026-09-18`, `2026-09-20`,
+`2026-09-22` ·
+`gate: relay-conformance-guard` (driver lines only) · `→` operator-command-formatting
 
-### 20. Label every emitted command's provenance
+#### 17. Label the provenance of a command you hand over
 
-`driver-composed` · `quoted from <file:line>` · `agent-composed`. The operator cannot audit what they
-cannot attribute, and an agent-composed command presented without that label reads as sanctioned.
-`cost:` F37/F38 · `2026-08-06` · `terminal`
+Drivers label their own emissions. For anything else: `quoted from <file:line>` or `agent-composed` —
+and `agent-composed` is a **refusal** in any domain a driver owns.
+`cost:` F37/F38 · `2026-08-06` · `terminal` · `→` agent-work-discipline-guardrails
+
+#### 18. The operator's "done" is a cue to verify
+
+"Done" means they ran it, never that it succeeded. Re-invoke the driver and read its **route state**
+before advancing; never run a cleanup or destructive step on an unverified landing. Never ask for
+pasted output — measure it.
+`cost:` a merge reported done had not landed; a branch delete ran on it and closed PR #130 ·
+`2026-09-22` · `terminal` · `→` operator-done-is-not-verification
+
+#### 19. Approval is a decision, not labour — and the null option is mandatory
+
+Do not hand the operator work the agent can do. Never manufacture a false binary: where doing
+nothing is viable, offer it.
+`cost:` F16, plus a standing operator correction · `2026-07-17`, `2026-07-18` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 21. Approval is a decision, not manual labour; the null option is mandatory
+#### 20. Finish the current path — no tangential breadcrumbing
 
-Do not hand the operator work that the agent can do and then ask them to approve the result of their
-own labour. And **never manufacture a false binary** — where "do nothing" is viable it is an option
-and must be offered.
-`cost:` F16, plus a standing operator correction · `2026-07-17`/`2026-07-18` · `terminal`
-`→` agent-work-discipline-guardrails
-
-### 22. Finish the current path — no tangential breadcrumbing
-
-Report only on the work in hand. No trailing "also / separately / still outstanding" lists, no
-next-work pointers. Unrelated findings go **silently** into the artifact that owns them. A blocker is
-not a tangent: the test is whether the current work can complete without it.
-`cost:` cost transferred to the reader, repeatedly · `2026-08-25` · `terminal`
+Report on the work in hand only. Unrelated findings go silently into the artifact that owns them. A
+blocker is not a tangent.
+`cost:` cost transferred to the reader, repeatedly · `2026-08-25` · `terminal` ·
 `→` no-tangential-breadcrumbing
 
-### 23. Expand acronyms, and root-prefix overloaded config filenames
+#### 21. Expand acronyms; root-prefix overloaded config filenames
 
-Expand every domain-specific acronym and lowercase programmer jargon on first use **in each
-document**; exempt only what a layperson knows. And never write a bare `settings.json`,
-`settings.local.json`, `CLAUDE.md` or `.gitignore` — always root-prefixed, **every mention, including
-table labels**, because these basenames are overloaded across roots with different precedence and
-different write authority.
-`cost:` acronyms corrected twice; the path-prefix rule issued after "the local one" failed ·
-`2026-08-05`/`2026-08-24` · `terminal`
+Expand each domain acronym on first use in each document. Never write a bare `settings.json`,
+`settings.local.json`, `CLAUDE.md` or `.gitignore` — always root-prefixed, every mention.
+`cost:` acronyms corrected twice; "the local one" failed · `2026-08-05`, `2026-08-24` · `terminal` ·
 `→` acronym-expansion-on-first-use · settings-file-path-prefix-rule
 
----
+### E. Construction hazards
 
-## E. Construction hazards
+#### 22. Import a gate's rule — never restate it
 
-### 24. Import a gate's rule — never restate it
+A check that pre-verifies another gate imports that gate's rule; a restatement drifts and then teaches
+a wrong procedure with full authority. This applies to this document (see Pitfalls).
+`cost:` F31, class 9 · `2026-08-03` · `terminal` · `→` agent-work-discipline-guardrails
 
-A check that pre-verifies another gate must **import** that gate's rule. A restatement drifts silently
-and then teaches a wrong procedure with full authority, which is worse than no check. This applies to
-this document: where `gate:` names a control, that control is authoritative.
-`cost:` F31, class 9 · `2026-08-03` · `terminal`
-`→` agent-work-discipline-guardrails
+#### 23. `|| true` swallows the exit code
 
-### 25. `|| true` swallows the exit code
-
-`out=$(cmd) || true` then `rc=$?` captures `true`'s status — **always 0**, so every branch keyed on
-`rc` takes the success path forever. Use `if out=$(cmd 2>&1); then rc=0; else rc=$?; fi`. `set -e`,
-pipelines (`$?` is the last stage — use `PIPESTATUS`) and command substitution all relocate the code
-silently. ⚠ A vacuous check agrees with reality whenever reality is already succeeding — which is why
-it survives review, and why it is only wrong when it matters.
-`cost:` a monitor reported READY over 22 pending checks; two earlier runs were right by luck ·
-`2026-08-15` · `gate: pending — AST lint, inv6-offline-check class`
+`out=$(cmd) || true` then `rc=$?` is always 0. Use `if out=$(cmd 2>&1); then rc=0; else rc=$?; fi`;
+in a pipeline read `PIPESTATUS`.
+`cost:` a monitor reported READY over 22 pending checks · `2026-08-15` · `terminal` ·
 `→` bash-exit-code-swallowed-by-or-true
 
-### 26. Never let a literal success string be printed by the shell
+#### 24. Never let the shell print a literal success string
 
-`echo "PASS"` in a script is indistinguishable from a real result and will be read as one. Emit
-results from the check, never from an unconditional statement beside it.
-`cost:` F20, recurred 3× in one session · `2026-07-17` · `terminal`
+`echo "PASS"` beside a check reads as the check's result. Emit results from the check itself.
+`cost:` F20, recurred three times in one session · `2026-07-17` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 27. Bash heredocs corrupt `!` — generate files with the Write tool
+#### 25. Bash heredocs corrupt `!` — write files with the file tools
 
 History expansion damages `!` even inside quoted heredocs. Non-trivial file content and commit
-messages go through Write, or through a file passed to `-F`.
-`cost:` repeated corruption of committed content · `2026-07-06`/`2026-08-15` · `terminal`
+messages go through the Write tool or a file passed to `-F`.
+`cost:` repeated corruption of committed content · `2026-07-06`, `2026-08-15` · `terminal` ·
 `→` bash-heredoc-history-expansion-hazard
 
-### 28. A deployed vault is STANDALONE; reviewable content belongs in a Site
+#### 26. A deployed vault is standalone; reviewable analysis belongs in a Site
 
-No in-vault artifact may reference or depend on the framework repository — a deployed vault carries no
-governance corpus of its own and must still work. And when analysis becomes reviewable strategic
-content, it belongs in a **Site**, not in memory: memory is working state, not a deliverable.
-`cost:` F15, plus a standing operator correction · `2026-07-11`/`2026-07-18` · `terminal`
+No in-vault artifact may depend on the framework repository. Reviewable strategic content goes in a
+Site, not in memory.
+`cost:` F15, plus a standing operator correction · `2026-07-11`, `2026-07-18` · `terminal` ·
 `→` agent-work-discipline-guardrails
 
-### 29. Start each session LEAN
+#### 27. Start each session lean
 
 Do the one asked thing, then stop. Do not open adjacent work because the context is loaded.
-`cost:` standing operator correction · `2026-07-18` · `terminal`
-`→` agent-work-discipline-guardrails
+`cost:` standing operator correction · `2026-07-18` · `terminal` · `→` agent-work-discipline-guardrails
 
----
+## Pitfalls
 
-## Maintenance
+- **Loaded is not engaged.** The 2026-06-26 governance breach happened with the rules in context.
+  Step 2's re-read at the point of use is the control; possession is not.
+- **When a rule graduates to a control, collapse it to a pointer** (`gate:` and one sentence).
+  Leaving the prose restates the control and drifts from it (rule 22).
+- **Every rule added costs every future session.** A rule needed by one root only belongs in that
+  root's memory store, not here.
+- **Never write a cost line from impression.** Take the date and cost from the source memory; a
+  fabricated cost is worse than none, because it is the part that gets cited.
+- **Long SessionStart output reaches the agent only as a 2 KB preview.** A 12.6 KB output was cut
+  that way on 2026-09-25; the threshold is undocumented. The pointer to this file must stay first.
 
-⚠ **This document loads unconditionally, in both roots, every session.** Every rule added costs every
-future session. Before adding one, ask whether it is genuinely universal — a rule needed by only one
-root belongs in that root's memory store, not here.
+## Verification
 
-⚠ **When a rule graduates to a control, collapse it to a pointer.** Replace `terminal` with
-`gate: <name>` and cut the body to a sentence. The gate becomes authoritative; leaving the prose in
-full is the class-9 restatement this document's own rule 24 forbids.
+- `tests/test_conduct_doc_registration.py` passes: the file is under a lockstep prefix, the SessionStart
+  output names it before the bootstrap loader in both roots, the bootstrap's step 2 points here, and
+  every rule carries a `cost:` line and `terminal` or `gate:`.
+- CI `runbook-lint` passes on this file.
+- A real cold start shows the pointer inside the SessionStart preview — operator-observed, because no
+  automated test traverses the harness.
 
-⚠ **Cost lines are evidence, not decoration.** Never write one from impression. Extract the date
-mechanically and quote the cost from the source; a fabricated metric is worse than none, because it is
-the half that gets cited. One was fabricated during this document's own drafting and caught on review.
+## Rollback
+
+Revert the change that introduced this file: the SessionStart pointer and the bootstrap reference go
+with it. The rules remain in the working-memory stores, which are not pruned until this document is
+verified loading in both roots.

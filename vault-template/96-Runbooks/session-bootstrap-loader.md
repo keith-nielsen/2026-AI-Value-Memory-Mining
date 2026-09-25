@@ -5,7 +5,7 @@ title: Session bootstrap loader (cold-start prime)
 trigger: "a fresh or /clear'd agent session begins, before any vault/repo work — load env, engage the gates, probe capabilities, know the pointers"
 applies-to: both
 class: procedure
-last-validated: 2026-08-16
+last-validated: 2026-09-26
 ---
 # Runbook — Session Bootstrap Loader
 
@@ -52,6 +52,9 @@ sessions without notice, so the prime also **measures** its own reach rather tha
      denial names the command that failed, not the class it belongs to. Capabilities are environment
      state — config changes silently between sessions, so recollection goes stale without any event
      the agent can observe. Probe (step 3), then speak.
+
+   Then read `96-Runbooks/agent-conduct-standing-rules` **in full** — the standing behavioural rules
+   for both roots. They outrank ordinary task instructions and cover what no hook can reach.
 3. `[agent]` **Capability probe** — measure the session's own reach BEFORE the first claim about it.
    **Reference the instrument; never hand-roll or restate one.** The `maintenance` Requirements
    *"Platform Capability Is Probed, Not Recalled"* and *"GitHub Reads Degrade To An Unauthenticated

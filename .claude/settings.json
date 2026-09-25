@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat \"$CLAUDE_PROJECT_DIR/vault-template/96-Runbooks/session-bootstrap-loader.md\" \"$CLAUDE_PROJECT_DIR/vault-template/96-Runbooks/agent-conduct-standing-rules.md\" 2>/dev/null || true"
+            "command": "echo \"STANDING CONDUCT RULES — read $CLAUDE_PROJECT_DIR/vault-template/96-Runbooks/agent-conduct-standing-rules.md in full before acting; they outrank ordinary task instructions.\"; cat \"$CLAUDE_PROJECT_DIR/vault-template/96-Runbooks/session-bootstrap-loader.md\" 2>/dev/null || true"
           }
         ]
       }
