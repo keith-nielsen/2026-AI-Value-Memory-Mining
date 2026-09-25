@@ -36,10 +36,10 @@ records the requirement.
 
 ## 4. Regression
 
-- [ ] 4.1 Full suite green.
-- [ ] 4.2 `openspec validate --all --strict` — 0 failed.
-- [ ] 4.3 markdownlint — 0 findings.
-- [ ] 4.4 `tools/preflight.py . --body-file <path>` → CLEAR.
+- [x] 4.1 Full suite green — 545 passed.
+- [x] 4.2 `openspec validate --all --strict` — 7 passed, 0 failed.
+- [x] 4.3 markdownlint — 0 findings (preflight md-lint PASS).
+- [x] 4.4 `tools/preflight.py .` → CLEAR (the body-file run is 6.3, after the archive).
 
 ## 5. Gate 4 — protected-spec change (maintenance: INV-2, INV-3, INV-6)
 
@@ -54,7 +54,7 @@ vault content. Decisions surfaced for sign-off:
   pinning" policy left to the operator.
 - **PR #122** (OpenSpec 1.13.1) falls inside the new 14-day npm window until 2026-10-01.
 
-- [ ] 5.1 Protected-spec (maintenance) change surfaced; awaiting operator sign-off.
+- [x] 5.1 Protected-spec (maintenance) change surfaced; **Approved** — Keith Nielsen, 2026-09-26
 
 ## 6. Land it
 
