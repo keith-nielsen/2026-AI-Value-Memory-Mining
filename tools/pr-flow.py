@@ -1036,6 +1036,11 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
     if assert_args:
         assert_lines = [f"python3 {root}/tools/pr-flow.py --assert-preconditions "
                         + " ".join(assert_args)]
+    # Item 42: FOREIGN is decided by the same helper `drive()` uses, so the plan's guard and the
+    # route's locality verdict cannot disagree about which branches are ours. The object guard
+    # replaces the checkout guard only when there IS an object assertion; without one the checkout
+    # guard stays, and an unpassable guard refuses — never an unguarded plan.
+    foreign = bool(assert_lines) and local_branch_sha(root, branch) is None
     verify_lines = [
         "",
         "# VERIFY — did it land? (invocation pinned at write time, see verify_invocation.)",
@@ -1045,7 +1050,18 @@ def write_saved_plan(root, step, command, approve, branch, assert_args=None):
         verify_invocation(root, step),
     ]
     return driver_handoff.write_saved_plan(root, step, command, approve, branch,
-                                           assert_lines=assert_lines, verify_lines=verify_lines)
+                                           assert_lines=assert_lines, verify_lines=verify_lines,
+                                           foreign=foreign)
+
+
+def local_branch_sha(root, branch):
+    """The local branch's SHA, or None. `refs/heads/` is explicit: a bare `rev-parse <name>`
+    resolves a remote-tracking ref by DWIM, which once made a Dependabot branch look local.
+    None is the driver's definition of a FOREIGN branch — one we do not own."""
+    if not branch:
+        return None
+    return git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
+               cwd=root).stdout.strip() or None
 
 
 # --- probes ---------------------------------------------------------------------------------------
@@ -1617,8 +1633,7 @@ def drive(args, root, route, plan=False):
              "known copy in use). Re-run when the remote is reachable before trusting "
              "base-currency.")
 
-    local_sha = git(["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
-                    cwd=root).stdout.strip() or None
+    local_sha = local_branch_sha(root, branch)
     r = git(["ls-remote", "origin", f"refs/heads/{branch}"], cwd=root)
     remote_sha = r.stdout.split()[0] if r.stdout.strip() else None
     absent = not local_sha and not remote_sha

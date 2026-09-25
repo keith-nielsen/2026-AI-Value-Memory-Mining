@@ -5,6 +5,7 @@ import so the format the outbound guard and the relay-conformance Stop hook comp
 source, not a fork (the class-9 defect the extraction closes).
 """
 import pathlib
+import subprocess
 import sys
 
 import pytest
@@ -51,6 +52,29 @@ def test_write_saved_plan_requires_a_branch(tmp_path):
     with pytest.raises(ValueError):
         dh.write_saved_plan(str(tmp_path), "tag", "git -C /r push origin refs/tags/v1",
                             approve=None, branch="", verify_lines=["echo x"])
+
+
+def test_foreign_branch_plan_replaces_the_checkout_guard_with_the_object_guard(tmp_path):
+    """Item 42: for a branch with no local copy the checkout can never match, so the guard is the
+    caller's precondition assertion — and the mutation runs once that assertion passes."""
+    path = dh.write_saved_plan(str(tmp_path), "body", "echo MUTATION-RAN", approve="body of #46",
+                               branch="dependabot/x", assert_lines=["true"],
+                               verify_lines=["echo verified"], foreign=True)
+    text = pathlib.Path(path).read_text()
+    assert "branch --show-current" not in text                 # no unpassable checkout comparison
+    assert "dependabot/x" in text                              # still names what it was written for
+    r = subprocess.run(["bash", str(path)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert "MUTATION-RAN" in r.stdout
+
+
+def test_foreign_branch_plan_is_never_written_without_an_object_guard(tmp_path):
+    """Dropping the checkout guard is only safe because the assertion replaces it. With no
+    assertion there would be no guard at all — refuse to write that file."""
+    with pytest.raises(ValueError):
+        dh.write_saved_plan(str(tmp_path), "body", "echo x", approve=None,
+                            branch="dependabot/x", assert_lines=None,
+                            verify_lines=["echo x"], foreign=True)
 
 
 def test_emit_operator_handoff_writes_the_sidecar_byte_identical_to_the_block(tmp_path):
