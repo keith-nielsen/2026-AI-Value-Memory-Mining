@@ -1,10 +1,23 @@
 version: 2
+# Supply-chain policy (maintenance spec: "Supply-Chain Inputs Are Pinned Immutably And Adopted After A
+# Cooldown"; enforced by tests/test_supply_chain_pins.py):
+#   - every ecosystem DECLARES its cooldown — npm 14 days, everything else 7. GitHub applies a 3-day
+#     default when none is declared, which this repository does not control; declared, it is reviewed.
+#   - cooldowns delay VERSION updates only. Dependabot security updates are not subject to them.
+#   - GitHub Actions are pinned to full commit SHAs with a `# vX.Y.Z` comment, which Dependabot rewrites.
 updates:
   # GitHub Actions used by the CI workflow (actions/checkout, setup-node, setup-python)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      # One PR for all action bumps: they are reviewed together, and the SHA pins move together.
+      actions:
+        patterns:
+          - "*"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
@@ -16,6 +29,8 @@ updates:
     directory: "/vault-template/99-Operations"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
@@ -25,10 +40,15 @@ updates:
   # OpenSpec CLI (@fission-ai/openspec) — the SDD tool the repo's governance/validation depends on.
   # A new release opens a bump PR; the OpenSpec-validate CI job runs on that PR as the compatibility
   # gate (green = safe to adopt, red = incompatible before adoption). Pinned in package.json.
+  # 14-day cooldown: blocks 9 of the 10 attacks in Woodruff's 2025 analysis (7 days blocks 8), and
+  # Dependabot's npm updater proposes the newest release OLDER than the window, so a weekly release
+  # cadence cannot starve updates. Monthly: OpenSpec releases ~weekly and is not chased.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
