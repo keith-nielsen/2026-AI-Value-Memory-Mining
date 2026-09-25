@@ -52,7 +52,7 @@ No `protects:`-tagged spec is touched. Surfaced for sign-off:
 - **Every session pays for it** — one 210-byte line at start, plus reading 14 KB.
 - **Deploy-down** needs two SEED merges in the live vault, by the operator's hand or approval.
 
-- [ ] 5.1 Surfaced; awaiting operator sign-off.
+- [x] 5.1 Surfaced; **Approved** — Keith Nielsen, 2026-09-26
 
 ## 6. Land it
 
