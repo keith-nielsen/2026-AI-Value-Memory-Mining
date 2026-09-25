@@ -136,7 +136,8 @@ def discard_saved_plan(root):
     return None
 
 
-def write_saved_plan(root, step, command, approve, branch, *, assert_lines=None, verify_lines=None):
+def write_saved_plan(root, step, command, approve, branch, *, assert_lines=None, verify_lines=None,
+                     foreign=False):
     """Write an operator command to disk so a SHORT line is what gets pasted.
 
     F14 and F26: the interactive paste channel corrupted two hand-offs and clobbered a repo file.
@@ -152,6 +153,13 @@ def write_saved_plan(root, step, command, approve, branch, *, assert_lines=None,
     ready shell lines: this module builds the driver-agnostic skeleton and never re-implements a
     driver's own verify contract. pr-flow passes its `--after-mutation` re-invocation; ship-release
     passes its own re-run, which re-derives release state.
+
+    `foreign` (item 42): a branch the driver does not own has, by the driver's own definition, no
+    local copy — so the checkout can never equal it, and the step guard would refuse every operator
+    step on every Dependabot pull request. For such a branch the guard is the OBJECT, not the
+    checkout: the caller's precondition assertion pins the pull request and its head SHA, which
+    identifies the step's target exactly. A foreign plan therefore requires `assert_lines`; without
+    them it would carry no guard at all, and is refused.
     """
     try:
         d = pathlib.Path(root) / ".git" / "pr-flow"
@@ -181,18 +189,27 @@ def write_saved_plan(root, step, command, approve, branch, *, assert_lines=None,
             # the file still reads as safe while the protection is gone. `branch` is positional-
             # required above so a call site cannot omit it by accident; this catches an empty value.
             raise ValueError("write_saved_plan requires the branch the plan is written for")
-        # The step guard. Consent was given for ONE step of ONE branch's lifecycle; running this
-        # file from somewhere else is not that step, however unchanged GitHub's state may be.
-        body += [
-            f"_want={shlex.quote(branch)}",
-            f'_have="$(git -C {shlex.quote(str(root))} branch --show-current)"',
-            'if [ "$_have" != "$_want" ]; then',
-            '  echo "saved plan was written for branch \'$_want\' (step '
-            f"{step}) but you are on '$_have'.\" >&2",
-            '  echo "Re-run the driver to derive a plan for where you actually are." >&2',
-            "  exit 1",
-            "fi",
-        ]
+        if foreign:
+            if not assert_lines:
+                raise ValueError("a foreign-branch plan requires a precondition assertion — it "
+                                 "is the only guard such a plan carries")
+            body += [f"# Branch '{branch}' is FOREIGN (no local copy), so no checkout comparison "
+                     "is made — it could never pass.",
+                     "# The precondition assertion below pins the pull request and its head SHA; "
+                     "that is this plan's step guard."]
+        else:
+            # The step guard. Consent was given for ONE step of ONE branch's lifecycle; running
+            # this file from somewhere else is not that step, however unchanged GitHub's state may be.
+            body += [
+                f"_want={shlex.quote(branch)}",
+                f'_have="$(git -C {shlex.quote(str(root))} branch --show-current)"',
+                'if [ "$_have" != "$_want" ]; then',
+                '  echo "saved plan was written for branch \'$_want\' (step '
+                f"{step}) but you are on '$_have'.\" >&2",
+                '  echo "Re-run the driver to derive a plan for where you actually are." >&2',
+                "  exit 1",
+                "fi",
+            ]
         body.append(f"cd {root}")
         if approve:
             body.append(f"# authorizing: {approve}")

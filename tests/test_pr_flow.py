@@ -1669,6 +1669,42 @@ def test_saved_plan_refuses_to_run_from_a_different_branch(work):
     assert "some/other-branch" in r.stderr         # names where you actually are
 
 
+def test_saved_plan_for_a_foreign_branch_is_guarded_by_its_object_not_the_checkout(work):
+    """Item 42, measured on PR #46: the driver calls a branch FOREIGN precisely because it has no
+    local copy, so a checkout comparison can never pass for it — every operator step on every
+    Dependabot PR refused before mutating. The guard for a branch we do not own is the pinned PR
+    and head SHA; the plan must reach that assertion rather than stop at a checkout it can never
+    be on. Offline, the assertion cannot resolve a GitHub slug and BLOCKS — which is the proof it,
+    and not the branch guard, is what stands before the mutation."""
+    dep = "dependabot/github_actions/thing-7"
+    commit_on(work, dep)
+    git(["push", "-u", "origin", dep], work)
+    git(["switch", "main"], work)
+    git(["branch", "-D", dep], work)             # the real geometry: on origin only, repo on main
+    (work / "tools").symlink_to(REPO / "tools")  # so the plan's REAL assertion runs, not a stub
+
+    path = pr_flow.write_saved_plan(str(work), "body", "echo MUTATION-RAN",
+                                    "replaces the body of PR #46", dep,
+                                    ["pr=46", "head=bf142a4", "draft=false", "base=main"])
+    r = subprocess.run(["bash", str(path)], capture_output=True, text=True)
+    assert "saved plan was written for branch" not in r.stderr, r.stderr
+    assert "--assert-preconditions needs pr=N" in r.stderr, r.stderr   # the object guard ran
+    assert "MUTATION-RAN" not in r.stdout                               # and it held
+
+
+def test_own_branch_plan_keeps_the_checkout_guard_even_with_an_assertion(work):
+    """The adversarial side of item 42: relaxing the guard for FOREIGN branches must not relax it
+    for our own. A local branch with a precondition assertion still refuses from another checkout."""
+    commit_on(work, "feat/ours")                 # local, so NOT foreign
+    path = pr_flow.write_saved_plan(str(work), "merge", "echo MUTATION-RAN", "merges PR #51",
+                                    "feat/ours", ["pr=51", "head=abc"])
+    git(["switch", "-q", "main"], work)
+    r = subprocess.run(["bash", str(path)], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "saved plan was written for branch 'feat/ours'" in r.stderr
+    assert "MUTATION-RAN" not in r.stdout
+
+
 def test_saved_plan_is_never_written_without_a_guard(work):
     """A guard that is silently absent is worse than none: the file still reads as safe."""
     with pytest.raises(ValueError):
