@@ -176,6 +176,11 @@ runbook references; invoke AI only at an explicit `unknown/other` step (see ADR-
   declaration deliberately — never work around the gate; it is the process. Note
   the emitted `gh api -X POST …/pulls -F body=@FILE` bypasses the PR template, so include the
   block yourself.
+- **Dependabot PR bodies carry no scope block.** Fetch the body, append one, save it under
+  `.git/pr-flow/`, and pass `--body-file`. Declare the dependency too (`dep: <package>`) — an
+  undeclared `dep:` is what made #110 go red.
+- **After any dependency bump merges, run `npm ci`** — the merge updates `package.json` but not
+  `node_modules`, leaving the pin and the installed version mismatched.
 - The deployed vault is **PRIVATE (INV-14)**. Never push / mirror it outward or create a public repo
   from it, and **never even *propose*** outbound publication — the suggestion itself is the hazard.
   Publishing is deliberate, human-initiated, and `PUSH_ALLOWLIST`-gated (deny-by-default `pre-push`).
