@@ -41,7 +41,7 @@ No `protects:`-tagged file is touched. Surfaced for sign-off:
   agent's, and it must never be routed to the operator.
 - **Deploy-down** is one operator-run mirror (it writes `96-Runbooks/`).
 
-- [ ] 5.1 Surfaced; awaiting **Approved**.
+- [x] 5.1 Surfaced; **Approved** — Keith Nielsen, 2026-09-26
 
 ## 6. Land it
 
