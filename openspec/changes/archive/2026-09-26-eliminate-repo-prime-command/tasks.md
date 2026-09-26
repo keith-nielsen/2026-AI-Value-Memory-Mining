@@ -52,7 +52,7 @@ No `protects:`-tagged file is touched. Surfaced for sign-off:
 
 ⚠ **Archive BEFORE the first push** (the #121 lesson).
 
-- [ ] 6.1 Archive on this branch.
+- [x] 6.1 Archive on this branch.
 - [ ] 6.2 PR body with a `scope` block covering the FINAL diff (generated after the archive commit).
 - [ ] 6.3 `tools/preflight.py . --body-file <path>` → CLEAR.
 - [ ] 6.4 Walk `tools/pr-flow.py`; merge; cleanup.
