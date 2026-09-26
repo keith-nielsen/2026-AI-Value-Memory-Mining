@@ -46,7 +46,7 @@ No `protects:`-tagged file is touched. Surfaced for sign-off:
 - **Deploy-down needs a manual removal** of `$VAULT_ROOT/.claude/commands/vmm-repo-github.md`.
 - **`AGENTS.md` and bootstrap step 5 grow** by the three items only the card held.
 
-- [ ] 5.1 Surfaced; awaiting sign-off.
+- [x] 5.1 Surfaced; **Approved** — Keith Nielsen, 2026-09-26
 
 ## 6. Land it
 
