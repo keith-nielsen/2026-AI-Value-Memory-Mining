@@ -139,6 +139,14 @@ sessions without notice, so the prime also **measures** its own reach rather tha
    - Deferred / not-built — do **not** attempt or assume available: Crucible, Mint, Forge, Hermes, n8n.
    - Other runbooks: `provenance-seal-runbook`.
    - Durable rules: the auto-loaded memories (`MEMORY.md`).
+   - **Repo work** (a pull request, OpenSpec change, CI, workflow, Dependabot, branch, merge,
+     release) — only when `FRAMEWORK_ROOT` is declared. A vault-rooted session loads **none** of
+     the framework repo's governance, so before planning, read its sources of record:
+     `$FRAMEWORK_ROOT/AGENTS.md` (the constitutional hard stop, operating notes),
+     `$FRAMEWORK_ROOT/CONTRIBUTING.md` (§*Landing a change*, §*Before the first mutation*,
+     §*Before the first push*, §*Shipping a version*) and
+     `$FRAMEWORK_ROOT/docs/version-control-legal-moves.md` (the barred forms first). The route
+     itself is step 4's driver — never hand-composed.
 6. `[script]` **Verify** — `: "${VAULT_ROOT:?}"` (env set); optionally `vault-render.py reconcile`
    (zero drift).
 
