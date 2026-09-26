@@ -130,6 +130,8 @@ harness-agnostic source of truth. **To perform one, open and follow the runbook;
 
 - `session-bootstrap-loader` — **cold-start prime**: source env, engage the gates, know the JIT pointers (a
   SessionStart hook surfaces it). Run it first each session.
+- `agent-conduct-standing-rules` — the **standing behavioural rules** for both roots; read in full at
+  session start (the SessionStart output names it first, and the bootstrap's step 2 points to it).
 - `provenance-seal-runbook` — forensically seal a gold artifact (hash + signature + OTS/Bitcoin + signed tag).
 
 This file (and `CLAUDE.md`, Claude Code skills, etc.) are **adapters** — they point at the

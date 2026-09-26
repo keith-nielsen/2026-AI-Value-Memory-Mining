@@ -4,6 +4,7 @@
 engage the gates (governance-first · re-read-before-acting · autonomy-bans · clean-ops ·
 measure-don't-infer), run the capability probe before asserting what this session can reach or write,
 and know the just-in-time pointers. A Claude Code SessionStart hook surfaces it automatically.
+Then read `96-Runbooks/agent-conduct-standing-rules` in full — the standing behavioural rules.
 
 This vault is a Value Mining operation governed by 99-Operations/ and the OpenSpec corpus
 (constitution, capability specs, ADRs).
