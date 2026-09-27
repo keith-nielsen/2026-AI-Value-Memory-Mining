@@ -65,7 +65,7 @@ impact (ADD-only, `overrides: none`). Surfaced for sign-off:
 
 ⚠ **Archive BEFORE the first push** (the #121 lesson).
 
-- [ ] 6.1 Archive on this branch (with the spec delta).
+- [x] 6.1 Archive on this branch (with the spec delta) — pinned `node_modules/.bin/openspec` 1.12.0.
 - [ ] 6.2 PR body with a `scope` block covering the FINAL diff (generated after the archive commit).
 - [ ] 6.3 `tools/preflight.py . --body-file <path>` → CLEAR.
 - [ ] 6.4 Walk `tools/pr-flow.py`; merge; cleanup.
