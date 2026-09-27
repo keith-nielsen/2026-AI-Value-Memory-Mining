@@ -355,3 +355,81 @@ def test_md_lint_command_matches_the_ci_job_scope():
         assert ignored in joined, f"local md-lint does not ignore {ignored} but the CI job does"
         assert ignored in ci
     assert "--config" in joined and ".markdownlint.yml" in joined
+
+
+# --- the interpreter every job runs under (hardening item 46) ------------------------------------
+#
+# Every job runs under `sys.executable`. Launched by an interpreter that lacks the suite's own
+# requirements, `fleet-pytest` printed `No module named pytest` and the VERDICT called it an issue
+# "that would otherwise surface only AFTER a push" — false: CI installs the requirements and passes.
+# Measured twice (2026-08-20, 2026-09-26). The environment was reported as a defect in the change.
+
+
+def _with_requirements(tmp_path, text):
+    root = make_repo(tmp_path, HEREDOC_JOB)
+    (root / "tests").mkdir()
+    (root / "tests/requirements.txt").write_text(text)
+    return root
+
+
+def test_an_interpreter_without_the_suite_requirements_is_refused_before_anything_runs(tmp_path):
+    """The real geometry: a DIFFERENT environment — a bare venv, exactly as sourcing the vault's
+    venv did. NOT `python -S`: the jobs are child processes, which do not inherit `-S`, regain
+    site-packages and find pytest — measured, and it is why the check spawns its probe the way the
+    jobs are spawned rather than asking its own process."""
+    import venv
+    bare = tmp_path / "bare-venv"
+    venv.create(bare, with_pip=False)
+    py = bare / "bin" / "python"
+    root = _with_requirements(tmp_path, "# test deps\npytest>=8,<10\n")
+    r = subprocess.run([str(py), str(REPO / "tools/preflight.py"), str(root)],
+                       capture_output=True, text=True)
+    assert r.returncode == preflight.EXIT_WRONG_INTERPRETER, (r.returncode, r.stdout, r.stderr)
+    assert "REFUSED" in r.stdout
+    assert str(py) in r.stdout, "the refusal must name the interpreter it measured"
+    assert "pytest" in r.stdout, "the refusal must name what is missing"
+    assert "CI JOBS" not in r.stdout, "nothing may run under an interpreter that was refused"
+    assert "VERDICT" not in r.stdout, "a refused run gives no verdict — no CLEAR, no findings"
+
+
+def test_the_check_sees_what_the_jobs_see_not_what_the_parent_sees(tmp_path):
+    """Under `-S` THIS process has no site-packages, but its child jobs do (they do not inherit the
+    flag) and will find pytest. Asking this process instead of a child would refuse a run that works."""
+    root = _with_requirements(tmp_path, "pytest>=8,<10\n")
+    r = subprocess.run([sys.executable, "-S", str(REPO / "tools/preflight.py"), str(root)],
+                       capture_output=True, text=True)
+    assert r.returncode != preflight.EXIT_WRONG_INTERPRETER, r.stdout
+    assert "REFUSED" not in r.stdout
+
+
+def test_a_missing_distribution_refuses_in_process_too(tmp_path, monkeypatch, capsys):
+    root = _with_requirements(tmp_path, "vmm-no-such-distribution-46==1.0\n")
+    monkeypatch.setattr(preflight, "LOCAL_JOBS", [])
+    monkeypatch.setattr(sys, "argv", ["preflight.py", str(root)])
+    assert preflight.main() == preflight.EXIT_WRONG_INTERPRETER
+    out = capsys.readouterr().out
+    assert "vmm-no-such-distribution-46" in out and "CI JOBS" not in out
+
+
+def test_the_interpreter_that_has_the_requirements_is_not_refused(tmp_path, monkeypatch, capsys):
+    """The over-refusal guard: this test runs under pytest, so pytest is installed here."""
+    root = _with_requirements(tmp_path, "pytest>=8,<10  # inline comment\n")
+    monkeypatch.setattr(preflight, "LOCAL_JOBS", [])
+    monkeypatch.setattr(sys, "argv", ["preflight.py", str(root)])
+    rc = preflight.main()
+    out = capsys.readouterr().out
+    assert rc != preflight.EXIT_WRONG_INTERPRETER and "REFUSED" not in out
+    assert "CI JOBS" in out and "VERDICT" in out
+
+
+def test_no_requirements_file_means_nothing_to_check_not_a_refusal(tmp_path, monkeypatch, capsys):
+    root = make_repo(tmp_path, HEREDOC_JOB)
+    monkeypatch.setattr(preflight, "LOCAL_JOBS", [])
+    monkeypatch.setattr(sys, "argv", ["preflight.py", str(root)])
+    assert preflight.main() != preflight.EXIT_WRONG_INTERPRETER
+    assert "REFUSED" not in capsys.readouterr().out
+
+
+def test_requirement_names_are_read_from_the_real_file():
+    """Parsed from this repository's own file, so a renamed requirement moves the check with it."""
+    assert preflight.required_distributions(REPO) == ["python-frontmatter", "pytest"]
