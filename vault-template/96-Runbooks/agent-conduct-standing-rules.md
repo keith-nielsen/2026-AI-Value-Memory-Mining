@@ -263,8 +263,10 @@ Do the one asked thing, then stop. Do not open adjacent work because the context
   output names it before the bootstrap loader in both roots, the bootstrap's step 2 points here, and
   every rule carries a `cost:` line and `terminal` or `gate:`.
 - CI `runbook-lint` passes on this file.
-- A real cold start shows the pointer inside the SessionStart preview — operator-observed, because no
-  automated test traverses the harness.
+- A real cold start shows the pointer inside the SessionStart preview — **agent-measured**, because no
+  automated test traverses the harness. The preview is delivered to the agent, never shown to the
+  operator, so never route this check to them: the agent reads the first line of the hook's output
+  (from the saved file when the output was truncated) and confirms it names this file.
 
 ## Rollback
 

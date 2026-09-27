@@ -18,8 +18,10 @@ HOW IT IS REACHED — two harness-agnostic-first paths:
    any harness.
 
 STATED LIMIT: these tests establish the registration STRING and the runbook text. They cannot
-establish that Claude Code executes the hook or shows its preview — only a real cold start does, so
-that is an operator observation, not a gate. The live vault's own `.claude/settings.json` is not
+establish that Claude Code executes the hook or shows its preview — only a real cold start does, and
+that check is AGENT-measured: the preview is delivered to the agent, never shown to the operator
+(measured 2026-09-26), so the agent reads line 1 of the hook's saved output. It is not a gate. The
+live vault's own `.claude/settings.json` is not
 checked here: it is per-instance, and is updated by merging the delta, never by copying the template.
 Runbook FORMAT is not re-checked here either: CI's `runbook-lint` owns it (import, never restate).
 """
@@ -113,3 +115,20 @@ def test_every_rule_carries_a_cost_line():
     """The cost IS the criticality metric. A rule without one reads as arbitrary preference."""
     missing = [r.split("\n")[0] for r in _rules() if "`cost:`" not in r]
     assert not missing, f"rules missing a `cost:` line: {missing}"
+
+
+def test_the_cold_start_check_is_agent_measured():
+    """The SessionStart preview is delivered to the AGENT; the operator cannot observe it.
+
+    §Verification once called the cold-start check "operator-observed" — routing an unobservable check
+    to the one party who cannot see it (measured 2026-09-26: the agent read the pointer as line 1 of the
+    saved hook output).
+    """
+    text = DOC.read_text(encoding="utf-8")
+    m = re.search(r"^## Verification\n(.*?)(?=^## )", text, re.S | re.M)
+    assert m, "could not locate the runbook's ## Verification section"
+    section = m.group(1)
+    line = [b for b in section.split("\n- ") if "cold start" in b]
+    assert line, "§Verification no longer names the cold-start check — the checks below would pass vacuously"
+    assert "operator-observed" not in section, "§Verification routes the cold-start check to the operator, who cannot see the preview"
+    assert "agent-measured" in line[0], "§Verification must name the cold-start check as agent-measured"
