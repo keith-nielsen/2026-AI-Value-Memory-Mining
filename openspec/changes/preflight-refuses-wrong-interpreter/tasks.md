@@ -59,7 +59,7 @@ impact (ADD-only, `overrides: none`). Surfaced for sign-off:
 - **The over-refusal risk** and its two guarding tests.
 - **The stated limits:** presence not version; the file is trusted.
 
-- [ ] 5.1 Surfaced; awaiting **Approved**.
+- [x] 5.1 Surfaced; **Approved** — Keith Nielsen, 2026-09-27
 
 ## 6. Land it
 
