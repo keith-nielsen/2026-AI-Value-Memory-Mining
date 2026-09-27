@@ -12,6 +12,8 @@ Not modellable locally, and deliberately not guessed at: `pr` (remote object), `
 stack), `merge` (server-side), and anything decided by a ruleset the session cannot read.
 
 Usage:  preflight.py <repo> [--base origin/main] [--body-file PATH]
+Exit:   0 CLEAR · 1 findings · 3 REFUSED — the interpreter lacks the suite's own requirements, so
+        nothing ran and no verdict is given
 """
 import argparse
 import re
@@ -22,6 +24,58 @@ import tempfile
 from pathlib import Path
 
 FENCE = re.compile(r"```scope[ \t]*\r?\n(.*?)```", re.DOTALL)
+
+# Every job below runs under `sys.executable`. Launched by an interpreter lacking the suite's own
+# requirements, `fleet-pytest` printed `No module named pytest` and the VERDICT counted it as an issue
+# "that would otherwise surface only AFTER a push" — false: CI installs them and passes. Measured
+# 2026-08-20 and 2026-09-26 (hardening item 46). The environment was reported as a defect in the
+# change, so the interpreter is checked first and a wrong one is REFUSED, never scored.
+REQUIREMENTS = "tests/requirements.txt"
+EXIT_WRONG_INTERPRETER = 3
+
+# Run as a CHILD, the way every job is launched — not asked of this process. A child does not
+# inherit interpreter flags such as `-S`, so this process's own view of site-packages can differ
+# from the jobs' view (measured: under `-S` the jobs still found pytest).
+_PROBE = (
+    "import sys\n"
+    "from importlib import metadata\n"
+    "missing = []\n"
+    "for n in sys.argv[1:]:\n"
+    "    try:\n"
+    "        metadata.version(n)\n"
+    "    except metadata.PackageNotFoundError:\n"
+    "        missing.append(n)\n"
+    "print(' '.join(missing))\n"
+)
+
+
+def required_distributions(root):
+    """Distribution names from tests/requirements.txt, in file order; None when there is no file.
+
+    Presence only — a version range is not checked (the stdlib has no specifier parser), and a line
+    that does not start with a distribution name (`-r`, `--index-url`, …) is skipped.
+    """
+    p = root / REQUIREMENTS
+    if not p.is_file():
+        return None
+    names = []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"[A-Za-z0-9][A-Za-z0-9._-]*", line.split("#", 1)[0].strip())
+        if m:
+            names.append(m.group(0))
+    return names
+
+
+def interpreter_refusal(root):
+    """None when the jobs' interpreter can run the suite; otherwise the reason to refuse."""
+    names = required_distributions(root)
+    if not names:
+        return None
+    r = run([sys.executable, "-c", _PROBE, *names], cwd=root)
+    if r.returncode != 0:
+        return f"could not probe it — {((r.stderr or '').strip().splitlines() or ['?'])[-1][:70]}"
+    missing = r.stdout.split()
+    return f"lacks {', '.join(missing)} (declared in {REQUIREMENTS})" if missing else None
 
 # The continuous-integration jobs whose work is NOT a stdlib heredoc, and so is invisible to
 # `ci_steps()`. These are the four commands that were being run by hand before every push — the
@@ -145,6 +199,20 @@ def main():
     ap.add_argument("--body-file")
     a = ap.parse_args()
     root = Path(a.repo).resolve()
+
+    section("INTERPRETER  the one every job below runs under")
+    why = interpreter_refusal(root)
+    if why:
+        print(f"  REFUSED  {sys.executable}")
+        print(f"           {why}")
+        print("           Every job runs under this interpreter, so its results would describe the")
+        print("           ENVIRONMENT, not the change. Nothing was run and no verdict is given.")
+        print("           Re-run with an interpreter where `python3 -m pytest --version` works.")
+        return EXIT_WRONG_INTERPRETER
+    names = required_distributions(root)
+    print(f"  PASS  {sys.executable}" + (f" — has all {len(names)} of {REQUIREMENTS}" if names
+                                          else f" — no {REQUIREMENTS}, nothing declared to check"))
+
     failures = []
     ran_jobs, skipped_jobs = set(), {}
 
