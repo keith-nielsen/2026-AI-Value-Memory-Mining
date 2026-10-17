@@ -12,6 +12,71 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.56] - 2026-10-17
+
+Covers the twelve pull requests merged since v0.1.55: eight archived changes, one bare driver fix,
+two Dependabot action bumps and one bare docs change. Mostly control correctness (the outbound
+guard, hook registration, the pre-flight interpreter), supply-chain pinning, and the standing-conduct
+runbook. Dated in UTC; the archived-change directories carry the UTC day each was applied.
+
+| PR | Change |
+| --- | --- |
+| #128 | The vault template seeds the GitHub read-hosts (hardening item 38) |
+| #129 | `reconcile` detects deployed-but-unregistered git hooks (hardening item 35) |
+| #131 | The outbound guard judges commands, not prose, and never fails open (hardening item 33) |
+| #132 | A foreign-branch saved plan is guarded by its object, not the checkout (hardening item 42) |
+| #46 | `actions/setup-node` 6 → 7 (Dependabot) |
+| #47 | `actions/setup-python` 6 → 7 (Dependabot) |
+| #133 | Every action is pinned to a commit SHA; update cooldowns are declared |
+| #134 | The standing-conduct runbook, delivered by a SessionStart pointer in both roots |
+| #135 | `/vmm-repo-github` is eliminated; its three unique items move into existing guidance |
+| #136 | The conduct runbook's cold-start check is agent-measured, not operator-observed |
+| #137 | The pre-flight refuses an interpreter that cannot run the suite |
+| #139 | The living docs use the full name "Value Memory Mining" |
+
+### Added
+
+- **The standing-conduct runbook** (`96-Runbooks/agent-conduct-standing-rules.md`, #134): 27 rules in
+  the runbook format, each with its cost, date, and `terminal` or `gate:`. SessionStart in both roots
+  names it as its first output line, inside the preview, and `session-bootstrap-loader` step 2 points
+  to it. #136 corrects its §Verification: the cold-start preview check is **agent-measured**, because
+  the preview is delivered to the agent and never shown to the operator.
+- **`reconcile` detects git hooks that are deployed but unregistered** (#129). When
+  `99-Operations/hooks/` holds hooks but `core.hooksPath` does not point at it, `reconcile` names the
+  fix and counts it as drift. It never sets `core.hooksPath` itself (INV-3: detect, never auto-fix).
+- **The pre-flight checks its own interpreter first** (#137). If the jobs' interpreter lacks a
+  distribution named in `tests/requirements.txt`, it prints REFUSED, runs nothing, gives no verdict and
+  exits **3**. An environment defect is no longer reported as a defect in the change. `maintenance`
+  gains one requirement.
+- **The vault template seeds the GitHub read-hosts** (#128): `api.github.com` and `github.com` in
+  `sandbox.network.allowedDomains`, plus `WebFetch(domain:github.com)`. A test asserts the seed
+  default, because parity cannot compare a SEED file.
+
+### Changed
+
+- **Supply chain** (#133): every `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` comment, so
+  a re-pointed tag can no longer change what runs. Cooldowns are declared (npm 14 days, github-actions
+  and pip 7), npm updates move to monthly, and action updates are grouped into one PR.
+  `tests/test_supply_chain_pins.py` enforces both. `actions/setup-node` and `actions/setup-python`
+  moved from 6 to 7 just before the pins (#46, #47).
+- **`/vmm-repo-github` is removed** (#135). Most of its 17 items were already held by a source of
+  record. Bootstrap step 5 now points repo work at `AGENTS.md`, `CONTRIBUTING.md` and
+  `docs/version-control-legal-moves.md` when `FRAMEWORK_ROOT` is declared, and `AGENTS.md` takes the
+  two facts only the command held.
+- **The living docs use the full name "Value Memory Mining"** (#139), 26 lines in 12 files. The
+  constitution's CONST-01 title, the protected `value-pipeline` spec and the historical records keep
+  the short form.
+
+### Fixed
+
+- **The outbound guard judges commands, not prose** (#131, hardening item 33). Message arguments
+  (`-m`, `-F`) are blanked before matching, so a commit message that names a publish command no longer
+  trips it. A leading `source <file>;` before a `cd` now resolves the right target. With the
+  environment unset, the guard no longer fails open.
+- **Dependabot PRs no longer refuse every operator step** (#132, hardening item 42). A saved plan for
+  a branch with no local copy is guarded by its pinned PR and head SHA, not by comparing the checkout,
+  which can never match.
+
 ## [0.1.55] - 2026-09-22
 
 Covers the ten archived changes since v0.1.54 — a GitHub-platform hardening cluster
