@@ -1,6 +1,6 @@
 # Worked Example: A Claim Becomes Bullion
 
-This folder is a narrated, end-to-end walkthrough of the Value Mining pipeline using
+This folder is a narrated, end-to-end walkthrough of the Value Memory Mining pipeline using
 one realistic insight: discovering that **`git bisect` turns regression hunting into a
 binary search**. Read the files in order; each is a real stage in the pipeline.
 

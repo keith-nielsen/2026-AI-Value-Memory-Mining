@@ -4,7 +4,7 @@ title: "Obsidian Integration"
 
 # Obsidian Integration
 
-A Value Mining vault is plain Markdown + YAML frontmatter under git, so it works with
+A Value Memory Mining vault is plain Markdown + YAML frontmatter under git, so it works with
 **any** editor — all 14 scripts and the whole pipeline are editor-agnostic. But
 [Obsidian](https://obsidian.md) is the recommended surface: it renders frontmatter as
 a Properties form, resolves `[[wikilinks]]`, and instantiates the molds. This guide
@@ -62,7 +62,7 @@ Properties (the frontmatter UI) is built in and always on.
 
 The default-new-note-location setting is the next most important: without it, a
 click on an unresolved `[[wikilink]]` creates an empty note at the vault **root**, which
-is outside the Value Mining structure and becomes clutter.
+is outside the Value Memory Mining structure and becomes clutter.
 
 ---
 

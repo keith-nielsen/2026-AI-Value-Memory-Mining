@@ -1,15 +1,15 @@
 ---
-title: "Value Mining — Glossary"
+title: "Value Memory Mining — Glossary"
 source: "openspec/ corpus — constitution, capability specs, ADRs"
 ---
 
-# Value Mining — Glossary
+# Value Memory Mining — Glossary
 
 ---
 
-## Value Mining Terms
+## Value Memory Mining Terms
 
-**Value Mining** — the methodology: the staged extraction of durable knowledge value
+**Value Memory Mining** — the methodology: the staged extraction of durable knowledge value
 from raw inputs. Every term below maps to a stage or artifact in this pipeline.
 
 **Claim** — a staked, unprospected area of interest; raw capture ear-marked for
@@ -41,7 +41,7 @@ stage; also the name of the promotion pipeline.)
 **Polish** — perpetual incremental upkeep of high-value bullion. Never "finished."
 (Knowledge stage.)
 
-**Bullion** — refined, verified knowledge deposited in the Treasury. The Value Mining
+**Bullion** — refined, verified knowledge deposited in the Treasury. The Value Memory Mining
 output.
 
 **Grade** — the value tier of material: `coal < bronze < silver < gold`. Estimated at

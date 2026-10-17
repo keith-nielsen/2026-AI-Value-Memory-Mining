@@ -132,7 +132,7 @@ This system's architectural response:
 
 ## Why This System Is Designed the Way It Is
 
-The architecture choices in Value Mining are direct responses to the practitioner
+The architecture choices in Value Memory Mining are direct responses to the practitioner
 failure modes above:
 
 | Failure mode | This system's response |

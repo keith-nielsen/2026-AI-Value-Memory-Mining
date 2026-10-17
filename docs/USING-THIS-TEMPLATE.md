@@ -4,7 +4,7 @@ title: "Using This Template"
 
 # Using This Template
 
-This repo is a forkable, production-ready implementation of the Value Mining personal
+This repo is a forkable, production-ready implementation of the Value Memory Mining personal
 knowledge system. Fork it once; configure your pillars; run the bootstrap; start
 mining.
 

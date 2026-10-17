@@ -1,8 +1,8 @@
 ---
-title: "Value Mining — Method Walkthrough"
+title: "Value Memory Mining — Method Walkthrough"
 ---
 
-# Value Mining — Method Walkthrough
+# Value Memory Mining — Method Walkthrough
 
 A practical narrative of the methodology: what you do, in what order, and why each
 stage exists.
@@ -16,7 +16,7 @@ forever, at equal priority. The result is an ever-growing archive that becomes h
 to use as it grows. You stop trusting it because you can't tell the gold from the
 gravel.
 
-Value Mining inverts this. It treats knowledge like a mining operation: you stake
+Value Memory Mining inverts this. It treats knowledge like a mining operation: you stake
 Claims, work Sites, sort the ore, and refine only the high-grade material into lasting
 bullion. Everything else is either slagged for later re-evaluation or discarded as
 waste. The Treasury — what you actually keep at full attention — stays curated and

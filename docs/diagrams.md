@@ -1,10 +1,10 @@
 ---
-title: "Value Mining — System Diagrams"
+title: "Value Memory Mining — System Diagrams"
 version: "1.1"
 source: "vault-diagrams-draft.md"
 ---
 
-# Value Mining — System Diagrams
+# Value Memory Mining — System Diagrams
 
 Seven Mermaid diagrams covering the full system. Paste any code block into an Obsidian
 note wrapped in a ```` ```mermaid ```` fence to render interactively.

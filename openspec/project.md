@@ -5,7 +5,7 @@
 
 Build and maintain a reference-grade, Apache-2.0 OpenSpec SDD template repository
 for a local-first, Markdown-based personal knowledge system organized as a
-**Value Mining** operation. The repository must be exemplary in its own right *and*
+**Value Memory Mining** operation. The repository must be exemplary in its own right *and*
 serve as a "done right" template any implementer can fork to run the same
 spec-driven process on their own vault.
 

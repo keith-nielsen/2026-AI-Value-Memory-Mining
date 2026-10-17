@@ -6,7 +6,7 @@ Copyright 2026 Keith Nielsen
 # value-memory-mining
 
 > A professional-grade, spec-driven personal knowledge system built on the
-> **Value Mining** methodology — stake Claims, work Sites, grade the Ore, Refine
+> **Value Memory Mining** methodology — stake Claims, work Sites, grade the Ore, Refine
 > high-grade material into lasting Bullion, Polish indefinitely.
 
 [![CI](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml/badge.svg)](https://github.com/keith-nielsen/2026-AI-Value-Memory-Mining/actions/workflows/ci.yml)
@@ -32,9 +32,9 @@ Copyright 2026 Keith Nielsen
 
 ---
 
-## The Value Mining Method
+## The Value Memory Mining Method
 
-Value Mining treats personal knowledge like a mining operation. Material flows through
+Value Memory Mining treats personal knowledge like a mining operation. Material flows through
 a defined pipeline; only high-grade material reaches the Treasury.
 
 ```text
@@ -121,7 +121,7 @@ Render them in Obsidian or any Mermaid-capable viewer.
 │
 ├── docs/                        # Project documentation
 │   ├── diagrams.md              #   7 Mermaid system diagrams
-│   ├── glossary.md              #   full Value Mining vocabulary
+│   ├── glossary.md              #   full Value Memory Mining vocabulary
 │   ├── method.md                #   method walkthrough (narrative)
 │   ├── obsidian.md              #   recommended Obsidian setup + integration
 │   ├── research.md              #   background research summary (2026 landscape)
