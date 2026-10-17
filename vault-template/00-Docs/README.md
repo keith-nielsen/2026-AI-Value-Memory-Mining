@@ -1,6 +1,6 @@
-# Value Mining — Vault Onboarding
+# Value Memory Mining — Vault Onboarding
 
-Welcome. This vault is a **Value Mining** operation: a staged, personal knowledge
+Welcome. This vault is a **Value Memory Mining** operation: a staged, personal knowledge
 extraction system that turns raw captures into refined, durable bullion.
 
 This `00-Docs/` folder is the onboarding sandbox. Once you're oriented, you can

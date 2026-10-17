@@ -21,7 +21,7 @@
 ## What this repository is
 
 **value-memory-mining** is a reference-grade, Apache-2.0 OpenSpec SDD template for building
-a local-first, Markdown-based personal knowledge system organized as a **Value Mining**
+a local-first, Markdown-based personal knowledge system organized as a **Value Memory Mining**
 operation. It is both an exemplary implementation of spec-driven development *and* a
 forkable template any adopter can run on their own vault.
 
@@ -50,7 +50,7 @@ Do **not** edit `openspec/specs/` directly — changes come from `/opsx:archive`
 
 ---
 
-## Value Mining — the system this repo templates
+## Value Memory Mining — the system this repo templates
 
 Content flows through a pipeline modeled as ore extraction:
 
