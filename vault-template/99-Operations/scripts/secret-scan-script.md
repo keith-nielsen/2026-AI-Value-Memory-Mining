@@ -112,8 +112,9 @@ def _git(repo, *args):
 
 
 def scan_staged(repo="."):
-    """Added/copied/modified staged blobs. Content, not names — the naming gate does names."""
-    out = _git(repo, "diff", "--cached", "--name-only", "--diff-filter=ACM").stdout
+    """Added/copied/modified/renamed staged blobs. Content, not names — the naming gate does names.
+    R is included because a move plus an edit stays a rename and would otherwise go unscanned."""
+    out = _git(repo, "diff", "--cached", "--name-only", "--diff-filter=ACMR").stdout
     hits = []
     for name in out.decode("utf-8", "replace").splitlines():
         if not name.strip():

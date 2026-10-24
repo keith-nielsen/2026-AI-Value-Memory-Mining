@@ -370,8 +370,10 @@ The commit gate SHALL consult **only the HIGH tier**. Advisory matches SHALL be 
 standalone tool and SHALL NOT block a commit. A gate that fires on prose about credentials
 destroys its own signal value and impedes the audit most likely to find its defects.
 
-The scan SHALL cover staged **content** across `git diff --cached --diff-filter=ACM` — every file
-type, added and modified alike — and SHALL NOT grandfather existing files. This is deliberately
+The scan SHALL cover staged **content** across `git diff --cached --diff-filter=ACMR` — every file
+type, added, modified and renamed alike — and SHALL NOT grandfather existing files. A rename is
+included because a file moved and edited in one commit stays above git's rename-similarity
+threshold, is staged as `R`, and would otherwise reach the repository unscanned. This is deliberately
 wider than the INV-11 half of the same gate, which is scoped to `AR`: a pre-existing non-conforming
 *name* is cosmetic debt, a pre-existing *credential* is an active compromise.
 
@@ -408,6 +410,12 @@ custody discipline is the other half of INV-7.
 - **WHEN** a file that already existed is modified to contain a HIGH-tier credential format
 - **THEN** the commit is blocked, notwithstanding that the INV-11 half of the same gate would have
   grandfathered a pre-existing name
+
+#### Scenario: A renamed file is scanned
+
+- **WHEN** a file is renamed in the commit, with or without an edit, and its staged content contains
+  a HIGH-tier credential format
+- **THEN** the commit is blocked, exactly as it would be for an added or modified file
 
 #### Scenario: The scanner refuses to report clean on a broken instrument
 
@@ -779,4 +787,3 @@ why an apparently sibling-targeted command was refused.
   because no redirect was recognised
 - **THEN** the deny message says so and names how to target a sibling (`git -C <path>` or a leading
   `cd`)
-

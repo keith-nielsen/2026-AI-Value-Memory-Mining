@@ -71,12 +71,29 @@ def test_prose_about_secrets_does_not_trip_the_gate(fleet):
 
 def test_credentials_are_not_grandfathered(fleet):
     # Deliberate asymmetry with INV-11: a pre-existing bad NAME is grandfathered
-    # (--diff-filter=AR), a pre-existing credential is not (--diff-filter=ACM).
+    # (--diff-filter=AR), a pre-existing credential is not (--diff-filter=ACMR).
     fleet.write("20-Claims/a-pre-existing-note.md", "clean at first\n")
     fleet.setup_commit("land the file with the gate bypassed")
     (fleet.vault / "20-Claims" / "a-pre-existing-note.md").write_text(f"now: {NPM_TOKEN}\n")
     fleet.git("add", "20-Claims/a-pre-existing-note.md")
     r = fleet.git("commit", "-m", "modify a pre-existing file")   # M, not A/R
+    out = r.stdout + r.stderr
+    assert r.returncode != 0, out
+    assert "INV-7" in out, out
+
+
+def test_gate_covers_a_renamed_and_edited_file(fleet):
+    # A move plus a small edit stays above git's rename-similarity threshold, so the change is
+    # staged as R, not A. Under --diff-filter=ACM it was never scanned (secret-scan-acmr).
+    body = "".join(f"line {i}: nothing secret here\n" for i in range(40))
+    fleet.write("20-Claims/a-note-before-the-move.md", body)
+    fleet.setup_commit("land the file with the gate bypassed")
+    fleet.git("mv", "20-Claims/a-note-before-the-move.md", "20-Claims/a-note-after-the-move.md")
+    (fleet.vault / "20-Claims" / "a-note-after-the-move.md").write_text(body + f"now: {GITHUB_PAT}\n")
+    fleet.git("add", "-A")
+    status = fleet.git("diff", "--cached", "--name-status").stdout
+    assert status.startswith("R"), status   # the precondition: git sees a rename, not D + A
+    r = fleet.git("commit", "-m", "move and edit a note")
     out = r.stdout + r.stderr
     assert r.returncode != 0, out
     assert "INV-7" in out, out
