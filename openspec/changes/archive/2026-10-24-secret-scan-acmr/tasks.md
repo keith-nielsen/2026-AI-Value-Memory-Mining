@@ -16,5 +16,5 @@
 ## 3. Verify
 
 - [x] 3.1 Run `openspec validate secret-scan-acmr --strict` and verify it passes
-- [ ] 3.2 Run `python3 tools/preflight.py . --body-file <body>` and verify it reports
+- [x] 3.2 Run `python3 tools/preflight.py . --body-file <body>` and verify it reports
   CLEAR, including the constitutional gate reading `overrides: none`
