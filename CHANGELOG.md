@@ -12,6 +12,51 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 <!-- New entries are added here as changes land. -->
 
+## [0.1.57] - 2026-10-24
+
+**The freeze release.** Value Memory Mining is splitting: the Claude- and GitHub-specific governance
+tooling moves into its own project, **RatchetHub**, and Value Memory Mining becomes a simpler package
+that depends on it. From this release onward the repository is **frozen to fixes only**: the
+protocol and the harness take no new features.
+
+- **Still accepted:** security fixes, correctness fixes, and Dependabot **security** updates.
+  Dependabot **version** updates keep opening PRs (`.github/dependabot.yml`); merging one is a
+  fix-only judgement each time.
+- **Security reports** are still reviewed ([SECURITY.md](SECURITY.md)), and the fork quick-start in
+  the README remains the supported setup.
+- **v0.1.57 is the reference** both successors cite for "the governance as it stood at the split".
+
+Covers the four pull requests merged since v0.1.56: one archived change, two bare docs changes and
+one Dependabot bump. Dated in UTC; the archived-change directory carries the UTC day it was applied.
+
+| PR | Change |
+| --- | --- |
+| #122 | `@fission-ai/openspec` 1.12.0 → 1.13.1 (Dependabot) |
+| #141 | The Phase 0 freeze brief for the split (`docs/phase-0-freeze-brief.md`) |
+| #142 | The README carries the planned-split notice naming RatchetHub |
+| #143 | The commit gate's secret scan covers renamed files |
+
+### Added
+
+- **The Phase 0 freeze brief** (#141, `docs/phase-0-freeze-brief.md`): re-checks the three route
+  findings for the split, reviews freeze practice, and sets out this release's route.
+- **The planned-split notice** (#142): a note under the README's badge row naming RatchetHub and
+  stating the freeze.
+
+### Changed
+
+- **OpenSpec CLI** 1.12.0 → 1.13.1 (#122). It now writes `openspec/config.yaml` when a change is
+  created; this repository does not track that file.
+
+### Fixed
+
+- **The INV-7 secret scan covers renamed files** (#143, change `secret-scan-acmr`). The commit gate
+  read `--diff-filter=ACM`, so a file moved and edited in one commit was staged as a rename and never
+  scanned; a test showed a HIGH-tier token committed as a 96% rename. The filter is now `ACMR`.
+  `access-control` gains the scenario "A renamed file is scanned", and ADR-0036 carries a dated
+  amendment. A pure rename of a file that already holds a credential now blocks the commit too;
+  measured exposure at release was 0 HIGH matches in the vault and the repository.
+
 ## [0.1.56] - 2026-10-17
 
 Covers the twelve pull requests merged since v0.1.55: eight archived changes, one bare driver fix,
