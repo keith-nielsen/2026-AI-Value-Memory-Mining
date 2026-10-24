@@ -14,6 +14,13 @@ Copyright 2026 Keith Nielsen
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/vault-Obsidian-7C3AED)](https://obsidian.md)
 
+> [!NOTE]
+> **Planned split:** the Claude- and GitHub-specific governance tooling will move into its own
+> project, **RatchetHub**, and Value Memory Mining will become a simpler package that depends on
+> it. Until then this repository is frozen to fixes only, from the v0.1.57 release onward: no new
+> features. Security reports are still reviewed (see [SECURITY.md](SECURITY.md)), and the fork
+> quick-start below remains the supported setup.
+
 ---
 
 ## What Is This?
