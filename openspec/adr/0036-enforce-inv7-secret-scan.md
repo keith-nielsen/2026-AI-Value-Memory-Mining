@@ -89,6 +89,14 @@ Adopt (d).
   gate's INV-11 half: **every file type** (a secret in `.json` counts), **modified files too**
   (`--diff-filter=ACM`, not `AR`), and **never grandfathered** — a pre-existing non-conforming
   name is cosmetic debt, a pre-existing credential is an active compromise.
+
+> **Amended 2026-10-24 (`secret-scan-acmr`).** The filter above read `ACM`, which left out `R`. A
+> file moved and edited in one commit stays above git's rename-similarity threshold, is staged as a
+> rename, and was never scanned; the gap was found by the Phase 0 freeze brief and shown by a test
+> that let a HIGH-tier token through as a 96% rename. The filter is now `ACMR`. This widens the
+> scan and narrows nothing. A pure rename of a file that already holds a credential now blocks,
+> which is the "never grandfathered" rule applied consistently.
+
 - **Only the HIGH tier gates.** ADVISORY matches are reported by the standalone tool and never
   consulted by the hook. This is RC-E applied on purpose.
 - **Findings are redacted** to a four-character prefix and a length. A scanner that echoes what

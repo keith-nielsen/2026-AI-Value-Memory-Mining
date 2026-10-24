@@ -25,7 +25,7 @@ that path; removed 2026-07-05, Phase-1a burn-in finding).
 **INV-7 half (added 2026-07-28).** The same hook then calls `99-Operations/bin/vault_secrets.py --staged`,
 which scans staged **content** — not names — for anchored credential formats. Three deliberate
 asymmetries with the naming half: it covers **every** file type (a secret in a `.json` or `.env`
-counts), it covers **modified** files too (`--diff-filter=ACM`, not `AR`), and it is **never
+counts), it covers **modified** and **renamed** files too (`--diff-filter=ACMR`, not `AR`), and it is **never
 grandfathered**. A pre-existing bad name is a cosmetic debt; a pre-existing live credential is an
 active compromise. Only the `HIGH` tier gates — see `secret-scan-script` for why the advisory tier
 is excluded from the gate (RC-E: over-denial is camouflage). The scanner runs its own selftest
